@@ -18,6 +18,8 @@
         },
         "credential": {
           "AuthenticationKind": "UsernamePassword",
+          "kind": "SQL",
+          "path": "192.168.220.10;DW",
           "Username": "reportuser",
           "EncryptConnection": false
         }
@@ -36,7 +38,9 @@
         },
         "credential": {
           "AuthenticationKind": "UsernamePassword",
-          "Username": "Sa",
+          "kind": "SQL",
+          "path": "192.168.221.10;BI",
+          "Username": "sa",
           "EncryptConnection": false
         }
       }
@@ -768,6 +772,29 @@
               ]
             }
           }
+        ],
+        "measures": [
+          {
+            "name": "Client Assets",
+            "expression": [
+              " ",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "        ),",
+              "        CALCULATE(COUNT('FactShareHoldersTrade'[Value])) ",
+              "        )",
+              ")",
+              "",
+              "VAR NAV = ",
+              "CALCULATE(SUM('FactShareHoldersTrade'[Value]),'DimTimeTable'[Date] = MaxDate)",
+              "RETURN NAV"
+            ]
+          }
         ]
       },
       {
@@ -1001,17 +1028,6 @@
         ]
       },
       {
-        "name": "CalculatedTable 1",
-        "partitions": [
-          {
-            "name": "CalculatedTable 1",
-            "source": {
-              "type": "calculated"
-            }
-          }
-        ]
-      },
-      {
         "name": "bi ManagerColorCodes",
         "columns": [
           {
@@ -1039,10 +1055,22 @@
               "expression": [
                 "let",
                 "    Source = #\"SQL/192 168 221 10;BI\",",
-                "    bi_ManagerColorCodes = Source{[Schema=\"bi\",Item=\"ManagerColorCodes\"]}[Data]",
+                "    bi_ManagerColorCodes = Source{[Schema=\"bi\",Item=\"ManagerColorCodes\"]}[Data],",
+                "    #\"Replaced Value\" = Table.ReplaceValue(bi_ManagerColorCodes,\" ي\",\"ی\",Replacer.ReplaceText,{\"Manager\"})",
                 "in",
-                "    bi_ManagerColorCodes"
+                "    #\"Replaced Value\""
               ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "CalculatedTable 1",
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated"
             }
           }
         ]

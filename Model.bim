@@ -207,6 +207,13 @@
             "name": "FundSubTypeEn",
             "dataType": "string",
             "sourceColumn": "FundSubTypeEn"
+          },
+          {
+            "type": "calculated",
+            "name": "ColorCode",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": " RELATED(DimManager[ColorCode])"
           }
         ],
         "partitions": [
@@ -1061,6 +1068,120 @@
                 "    #\"Replaced Value\""
               ]
             }
+          }
+        ]
+      },
+      {
+        "name": "Fipiran Measures",
+        "columns": [
+          {
+            "name": "Column1",
+            "dataType": "string",
+            "sourceColumn": "Column1"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText(\"i44FAA==\", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Column1 = _t]),",
+                "    #\"Changed Type\" = Table.TransformColumnTypes(Source,{{\"Column1\", type text}})",
+                "in",
+                "    #\"Changed Type\""
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "% 6 Month Return",
+            "expression": [
+              " ",
+              "VAR MaxDate = ",
+              "MAX(DimTimeTable[Date])",
+              "// CALCULATE(",
+              "//     LASTNONBLANK(",
+              "//         DATESBETWEEN(",
+              "//             'DimTimeTable'[Date],",
+              "//             BLANK(),",
+              "//             CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "//         ),",
+              "//         CALCULATE(COUNT('FactFunds'[6MonthReturn]), 'FactFunds'[FundDataTypeId] = 4) ",
+              "//         )",
+              "// )",
+              "",
+              "VAR r = ",
+              "CALCULATE(AVERAGE('FactFunds'[6MonthReturn]), 'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4, NOT(ISBLANK('FactFunds'[6MonthReturn])), 'FactFunds'[6MonthReturn] <> 0)",
+              "RETURN r"
+            ]
+          },
+          {
+            "name": "% 6 Month Return (Average)",
+            "expression": [
+              " ",
+              "CALCULATE(",
+              "    AVERAGEX(",
+              "        'FactFunds',",
+              "        IF(",
+              "            OR(",
+              "                ISBLANK('FactFunds'[6MonthReturn]),",
+              "                'FactFunds'[6MonthReturn] = 0",
+              "            ),",
+              "            BLANK(),",
+              "            'FactFunds'[6MonthReturn]",
+              "        )",
+              "    ),",
+              "    ALLSELECTED('DimTimeTable')",
+              ")"
+            ]
+          },
+          {
+            "name": "% Annual Return",
+            "expression": [
+              " ",
+              "VAR MaxDate = ",
+              "MAX(DimTimeTable[Date])",
+              "// CALCULATE(",
+              "//     LASTNONBLANK(",
+              "//         DATESBETWEEN(",
+              "//             'DimTimeTable'[Date],",
+              "//             BLANK(),",
+              "//             CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "//         ),",
+              "//         CALCULATE(COUNT('FactFunds'[YearReturn]), 'FactFunds'[FundDataTypeId] = 4) ",
+              "//         )",
+              "// )",
+              "",
+              "VAR r = ",
+              "CALCULATE(AVERAGE('FactFunds'[YearReturn]), 'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4, NOT(ISBLANK('FactFunds'[YearReturn])), 'FactFunds'[YearReturn] <> 0)",
+              "RETURN r "
+            ]
+          },
+          {
+            "name": "% Annual Return (Average) old",
+            "expression": [
+              " ",
+              "CALCULATE(",
+              "    AVERAGEX(",
+              "        'FactFunds',",
+              "        IF(",
+              "            OR(",
+              "                ISBLANK('FactFunds'[YearReturn]),",
+              "                'FactFunds'[YearReturn] = 0",
+              "            ),",
+              "            BLANK(),",
+              "            'FactFunds'[YearReturn]",
+              "        )",
+              "    ),",
+              "    ALLSELECTED('DimTimeTable'), not(ISBLANK('FactFunds'[YearReturn])), 'FactFunds'[YearReturn] <> 0",
+              ")",
+              "",
+              ""
+            ]
           }
         ]
       }

@@ -1774,7 +1774,7 @@
             "name": "% Fund Type AUM Ratio",
             "expression": [
               " ",
-              "[AUM]/CALCULATE([AUM], ALL('DimFunds'[FundType]))"
+              "[AUM_2]/CALCULATE([AUM_2], ALL('DimFunds'[FundType]))"
             ]
           },
           {
@@ -1837,7 +1837,7 @@
               "RETURN ",
               "DIVIDE(",
               "    [Net Subscription Value], ",
-              "    CALCULATE([AUM]), ",
+              "    CALCULATE([AUM_2]), ",
               "    BLANK()",
               ") "
             ]
@@ -2140,7 +2140,7 @@
               "        SELECTEDVALUE('DimTimeTable'[Date]) = BaseDate,",
               "        SELECTEDVALUE('DimTimeTable'[Date]) = EndDate",
               "    ),",
-              "    [AUM],",
+              "    [AUM_2],",
               "    BLANK()",
               ")"
             ]
@@ -2158,7 +2158,8 @@
               "            'FactFunds'[Date] = MAX('FactFunds'[Date])",
               "        )",
               "    )",
-              ")"
+              ")",
+              "         "
             ]
           },
           {
@@ -2199,7 +2200,7 @@
               " ",
               "    RANKX(",
               "         ALLSELECTED('DimManager'[FinancialGroupName]),",
-              "        [AUM]",
+              "        [AUM_2]",
               "    )"
             ]
           },
@@ -2217,7 +2218,7 @@
             "name": "Average All Fund AUM",
             "expression": [
               " ",
-              "CALCULATE([AUM] / CALCULATE(count('DimFunds'[FundId])), ALL('DimManager'), ALLEXCEPT('DimFunds','DimFunds'[FundType], 'DimFunds'[FundTypeEn]))"
+              "CALCULATE([AUM_2] / CALCULATE(count('DimFunds'[FundId])), ALL('DimManager'), ALLEXCEPT('DimFunds','DimFunds'[FundType], 'DimFunds'[FundTypeEn]))"
             ]
           },
           {
@@ -2234,14 +2235,14 @@
             "name": "Average Fund AUM",
             "expression": [
               " ",
-              "[AUM] / CALCULATE(count('DimFunds'[FundId]))"
+              "[AUM_2] / CALCULATE(count('DimFunds'[FundId]))"
             ]
           },
           {
             "name": "Average Fund AUM per Unit Holde",
             "expression": [
               " ",
-              "[AUM] / CALCULATE(SUM('FactFunds'[InvestedUnits]))"
+              "[AUM_2] / CALCULATE(SUM('FactFunds'[InvestedUnits]))"
             ]
           },
           {
@@ -3043,7 +3044,7 @@
               "IF(",
               "    '@Include Private Potfolios'[Include Private Potfolios],",
               "    [AUM including Private Portfolios],",
-              "    [AUM]",
+              "    [AUM_2]",
               ")"
             ]
           },
@@ -3099,8 +3100,8 @@
               "CALCULATE(",
               "    SUMX(",
               "        FILTER('DimFunds', AND(NOT(ISBLANK([Period Return])), [Period Return] <>0)),",
-              "        [AUM] * [Period Return])),",
-              "        CALCULATE([AUM], FILTER('DimFunds', AND(NOT(ISBLANK([Period Return])), [Period Return] <>0))))",
+              "        [AUM_2] * [Period Return])),",
+              "        CALCULATE([AUM_2], FILTER('DimFunds', AND(NOT(ISBLANK([Period Return])), [Period Return] <>0))))",
               "RETURN r "
             ]
           },
@@ -3323,6 +3324,79 @@
         "fromColumn": "CompanyId",
         "toTable": "DimCompany",
         "toColumn": "CompanyId"
+      },
+      {
+        "name": "a83990ff-984b-4271-9c7b-9bd274f49143",
+        "fromTable": "FactFunds (Asset Allocation)",
+        "fromColumn": "FundAssetId",
+        "toTable": "DimFundAssets",
+        "toColumn": "FundAssetId"
+      },
+      {
+        "name": "ab2fb658-f51d-4735-9589-735b4d3aff96",
+        "fromTable": "FactFunds",
+        "fromColumn": "FundId",
+        "toTable": "DimFunds",
+        "toColumn": "FundId"
+      },
+      {
+        "name": "5c35a801-afd0-40e2-b1fb-ca985805c79a",
+        "fromTable": "FactFunds (Asset Allocation)",
+        "fromColumn": "FundId",
+        "toTable": "DimFunds",
+        "toColumn": "FundId"
+      },
+      {
+        "name": "1a1e2522-539c-4527-8bf7-88fd54842076",
+        "fromTable": "FactFundsSplit",
+        "fromColumn": "FundId",
+        "toTable": "DimFunds",
+        "toColumn": "FundId"
+      },
+      {
+        "name": "71d01ad5-5aeb-48b5-99f6-8dc9729b32a1",
+        "fromTable": "FactFunds",
+        "fromColumn": "Date",
+        "toTable": "DimTimeTable",
+        "toColumn": "Date"
+      },
+      {
+        "name": "b0c54b11-9ec5-411b-a33e-283ab505ede4",
+        "fromTable": "FactFunds (Asset Allocation)",
+        "fromColumn": "Date",
+        "toTable": "DimTimeTable",
+        "toColumn": "Date"
+      },
+      {
+        "name": "a8567a96-8ca5-4b2d-bb0a-a803b1cc8934",
+        "fromTable": "FactShareHoldersTrade",
+        "fromColumn": "Date",
+        "toTable": "DimTimeTable",
+        "toColumn": "Date"
+      },
+      {
+        "name": "4e37cd05-a024-4158-aa48-a4550e401cc3",
+        "fromTable": "FactFundsSplit",
+        "fromColumn": "Date",
+        "toTable": "DimTimeTable",
+        "toColumn": "Date"
+      },
+      {
+        "name": "d63827ed-03fe-4e43-be18-6b22828fd757",
+        "fromTable": "FactManagerAUM",
+        "fromColumn": "DDate",
+        "toTable": "DimTimeTable",
+        "toColumn": "DateKey"
+      },
+      {
+        "name": "08d28904-87f1-432f-9f35-b524fb7104f8",
+        "fromCardinality": "one",
+        "fromTable": "DimManager",
+        "fromColumn": "ManagerId",
+        "toTable": "FactManagerAUM",
+        "toColumn": "ManagerId",
+        "isActive": false,
+        "crossFilteringBehavior": "bothDirections"
       }
     ],
     "annotations": [

@@ -214,6 +214,19 @@
             "dataType": "string",
             "isDataTypeInferred": true,
             "expression": " RELATED(DimManager[ColorCode])"
+          },
+          {
+            "type": "calculated",
+            "name": "AUM",
+            "dataType": "double",
+            "isDataTypeInferred": true,
+            "expression": [
+              " ",
+              "CALCULATE(",
+              "    [AUM],",
+              "    'DimTimeTable'[IsBeforeTheDayBeforeYesterday], NOT DimFunds[FundType] in {\"اختصاصی بازارگردانی\", \"جسورانه\", \"خصوصی\", \"پروژه‌ای\", \"املاک و مستغلات\"}",
+              ")"
+            ]
           }
         ],
         "partitions": [
@@ -301,7 +314,8 @@
           {
             "name": "Month2",
             "dataType": "string",
-            "sourceColumn": "Month2"
+            "sourceColumn": "Month2",
+            "sortByColumn": "Month"
           },
           {
             "name": "WeekNumberOfYear",
@@ -390,8 +404,13 @@
           {
             "type": "calculated",
             "name": "IsBeforeYesterday",
-            "dataType": "int64",
-            "isDataTypeInferred": true
+            "dataType": "boolean",
+            "isDataTypeInferred": true,
+            "expression": [
+              " ",
+              "IF('DimTimeTable'[Date] <TODAY() - 1, TRUE(), FALSE())"
+            ],
+            "formatString": "\"TRUE\";\"TRUE\";\"FALSE\""
           }
         ],
         "partitions": [
@@ -474,29 +493,6 @@
             "name": "IsCompetitor",
             "dataType": "boolean",
             "sourceColumn": "IsCompetitor"
-          },
-          {
-            "type": "calculated",
-            "name": "AUM",
-            "dataType": "double",
-            "isDataTypeInferred": true,
-            "expression": [
-              " ",
-              "VAR m = 'DimManager'[FinancialGroupName]",
-              "VAR T = ",
-              "FILTER(",
-              "    ALL('DimManager'),",
-              "    DimManager[FinancialGroupName] = m",
-              ")",
-              "RETURN ",
-              "CALCULATE(",
-              "    SUMX(",
-              "        T",
-              "        , CALCULATE([AUM_2]",
-              "        )",
-              "    )",
-              ")"
-            ]
           },
           {
             "type": "calculated",
@@ -626,6 +622,30 @@
               "    \"Private\",",
               "    --BLANK()",
               "    \"Non-Private\"",
+              ")"
+            ]
+          },
+          {
+            "type": "calculated",
+            "name": "AUM",
+            "dataType": "double",
+            "isDataTypeInferred": true,
+            "expression": [
+              " ",
+              "VAR m = 'DimManager'[FinancialGroupName]",
+              "VAR T = ",
+              "FILTER(",
+              "    ALL('DimManager'),",
+              "    DimManager[FinancialGroupName] = m",
+              ")",
+              "RETURN ",
+              "CALCULATE(",
+              "    SUMX(",
+              "        T",
+              "        , CALCULATE([AUM]",
+              "        )",
+              "    )",
+              "    , 'DimTimeTable'[IsBeforeTheDayBeforeYesterday], NOT DimFunds[FundType] in {\"اختصاصی بازارگردانی\", \"جسورانه\", \"خصوصی\", \"پروژه‌ای\", \"املاک و مستغلات\"}",
               ")"
             ]
           }
@@ -796,7 +816,7 @@
             "sourceColumn": "DDate"
           },
           {
-            "name": "AUM",
+            "name": "AUM2",
             "dataType": "double",
             "sourceColumn": "AUM"
           },
@@ -1025,7 +1045,7 @@
             "sourceColumn": "Alpha"
           },
           {
-            "name": "AUM",
+            "name": "AUM2",
             "dataType": "double",
             "sourceColumn": "AUM"
           },
@@ -1335,7 +1355,8 @@
               "        )",
               "    ),",
               "    ALLSELECTED('DimTimeTable')",
-              ")"
+              ")",
+              ""
             ]
           },
           {
@@ -1383,7 +1404,7 @@
             ]
           },
           {
-            "name": "AUM_2",
+            "name": "AUM",
             "expression": [
               " ",
               "VAR MaxDate = ",
@@ -1394,12 +1415,12 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM]), 'FactFunds'[FundDataTypeId] = 4) ",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]), 'FactFunds'[FundDataTypeId] = 4) ",
               "        )",
               ")",
               "",
               "VAR NAV = ",
-              "CALCULATE(SUM('FactFunds'[AUM]),'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4)",
+              "CALCULATE(SUM('FactFunds'[AUM2]),'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4)",
               "RETURN NAV"
             ]
           },
@@ -1423,11 +1444,11 @@
               "CALCULATE(",
               "    SUMX(",
               "        'DimFunds',",
-              "        [AUM_2] * [% Annual Return]), ",
+              "        [AUM] * [% Annual Return]), ",
               "    'DimTimeTable'[Date] = MaxDate, ",
               "    'FactFunds'[FundDataTypeId] = 4",
               ") / ",
-              "CALCULATE([AUM_2], 'DimTimeTable'[Date] = MaxDate, ",
+              "CALCULATE([AUM], 'DimTimeTable'[Date] = MaxDate, ",
               "    'FactFunds'[FundDataTypeId] = 4)",
               "RETURN r "
             ]
@@ -1499,8 +1520,9 @@
               "    , ALLSELECTED('DimFunds')",
               "    , ALLSELECTED('DimManager')",
               "    , ALLSELECTED('DimTimeTable'),",
-              "    FILTER('DimFunds', CALCULATE([6 Month Rank (Old)])     <= [@TopX])",
-              ")"
+              "    FILTER('DimFunds', CALCULATE([6 Month Rank + Firouzeh Funds])     <= [@TopX])",
+              ")",
+              ""
             ]
           },
           {
@@ -1581,7 +1603,7 @@
               "    , ALLSELECTED('DimFunds')",
               "    , ALLSELECTED('DimManager')",
               "    , ALLSELECTED('DimTimeTable'),",
-              "    FILTER('DimFunds', CALCULATE([Annual Rank (Old)])     <= [@TopX])",
+              "    FILTER('DimFunds', CALCULATE([Annual Rank + Firouzeh Funds])     <= [@TopX])",
               ")",
               ""
             ]
@@ -1653,8 +1675,9 @@
               "    , ALLSELECTED('DimFunds')",
               "    , ALLSELECTED('DimManager')",
               "    , ALLSELECTED('DimTimeTable'),",
-              "    FILTER('DimFunds', CALCULATE([Month Rank (Old)]) <= [@TopX])",
-              ")"
+              "    FILTER('DimFunds', CALCULATE([Month Rank + Firouzeh Funds]) <= [@TopX])",
+              ")",
+              ""
             ]
           },
           {
@@ -1724,8 +1747,9 @@
               "    , ALLSELECTED('DimFunds')",
               "    , ALLSELECTED('DimManager')",
               "    , ALLSELECTED('DimTimeTable'),",
-              "    FILTER('DimFunds', CALCULATE([Quarter Rank (Old)])     <= [@TopX])",
-              ")"
+              "    FILTER('DimFunds', CALCULATE([Quarter Rank + Firouzeh Funds])     <= [@TopX])",
+              ")",
+              ""
             ]
           },
           {
@@ -1774,7 +1798,7 @@
             "name": "% Fund Type AUM Ratio",
             "expression": [
               " ",
-              "[AUM_2]/CALCULATE([AUM_2], ALL('DimFunds'[FundType]))"
+              "[AUM]/CALCULATE([AUM], ALL('DimFunds'[FundType]))"
             ]
           },
           {
@@ -1816,7 +1840,8 @@
               "        )",
               "    ),",
               "    ALLSELECTED('DimTimeTable')",
-              ")"
+              ")",
+              ""
             ]
           },
           {
@@ -1831,13 +1856,13 @@
               "            BLANK(),",
               "            CALCULATE(PREVIOUSDAY(FIRSTDATE('DimTimeTable'[Date])))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM]))",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
               "    )",
               ")",
               "RETURN ",
               "DIVIDE(",
               "    [Net Subscription Value], ",
-              "    CALCULATE([AUM_2]), ",
+              "    CALCULATE([AUM], 'DimTimeTable'[Date] = BaseDate), ",
               "    BLANK()",
               ") "
             ]
@@ -1967,17 +1992,45 @@
             ]
           },
           {
-            "name": "6 Month Rank (Old)",
+            "name": "6 Month Rank",
+            "expression": [
+              " ",
+              "VAR CurrentFundType = SELECTEDVALUE('DimFunds'[FundType])",
+              "VAR MinAUM = '@AUM'[Min AUM]",
+              "VAR MaxAUM = '@AUM'[Max AUM]",
+              "",
+              "RETURN ",
+              "IF(ISBLANK([% 6 Month Return]),",
+              "    BLANK(),",
+              "    CALCULATE(",
+              "        RANKX(",
+              "            FILTER(",
+              "                ALL('DimFunds'),",
+              "                NOT(ISBLANK([% 6 Month Return])) && 'DimFunds'[FundType] = CurrentFundType  ",
+              "                && 'DimFunds'[AUM] <= MaxAUM && 'DimFunds'[AUM] >= MinAUM",
+              "            )",
+              "            , [% 6 Month Return]",
+              "            ,",
+              "            , DESC",
+              "            , Skip",
+              "        )",
+              "    )    ",
+              ")"
+            ]
+          },
+          {
+            "name": "6 Month Rank + Firouzeh Funds",
             "expression": [
               " ",
               "IF(",
               "    SELECTEDVALUE('DimFunds'[ManagerId]) = 38,",
               "    0,",
-              "    IF(ISBLANK([% Month Return]),",
+              "    IF(ISBLANK([% 6 Month Return]),",
               "        BLANK(),",
               "        CALCULATE(",
               "            RANKX(",
-              "                FILTER(ALLEXCEPT('DimFunds', DimFunds[FundType]), NOT(ISBLANK([% Month Return])))",
+              "                --FILTER(ALLEXCEPT('DimFunds', DimFunds[FundType]), NOT(ISBLANK([% 6 Month Return])))",
+              "                FILTER(ALLSELECTED('DimFunds'), NOT(ISBLANK([% 6 Month Return])))",
               "                , [% 6 Month Return]",
               "                ,",
               "                , DESC",
@@ -1989,17 +2042,45 @@
             ]
           },
           {
-            "name": "Annual Rank (Old)",
+            "name": "Annual Rank",
+            "expression": [
+              " ",
+              "VAR CurrentFundType = SELECTEDVALUE('DimFunds'[FundType])",
+              "VAR MinAUM = '@AUM'[Min AUM]",
+              "VAR MaxAUM = '@AUM'[Max AUM]",
+              "",
+              "RETURN ",
+              "IF(ISBLANK([% Annual Return]),",
+              "    BLANK(),",
+              "    CALCULATE(",
+              "        RANKX(",
+              "            FILTER(",
+              "                ALL('DimFunds'),",
+              "                NOT(ISBLANK([% Annual Return])) && 'DimFunds'[FundType] = CurrentFundType  ",
+              "                && 'DimFunds'[AUM] <= MaxAUM && 'DimFunds'[AUM] >= MinAUM",
+              "            )",
+              "            , [% Annual Return]",
+              "            ,",
+              "            , DESC",
+              "            , Skip",
+              "        )",
+              "    )    ",
+              ")"
+            ]
+          },
+          {
+            "name": "Annual Rank + Firouzeh Funds",
             "expression": [
               " ",
               "IF(",
               "    SELECTEDVALUE('DimFunds'[ManagerId]) = 38,",
               "    0,",
-              "    IF(ISBLANK([% Month Return]),",
+              "    IF(ISBLANK([% Annual Return]),",
               "        BLANK(),",
               "        CALCULATE(",
               "            RANKX(",
-              "                FILTER(ALLEXCEPT('DimFunds', DimFunds[FundType]), NOT(ISBLANK([% Month Return])))",
+              "                --FILTER(ALLEXCEPT('DimFunds', DimFunds[FundType]), NOT(ISBLANK([% Annual Return])))",
+              "                FILTER(ALLSELECTED('DimFunds'), NOT(ISBLANK([% Annual Return])))",
               "                , [% Annual Return]",
               "                ,",
               "                , DESC",
@@ -2035,7 +2116,7 @@
             "name": "AUM (Currency)",
             "expression": [
               " ",
-              "[AUM_2]"
+              "[AUM]"
             ]
           },
           {
@@ -2043,8 +2124,8 @@
             "expression": [
               " ",
               "DIVIDE(",
-              "    [AUM_2],",
-              "    CALCULATE([AUM_2], ALLSELECTED('DimFunds'))",
+              "    [AUM],",
+              "    CALCULATE([AUM], ALLSELECTED('DimFunds'))",
               ")"
             ]
           },
@@ -2065,7 +2146,7 @@
               ")",
               "",
               "VAR AUM =",
-              "CALCULATE(SUMX('FactFunds (Asset Allocation)',[AUM_2] * 'FactFunds (Asset Allocation)'[Value]/100),'DimTimeTable'[Date] = MaxDate)",
+              "CALCULATE(SUMX('FactFunds (Asset Allocation)',[AUM] * 'FactFunds (Asset Allocation)'[Value]/100),'DimTimeTable'[Date] = MaxDate)",
               "RETURN AUM"
             ]
           },
@@ -2083,7 +2164,7 @@
             "name": "AUM including Private Portfolios",
             "expression": [
               " ",
-              "[AUM_2] + [AUM of Private Porfolios]"
+              "[AUM] + [AUM of Private Porfolios]"
             ]
           },
           {
@@ -2091,7 +2172,7 @@
             "expression": [
               " ",
               "DIVIDE(",
-              "    [AUM_2],",
+              "    [AUM],",
               "    CALCULATE([AUM including Private Portfolios], ALLSELECTED('DimFunds'))",
               ")"
             ]
@@ -2118,7 +2199,7 @@
               "            BLANK(),",
               "            CALCULATE((FIRSTDATE('DimTimeTable'[Date])))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM]))",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
               "    )",
               "    , ALLSELECTED('DimTimeTable')",
               ")",
@@ -2130,7 +2211,7 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM]))",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
               "    )",
               "    , ALLSELECTED('DimTimeTable')",
               ")",
@@ -2140,7 +2221,7 @@
               "        SELECTEDVALUE('DimTimeTable'[Date]) = BaseDate,",
               "        SELECTEDVALUE('DimTimeTable'[Date]) = EndDate",
               "    ),",
-              "    [AUM_2],",
+              "    [AUM],",
               "    BLANK()",
               ")"
             ]
@@ -2154,12 +2235,25 @@
               "    SUMX(",
               "        FILTER('DimFunds', 'DimFunds'[ManagerId] = EARLIER('DimManager'[ManagerId])),",
               "        CALCULATE(",
-              "            SELECTEDVALUE('FactFunds'[AUM]),",
+              "            SELECTEDVALUE('FactFunds'[AUM2]),",
               "            'FactFunds'[Date] = MAX('FactFunds'[Date])",
               "        )",
               "    )",
-              ")",
-              "         "
+              ")"
+            ]
+          },
+          {
+            "name": "AUM New 3",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    VALUES('FactFunds'[FundId]),",
+              "    VAR LastDay = CALCULATE(MAX('FactFunds'[Date]), NOT(ISBLANK('FactFunds'[AUM2])))",
+              "    RETURN CALCULATE(",
+              "        SELECTEDVALUE('FactFunds'[AUM2]),",
+              "        'FactFunds'[Date] = LastDay",
+              "    )",
+              ")"
             ]
           },
           {
@@ -2179,7 +2273,7 @@
               ")",
               "",
               "VAR NAV = ",
-              "CALCULATE(SUM('FactManagerAUM'[AUM]),'DimTimeTable'[Date] = MaxDate)",
+              "CALCULATE(SUM('FactManagerAUM'[AUM2]),'DimTimeTable'[Date] = MaxDate)",
               "RETURN NAV"
             ]
           },
@@ -2190,8 +2284,7 @@
               "    RANKX(",
               "        ALL('DimManager'[FinancialGroupName]),",
               "        [AUM including Private Portfolios]",
-              "    )",
-              "    "
+              "    )"
             ]
           },
           {
@@ -2200,7 +2293,7 @@
               " ",
               "    RANKX(",
               "         ALLSELECTED('DimManager'[FinancialGroupName]),",
-              "        [AUM_2]",
+              "        [AUM]",
               "    )"
             ]
           },
@@ -2218,7 +2311,7 @@
             "name": "Average All Fund AUM",
             "expression": [
               " ",
-              "CALCULATE([AUM_2] / CALCULATE(count('DimFunds'[FundId])), ALL('DimManager'), ALLEXCEPT('DimFunds','DimFunds'[FundType], 'DimFunds'[FundTypeEn]))"
+              "CALCULATE([AUM] / CALCULATE(count('DimFunds'[FundId])), ALL('DimManager'), ALLEXCEPT('DimFunds','DimFunds'[FundType], 'DimFunds'[FundTypeEn]))"
             ]
           },
           {
@@ -2235,14 +2328,14 @@
             "name": "Average Fund AUM",
             "expression": [
               " ",
-              "[AUM_2] / CALCULATE(count('DimFunds'[FundId]))"
+              "[AUM] / CALCULATE(count('DimFunds'[FundId]))"
             ]
           },
           {
             "name": "Average Fund AUM per Unit Holde",
             "expression": [
               " ",
-              "[AUM_2] / CALCULATE(SUM('FactFunds'[InvestedUnits]))"
+              "[AUM] / CALCULATE(SUM('FactFunds'[InvestedUnits]))"
             ]
           },
           {
@@ -2286,16 +2379,6 @@
             ]
           },
           {
-            "name": "Count of Firouzeh Funds",
-            "expression": [
-              " ",
-              "CALCULATE(",
-              "    COUNTROWS('DimFunds'),",
-              "    'DimFunds'[Manager] = \"سبدگردان توسعه فیروزه\"",
-              ")"
-            ]
-          },
-          {
             "name": "Manager Color Code",
             "expression": [
               " ",
@@ -2328,14 +2411,14 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM]), 'FactFunds'[FundDataTypeId] = 4) ",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]), 'FactFunds'[FundDataTypeId] = 4) ",
               "        )",
               ")",
               "RETURN ",
               "DIVIDE(",
-              "    CALCULATE([AUM_2])--CALCULATE([AUM], 'DimTimeTable'[Date] = MaxDate, ALLSELECTED('DimTimeTable'))",
+              "    CALCULATE([aum])--CALCULATE([AUM], 'DimTimeTable'[Date] = MaxDate, ALLSELECTED('DimTimeTable'))",
               "    ,",
-              "    CALCULATE([AUM_2], ALLSELECTED('DimFunds'), ALLSELECTED('FactFunds'), ALLSELECTED('DimManager'), ALLSELECTED('DimFunds'),'DimTimeTable'[Date] = MaxDate),",
+              "    CALCULATE([AUM], ALLSELECTED('DimFunds'), ALLSELECTED('FactFunds'), ALLSELECTED('DimManager'), ALLSELECTED('DimFunds'),'DimTimeTable'[Date] = MaxDate),",
               "    0",
               "    )"
             ]
@@ -2352,7 +2435,60 @@
             ]
           },
           {
-            "name": "Month Rank (Old)",
+            "name": "Market Share % of Non Bank-Affiliated (including Private Portfos)",
+            "expression": [
+              " ",
+              "DIVIDE(",
+              "    CALCULATE([AUM including Private Portfolios]),",
+              "    CALCULATE([AUM including Private Portfolios], ALL('DimManager'), NOT('DimManager'[IsBanking])),",
+              "    0",
+              ")"
+            ]
+          },
+          {
+            "name": "Month Rank",
+            "expression": [
+              " ",
+              "VAR CurrentFundType = SELECTEDVALUE('DimFunds'[FundType])",
+              "VAR MinAUM = '@AUM'[Min AUM]",
+              "VAR MaxAUM = '@AUM'[Max AUM]--CALCULATE(MAX('DimFunds'[AUM]), ALLSELECTED('DimFunds'))",
+              "",
+              "RETURN ",
+              "IF (",
+              "    [Month Rank + Firouzeh Funds] = 0,",
+              "    IF(ISBLANK([% Month Return]),",
+              "        BLANK(),",
+              "        CALCULATE(",
+              "            RANKX(",
+              "                FILTER(",
+              "                    ALL('DimFunds'),",
+              "                    NOT(ISBLANK([% Month Return])) && 'DimFunds'[FundType] = CurrentFundType  ",
+              "                    && 'DimFunds'[AUM] <= MaxAUM && 'DimFunds'[AUM] >= MinAUM",
+              "                )",
+              "                , [% Month Return]",
+              "                ,",
+              "                , DESC",
+              "                , Skip",
+              "            )",
+              "        )",
+              "    ),",
+              "    IF(ISBLANK([% Month Return]),",
+              "        BLANK(),",
+              "        CALCULATE(",
+              "            RANKX(",
+              "                ALLEXCEPT('DimFunds', 'DimFunds'[FundType], 'DimFunds'[AUM])",
+              "                , [% Month Return]",
+              "                ,",
+              "                , DESC",
+              "                , Skip",
+              "            )",
+              "        )",
+              "    )",
+              ")"
+            ]
+          },
+          {
+            "name": "Month Rank + Firouzeh Funds",
             "expression": [
               " ",
               "IF(",
@@ -2362,7 +2498,8 @@
               "        BLANK(),",
               "        CALCULATE(",
               "            RANKX(",
-              "                FILTER(ALLEXCEPT('DimFunds', DimFunds[FundType]), NOT(ISBLANK([% Month Return])))",
+              "                --FILTER(ALLEXCEPT('DimFunds', DimFunds[FundType]), NOT(ISBLANK([% Month Return])))",
+              "                FILTER(ALLSELECTED('DimFunds'), NOT(ISBLANK([% Month Return])))",
               "                , [% Month Return]",
               "                ,",
               "                , DESC",
@@ -2375,7 +2512,7 @@
           },
           {
             "name": "NAV i BT",
-            "expression": " [AUM_2] / 10 ^ 10"
+            "expression": " [AUM] / 10 ^ 10"
           },
           {
             "name": "Net Subscription Value",
@@ -2396,7 +2533,7 @@
               "            BLANK(),",
               "            CALCULATE(PREVIOUSDAY(FIRSTDATE('DimTimeTable'[Date])))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM]))",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
               "    )",
               "    , ALLSELECTED('DimTimeTable')",
               ")",
@@ -2408,7 +2545,7 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM]))",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
               "    )",
               ")",
               "RETURN ",
@@ -2417,42 +2554,6 @@
               "    'DimTimeTable'[Date] >= BaseDate,",
               "    'DimTimeTable'[Date] <= EndDate",
               ")"
-            ]
-          },
-          {
-            "name": "New Units",
-            "expression": [
-              " ",
-              "VAR NewUnits =",
-              "    CALCULATE (",
-              "        SUMX (",
-              "            'FactFunds',",
-              "            'FactFunds'[SubscriptionPrice]",
-              "                * (",
-              "                    'FactFunds'[Units]",
-              "                        - CALCULATE (",
-              "                            SELECTEDVALUE ( 'FactFunds'[Units]  ),",
-              "                            --   SELECTEDVALUE('ViwFund_All'[Date]),",
-              "                            FILTER (",
-              "                                ALL ( FactFunds ),",
-              "                                'FactFunds'[Date]",
-              "                                    = CALCULATE (",
-              "                                        MAX ( 'FactFunds'[Date] ),",
-              "                                        'FactFunds'[Date] < EARLIEST ( 'FactFunds'[Date] ),",
-              "                                        'FactFunds'[FundId] = EARLIEST ( FactFunds[FundId] ),",
-              "                                        ALL ( 'FactFunds' ),",
-              "                                        'FactFunds'[FundDataTypeId] = 4",
-              "                                    )",
-              "                                    && 'FactFunds'[FundId] = EARLIEST ( FactFunds[FundId] )",
-              "                                    && 'FactFunds'[FundDataTypeId] = 4",
-              "                            )",
-              "                        ) --)",
-              "                        --  )",
-              "                )",
-              "        )",
-              "    )",
-              "RETURN",
-              "    NewUnits"
             ]
           },
           {
@@ -2467,7 +2568,7 @@
               "                BLANK (),",
               "                CALCULATE ( FIRSTDATE ( 'DimTimeTable'[Date] ) )",
               "            ),",
-              "            CALCULATE ( COUNT ( 'FactFunds'[AUM] ) )",
+              "            CALCULATE ( COUNT ( 'FactFunds'[AUM2] ) )",
               "        ),",
               "        ALLSELECTED ( 'DimTimeTable' )",
               "    )",
@@ -2477,9 +2578,9 @@
               "            'FactFunds',",
               "            'FactFunds'[SubscriptionPrice]",
               "                * (",
-              "                    'FactFunds'[AUM]",
+              "                    'FactFunds'[AUM2]",
               "                        - CALCULATE (",
-              "                            SELECTEDVALUE ( 'FactFunds'[AUM] ),",
+              "                            SELECTEDVALUE ( 'FactFunds'[AUM2] ),",
               "                            --   SELECTEDVALUE('ViwFund_All'[Date]),",
               "                            FILTER (",
               "                                ALL ( FactFunds ),",
@@ -2503,7 +2604,7 @@
               "CALCULATE(",
               "    SUMX(",
               "        'FactFunds',",
-              "        'FactFunds'[AUM] * 'FactFunds'[SubscriptionPrice]),",
+              "        'FactFunds'[AUM2] * 'FactFunds'[SubscriptionPrice]),",
               "        'FactFunds'[Date] = PeriodStartDate,",
               "        ALLSELECTED('DimTimeTable'),",
               "        'FactFunds'[FundDataTypeId] = 4",
@@ -2512,134 +2613,45 @@
             ]
           },
           {
-            "name": "New Units % of Current Units",
+            "name": "Quarter Rank",
             "expression": [
               " ",
-              "VAR PeriodStartDate =",
-              "    CALCULATE (",
-              "        LASTNONBLANK (",
-              "            DATESBETWEEN (",
-              "                'DimTimeTable'[Date],",
-              "                BLANK (),",
-              "                CALCULATE ( FIRSTDATE ( 'DimTimeTable'[Date] ) )",
-              "            ),",
-              "            CALCULATE ( COUNT ( 'FactFunds'[Units] ) )",
-              "        ),",
-              "        ALLSELECTED ( 'DimTimeTable' )",
-              "    )",
-              "VAR NewUnits =",
-              "    CALCULATE (",
-              "        SUMX (",
-              "            'FactFunds',",
-              "            'FactFunds'[SubscriptionPrice]",
-              "                * (",
-              "                    'FactFunds'[Units]",
-              "                        - CALCULATE (",
-              "                            SELECTEDVALUE ( 'FactFunds'[Units] ),",
-              "                            --   SELECTEDVALUE('ViwFund_All'[Date]),",
-              "                            FILTER (",
-              "                                ALL ( FactFunds ),",
-              "                                'FactFunds'[Date]",
-              "                                    = CALCULATE (",
-              "                                        MAX ( 'FactFunds'[Date] ),",
-              "                                        'FactFunds'[Date] < EARLIEST ( 'FactFunds'[Date] ),",
-              "                                        'FactFunds'[FundId] = EARLIEST ( FactFunds[FundId] ),",
-              "                                        ALL ( 'FactFunds' ),",
-              "                                        'FactFunds'[FundDataTypeId] = 4",
-              "                                    )",
-              "                                    && 'FactFunds'[FundId] = EARLIEST ( FactFunds[FundId] )",
-              "                                    && 'FactFunds'[FundDataTypeId] = 4",
-              "                            )",
-              "                        ) --)",
-              "                        --  )",
-              "                )",
+              "VAR CurrentFundType = SELECTEDVALUE('DimFunds'[FundType])",
+              "VAR MinAUM = '@AUM'[Min AUM]",
+              "VAR MaxAUM = '@AUM'[Max AUM]",
+              "",
+              "RETURN ",
+              "IF(ISBLANK([% Quarter Return]),",
+              "    BLANK(),",
+              "    CALCULATE(",
+              "        RANKX(",
+              "            FILTER(",
+              "                ALL('DimFunds'),",
+              "                NOT(ISBLANK([% Quarter Return])) && 'DimFunds'[FundType] = CurrentFundType  ",
+              "                && 'DimFunds'[AUM] <= MaxAUM && 'DimFunds'[AUM] >= MinAUM",
+              "            )",
+              "            , [% Quarter Return]",
+              "            ,",
+              "            , DESC",
+              "            , Skip",
               "        )",
-              "    )",
-              "VAR BaseUnits =",
-              "CALCULATE(",
-              "    SUMX(",
-              "        'FactFunds',",
-              "        'FactFunds'[Units] * 'FactFunds'[SubscriptionPrice]),",
-              "        'FactFunds'[Date] = MAX('DimTimeTable'[Date]),",
-              "        'FactFunds'[FundDataTypeId] = 4",
-              ")",
-              "RETURN DIVIDE(IF(ISBLANK(NewUnits), 0, NewUnits) , BaseUnits, 0)"
+              "    )    ",
+              ")"
             ]
           },
           {
-            "name": "New Units Cum %",
-            "expression": [
-              " ",
-              "VAR PeriodStartDate =",
-              "    CALCULATE (",
-              "        LASTNONBLANK (",
-              "            DATESBETWEEN (",
-              "                'DimTimeTable'[Date],",
-              "                BLANK (),",
-              "                CALCULATE ( FIRSTDATE ( 'DimTimeTable'[Date] ) )",
-              "            ),",
-              "            CALCULATE ( COUNT ( 'FactFunds'[Units] ) )",
-              "        ),",
-              "        ALLSELECTED ( 'DimTimeTable' )",
-              "    )",
-              "VAR NewUnits =",
-              "    CALCULATE (",
-              "        SUMX (",
-              "            'FactFunds',",
-              "            'FactFunds'[SubscriptionPrice]",
-              "                * (",
-              "                    'FactFunds'[Units]",
-              "                        - CALCULATE (",
-              "                            SELECTEDVALUE ( 'FactFunds'[Units] ),",
-              "                            --   SELECTEDVALUE('ViwFund_All'[Date]),",
-              "                            FILTER (",
-              "                                ALL ( FactFunds ),",
-              "                                'FactFunds'[Date]",
-              "                                    = CALCULATE (",
-              "                                        MAX ( 'FactFunds'[Date] ),",
-              "                                        'FactFunds'[Date] < EARLIEST ( 'FactFunds'[Date] ),",
-              "                                        'FactFunds'[FundId] = EARLIEST ( FactFunds[FundId] ),",
-              "                                        ALL ( 'FactFunds' ),",
-              "                                        'FactFunds'[FundDataTypeId] = 4",
-              "                                    )",
-              "                                    && 'FactFunds'[FundId] = EARLIEST ( FactFunds[FundId] )",
-              "                                    && 'FactFunds'[FundDataTypeId] = 4",
-              "                            )",
-              "                        ) --)",
-              "                        --  )",
-              "                )",
-              "        ),",
-              "        DATESBETWEEN (",
-              "            'DimTimeTable'[Date],",
-              "            PeriodStartDate,",
-              "            MAX ( 'DimTimeTable'[Date] )",
-              "        ),",
-              "        ALL ( 'FactFunds'[Date] )",
-              "    )",
-              "VAR BaseUnits =",
-              "CALCULATE(",
-              "    SUMX(",
-              "        'FactFunds',",
-              "        'FactFunds'[Units] * 'FactFunds'[SubscriptionPrice]),",
-              "        'FactFunds'[Date] = PeriodStartDate,",
-              "        ALLSELECTED('DimTimeTable'),",
-              "        'FactFunds'[FundDataTypeId] = 4",
-              ")",
-              "RETURN DIVIDE(IF(ISBLANK(NewUnits), 0, NewUnits) , BaseUnits, 0)"
-            ]
-          },
-          {
-            "name": "Quarter Rank (Old)",
+            "name": "Quarter Rank + Firouzeh Funds",
             "expression": [
               " ",
               "IF(",
               "    SELECTEDVALUE('DimFunds'[ManagerId]) = 38,",
               "    0,",
-              "    IF(ISBLANK([% Month Return]),",
+              "    IF(ISBLANK([% Quarter Return]),",
               "        BLANK(),",
               "        CALCULATE(",
               "            RANKX(",
-              "                FILTER(ALLEXCEPT('DimFunds', DimFunds[FundType]), NOT(ISBLANK([% Month Return])))",
+              "                --FILTER(ALLEXCEPT('DimFunds', DimFunds[FundType]), NOT(ISBLANK([% Quarter Return])))",
+              "                FILTER(ALLSELECTED('DimFunds'), NOT(ISBLANK([% Quarter Return])))",
               "                , [% Quarter Return]",
               "                ,",
               "                , DESC",
@@ -2658,125 +2670,6 @@
             ]
           },
           {
-            "name": "New Units Cum",
-            "expression": [
-              " ",
-              "// VAR PeriodStartDate =",
-              "//     CALCULATE (",
-              "//         LASTNONBLANK (",
-              "//             DATESBETWEEN (",
-              "//                 'DimTimeTable'[Date],",
-              "//                 BLANK (),",
-              "//                 CALCULATE ( FIRSTDATE ( 'DimTimeTable'[Date] ) )",
-              "//             ),",
-              "//             CALCULATE ( COUNT ( 'ViwFund_All'[کل واحدهاي سرمايه‌گذاري شده] ) )",
-              "//         ),",
-              "//         ALLSELECTED ( 'DimTimeTable' )",
-              "//     )",
-              "// VAR NewUnits =",
-              "//     CALCULATE (",
-              "//         SUMX (",
-              "//             'ViwFund_All',",
-              "//             'ViwFund_All'[قيمت صدور واحد]",
-              "//                 * (",
-              "//                     'ViwFund_All'[کل واحدهاي سرمايه‌گذاري شده]",
-              "//                         - CALCULATE (",
-              "//                             SELECTEDVALUE ( 'ViwFund_All'[کل واحدهاي سرمايه‌گذاري شده] ),",
-              "//                             --   SELECTEDVALUE('ViwFund_All'[Date]),",
-              "//                             FILTER (",
-              "//                                 ALL ( ViwFund_All ),",
-              "//                                 'ViwFund_All'[Date]",
-              "//                                     = CALCULATE (",
-              "//                                         MAX ( 'ViwFund_All'[Date] ),",
-              "//                                         'ViwFund_All'[Date] < EARLIEST ( 'ViwFund_All'[Date] ),",
-              "//                                         'ViwFund_All'[FundId] = EARLIEST ( ViwFund_All[FundId] ),",
-              "//                                         ALL ( 'ViwFund_All' ),",
-              "//                                         'ViwFund_All'[FundDataTypeId] = 4",
-              "//                                     )",
-              "//                                     && 'ViwFund_All'[FundId] = EARLIEST ( ViwFund_All[FundId] )",
-              "//                                     && 'ViwFund_All'[FundDataTypeId] = 4",
-              "//                             )",
-              "//                         ) --)",
-              "//                         --  )",
-              "//                 )",
-              "//         ),",
-              "//         DATESBETWEEN (",
-              "//             'DimTimeTable'[Date],",
-              "//             PeriodStartDate,",
-              "//             MAX ( 'DimTimeTable'[Date] )",
-              "//         ),",
-              "//         ALL ( 'ViwFund_All'[Date] )",
-              "//     )",
-              "VAR PeriodStartDate =",
-              "    CALCULATE (",
-              "        LASTNONBLANK (",
-              "            DATESBETWEEN (",
-              "                'DimTimeTable'[Date],",
-              "                BLANK (),",
-              "                CALCULATE ( FIRSTDATE ( 'DimTimeTable'[Date] ) )",
-              "            ),",
-              "            CALCULATE ( COUNT ( 'FactFunds'[Units] ) )",
-              "        ),",
-              "        ALLSELECTED ( 'DimTimeTable' )",
-              "    )",
-              "VAR NewUnits =",
-              "    CALCULATE (",
-              "        SUMX (",
-              "            'FactFunds',",
-              "            'FactFunds'[SubscriptionPrice]",
-              "                * (",
-              "                    'FactFunds'[Units]",
-              "                        - CALCULATE (",
-              "                            SELECTEDVALUE ( 'FactFunds'[Units] ),",
-              "                            --   SELECTEDVALUE('ViwFund_All'[Date]),",
-              "                            FILTER (",
-              "                                ALL ( FactFunds ),",
-              "                                'FactFunds'[Date]",
-              "                                    = CALCULATE (",
-              "                                        MAX ( 'FactFunds'[Date] ),",
-              "                                        'FactFunds'[Date] < EARLIEST ( 'FactFunds'[Date] ),",
-              "                                        'FactFunds'[FundId] = EARLIEST ( FactFunds[FundId] ),",
-              "                                        ALL ( 'FactFunds' ),",
-              "                                        'FactFunds'[FundDataTypeId] = 4",
-              "                                    )",
-              "                                    && 'FactFunds'[FundId] = EARLIEST ( FactFunds[FundId] )",
-              "                                    && 'FactFunds'[FundDataTypeId] = 4",
-              "                            )",
-              "                        ) --)",
-              "                        --  )",
-              "                )",
-              "        ),",
-              "        DATESBETWEEN (",
-              "            'DimTimeTable'[Date],",
-              "            PeriodStartDate,",
-              "            MAX ( 'DimTimeTable'[Date] )",
-              "        ),",
-              "        ALL ( 'FactFunds'[Date] )",
-              "    )",
-              "VAR BaseUnits =",
-              "CALCULATE(",
-              "    SUMX(",
-              "        'FactFunds',",
-              "        'FactFunds'[Units] * 'FactFunds'[SubscriptionPrice]),",
-              "        'FactFunds'[Date] = PeriodStartDate,",
-              "        ALLSELECTED('DimTimeTable'),",
-              "        'FactFunds'[FundDataTypeId] = 4",
-              ")",
-              "RETURN",
-              "    NewUnits"
-            ]
-          },
-          {
-            "name": "Rank (by Return)",
-            "expression": [
-              " ",
-              "    RANKX(",
-              "        CALCULATETABLE(VALUES('DimFunds'[Manager]), ALL('DimFunds')),",
-              "        [% Annual Return]",
-              ")"
-            ]
-          },
-          {
             "name": "Rebased 100 NAV",
             "expression": [
               " ",
@@ -2789,14 +2682,14 @@
               "            BLANK(),",
               "            CALCULATE(PREVIOUSDAY(FIRSTDATE('DimTimeTable'[Date])))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM]))",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
               "    )",
               "    , ALLSELECTED('DimTimeTable')",
               ")",
               "",
-              "VAR BaseClose = CALCULATE(SUM('FactFunds'[AUM]), 'DimTimeTable'[Date] = BaseDate)",
+              "VAR BaseClose = CALCULATE(SUM('FactFunds'[AUM2]), 'DimTimeTable'[Date] = BaseDate)",
               "VAR CurrentDate = CALCULATE(SELECTEDVALUE('DimTimeTable'[Date]))",
-              "VAR FinalClose = CALCULATE(SUM('FactFunds'[AUM]), 'DimTimeTable'[Date] = CurrentDate)",
+              "VAR FinalClose = CALCULATE(SUM('FactFunds'[AUM2]), 'DimTimeTable'[Date] = CurrentDate)",
               "VAR Rebased = DIVIDE(FinalClose, BaseClose) * 100",
               "",
               "RETURN IF(CurrentDate = CALCULATE(FIRSTDATE('DimTimeTable'[Date]), ALLSELECTED('DimTimeTable')), 100, Rebased)"
@@ -2814,7 +2707,7 @@
               "            BLANK(),",
               "            CALCULATE((FIRSTDATE('DimTimeTable'[Date])))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM]))",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
               "    )",
               "    , ALLSELECTED('DimTimeTable')",
               ")",
@@ -2826,7 +2719,7 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM]))",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
               "    )",
               "    , ALLSELECTED('DimTimeTable')",
               ")",
@@ -2854,14 +2747,14 @@
               "            BLANK(),",
               "            CALCULATE(PREVIOUSDAY(FIRSTDATE('DimTimeTable'[Date])))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM]))",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
               "    )",
               "    , ALLSELECTED('DimTimeTable')",
               ")",
               "",
-              "VAR BaseClose = CALCULATE(SELECTEDVALUE('FactFunds'[AUM]), 'DimTimeTable'[Date] = BaseDate)",
+              "VAR BaseClose = CALCULATE(SELECTEDVALUE('FactFunds'[AUM2]), 'DimTimeTable'[Date] = BaseDate)",
               "VAR CurrentDate = CALCULATE(SELECTEDVALUE('DimTimeTable'[Date]))",
-              "VAR FinalClose = CALCULATE(SELECTEDVALUE('FactFunds'[AUM]))",
+              "VAR FinalClose = CALCULATE(SELECTEDVALUE('FactFunds'[AUM2]))",
               "VAR Rebased = DIVIDE(FinalClose, BaseClose) * 100",
               "",
               "RETURN IF(CurrentDate = CALCULATE(FIRSTDATE('DimTimeTable'[Date]), ALLSELECTED('DimTimeTable')), 100, Rebased)"
@@ -2930,10 +2823,15 @@
             "name": "Top X 6 Month Return",
             "expression": [
               " ",
-              "if (",
-              "    CALCULATE([6 Month Rank (Old)])     <= [@TopX]",
-              "    , [% 6 Month Return]",
-              "    , blank()",
+              "VAR CurrentFundType = SELECTEDVALUE('DimFunds'[FundType])",
+              "VAR MinAUM = '@AUM'[Min AUM]",
+              "VAR MaxAUM = '@AUM'[Max AUM]",
+              "RETURN",
+              "IF (",
+              "    CALCULATE(",
+              "        [6 Month Rank + Firouzeh Funds], 'DimFunds'[AUM] <= MaxAUM, 'DimFunds'[AUM] >= MinAUM, 'DimFunds'[FundType] = CurrentFundType) <= [@TopX]",
+              "    , CALCULATE([% 6 Month Return], 'DimFunds'[AUM] <= MaxAUM, 'DimFunds'[AUM] >= MinAUM, 'DimFunds'[FundType] = CurrentFundType)",
+              "    , BLANK()",
               ")"
             ]
           },
@@ -2941,9 +2839,14 @@
             "name": "Top X Annual Return",
             "expression": [
               " ",
-              "if (",
-              "    CALCULATE([Annual Rank (Old)])     <= [@TopX]",
-              "    , [% Annual Return]",
+              "VAR CurrentFundType = SELECTEDVALUE('DimFunds'[FundType])",
+              "VAR MinAUM = '@AUM'[Min AUM]",
+              "VAR MaxAUM = '@AUM'[Max AUM]",
+              "RETURN",
+              "IF (",
+              "    CALCULATE(",
+              "        [Annual Rank + Firouzeh Funds], 'DimFunds'[AUM] <= MaxAUM, 'DimFunds'[AUM] >= MinAUM, 'DimFunds'[FundType] = CurrentFundType) <= [@TopX]",
+              "    , CALCULATE([% Annual Return], 'DimFunds'[AUM] <= MaxAUM, 'DimFunds'[AUM] >= MinAUM, 'DimFunds'[FundType] = CurrentFundType)",
               "    , blank()",
               ")"
             ]
@@ -2952,10 +2855,15 @@
             "name": "Top X Month Return",
             "expression": [
               " ",
-              "if (",
-              "    CALCULATE([Month Rank (Old)]) <= [@TopX]",
-              "    , [% Month Return]",
-              "    , blank()",
+              "VAR CurrentFundType = SELECTEDVALUE('DimFunds'[FundType])",
+              "VAR MinAUM = '@AUM'[Min AUM]",
+              "VAR MaxAUM = '@AUM'[Max AUM]",
+              "RETURN",
+              "IF (",
+              "    CALCULATE(",
+              "        [Month Rank + Firouzeh Funds], 'DimFunds'[AUM] <= MaxAUM, 'DimFunds'[AUM] >= MinAUM, 'DimFunds'[FundType] = CurrentFundType) <= [@TopX]",
+              "    , CALCULATE([% Month Return], 'DimFunds'[AUM] <= MaxAUM, 'DimFunds'[AUM] >= MinAUM, 'DimFunds'[FundType] = CurrentFundType)",
+              "    , BLANK()",
               ")"
             ]
           },
@@ -2963,10 +2871,14 @@
             "name": "Top X Quarter Return",
             "expression": [
               " ",
-              "if (",
-              "    CALCULATE([Quarter Rank (Old)])     <= [@TopX]",
-              "    , [% Quarter Return]",
-              "    , blank()",
+              "VAR CurrentFundType = SELECTEDVALUE('DimFunds'[FundType])",
+              "VAR MinAUM = '@AUM'[Min AUM]",
+              "VAR MaxAUM = '@AUM'[Max AUM]",
+              "RETURN",
+              "IF (",
+              "    CALCULATE([Quarter Rank + Firouzeh Funds], 'DimFunds'[AUM] <= MaxAUM, 'DimFunds'[AUM] >= MinAUM, 'DimFunds'[FundType] = CurrentFundType) <= [@TopX]",
+              "    ,CALCULATE([% Quarter Return], 'DimFunds'[AUM] <= MaxAUM, 'DimFunds'[AUM] >= MinAUM, 'DimFunds'[FundType] = CurrentFundType)",
+              "    , BLANK()",
               ")"
             ]
           }
@@ -3023,7 +2935,8 @@
               "    '@Include Private Potfolios'[Value],",
               "    \"Include Private Portfos\",",
               "    BLANK()",
-              ")"
+              ")",
+              "    "
             ]
           }
         ],
@@ -3044,13 +2957,24 @@
               "IF(",
               "    '@Include Private Potfolios'[Include Private Potfolios],",
               "    [AUM including Private Portfolios],",
-              "    [AUM_2]",
+              "    [AUM]",
               ")"
             ]
           },
           {
             "name": "Include Private Potfolios",
             "expression": " SELECTEDVALUE('@Include Private Potfolios'[Value])"
+          },
+          {
+            "name": "Market Share % of Non Bank-Affiliated by parameter",
+            "expression": [
+              " ",
+              "IF(",
+              "    '@Include Private Potfolios'[Include Private Potfolios],",
+              "    [Market Share % of Non Bank-Affiliated (including Private Portfos)],",
+              "    [Market Share % of Non Bank-Affiliated]",
+              ")"
+            ]
           }
         ]
       },
@@ -3100,8 +3024,8 @@
               "CALCULATE(",
               "    SUMX(",
               "        FILTER('DimFunds', AND(NOT(ISBLANK([Period Return])), [Period Return] <>0)),",
-              "        [AUM_2] * [Period Return])),",
-              "        CALCULATE([AUM_2], FILTER('DimFunds', AND(NOT(ISBLANK([Period Return])), [Period Return] <>0))))",
+              "        [AUM] * [Period Return])),",
+              "        CALCULATE([AUM], FILTER('DimFunds', AND(NOT(ISBLANK([Period Return])), [Period Return] <>0))))",
               "RETURN r "
             ]
           },
@@ -3299,6 +3223,90 @@
           {
             "name": "Competitors Value",
             "expression": " SELECTEDVALUE('Competitors'[Competitors], 0)"
+          }
+        ]
+      },
+      {
+        "name": "@AUM",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Value",
+            "dataType": "double",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Value]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": " GENERATESERIES(0, MAX('FactFunds'[AUM2]), 10^10)"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Is AUM in range",
+            "expression": [
+              " ",
+              "IF([AUM]>=[Min AUM] && [AUM] <= [Max AUM], 1,0)"
+            ]
+          },
+          {
+            "name": "Max AUM",
+            "expression": " Max('@AUM'[Value])"
+          },
+          {
+            "name": "Min AUM",
+            "expression": " Min('@AUM'[Value])"
+          }
+        ]
+      },
+      {
+        "name": "Manager AUMs",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "FinancialGroupName",
+            "dataType": "string",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "DimManager[FinancialGroupName]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "AUM",
+            "dataType": "double",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[AUM]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "AUM including Private Portfolios",
+            "dataType": "double",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[AUM including Private Portfolios]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": [
+                " ",
+                "ADDCOLUMNS(",
+                "    VALUES('DimManager'[FinancialGroupName]),",
+                "    \"AUM\", CALCULATE([AUM New 3], 'DimTimeTable'[IsBeforeTheDayBeforeYesterday], NOT DimFunds[FundType] in {\"اختصاصی بازارگردانی\", \"جسورانه\", \"خصوصی\", \"پروژه‌ای\", \"املاک و مستغلات\"}),",
+                "    \"AUM including Private Portfolios\", CALCULATE([AUM including Private Portfolios], 'DimTimeTable'[IsBeforeTheDayBeforeYesterday], NOT DimFunds[FundType] in {\"اختصاصی بازارگردانی\", \"جسورانه\", \"خصوصی\", \"پروژه‌ای\", \"املاک و مستغلات\"})",
+                ")"
+              ]
+            }
           }
         ]
       }

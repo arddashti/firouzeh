@@ -23,26 +23,6 @@
           "Username": "reportuser",
           "EncryptConnection": false
         }
-      },
-      {
-        "type": "structured",
-        "name": "SQL/192 168 221 10;BI",
-        "connectionDetails": {
-          "protocol": "tds",
-          "address": {
-            "server": "192.168.221.10",
-            "database": "BI"
-          },
-          "authentication": null,
-          "query": null
-        },
-        "credential": {
-          "AuthenticationKind": "UsernamePassword",
-          "kind": "SQL",
-          "path": "192.168.221.10;BI",
-          "Username": "sa",
-          "EncryptConnection": false
-        }
       }
     ],
     "tables": [
@@ -4314,18 +4294,6 @@
               ]
             }
           }
-        ],
-        "measures": [
-          {
-            "name": "% Individual Trade Turnover",
-            "expression": [
-              " ",
-              "DIVIDE(",
-              "    [Individual Buyers Value] + [Individual Seller Value], ",
-              "    CALCULATE([AUM], NOT ISBLANK('DimFunds'[InstrumentId])) ",
-              ") / 2"
-            ]
-          }
         ]
       },
       {
@@ -5678,6 +5646,10 @@
           {
             "memberName": "IIDIC\\507382",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1734"
+          },
+          {
+            "memberName": "IIDIC\\507484",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1520"
           }
         ]
       },
@@ -5710,7 +5682,7 @@
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2052"
           },
           {
-            "memberName": "IIDIC\\402BI038",
+            "memberName": "IIDIC\\402bi038",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2647"
           },
           {

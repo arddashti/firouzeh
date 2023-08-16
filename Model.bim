@@ -20,7 +20,7 @@
           "AuthenticationKind": "UsernamePassword",
           "kind": "SQL",
           "path": "192.168.220.10;DW",
-          "Username": "REPORTUSER",
+          "Username": "reportuser",
           "EncryptConnection": false
         }
       },
@@ -40,7 +40,7 @@
           "AuthenticationKind": "UsernamePassword",
           "kind": "SQL",
           "path": "192.168.221.10;BI",
-          "Username": "bi",
+          "Username": "sa",
           "EncryptConnection": false
         }
       }
@@ -4044,6 +4044,12 @@
                 "    dbo_DimAsset"
               ]
             }
+          }
+        ],
+        "measures": [
+          {
+            "name": "test",
+            "expression": " CALCULATE(count(DimAsset[AssetId]))"
           }
         ]
       },

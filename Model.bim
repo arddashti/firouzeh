@@ -23,26 +23,6 @@
           "Username": "reportuser",
           "EncryptConnection": false
         }
-      },
-      {
-        "type": "structured",
-        "name": "SQL/192 168 221 10;BI",
-        "connectionDetails": {
-          "protocol": "tds",
-          "address": {
-            "server": "192.168.221.10",
-            "database": "BI"
-          },
-          "authentication": null,
-          "query": null
-        },
-        "credential": {
-          "AuthenticationKind": "UsernamePassword",
-          "kind": "SQL",
-          "path": "192.168.221.10;BI",
-          "Username": "sa",
-          "EncryptConnection": false
-        }
       }
     ],
     "tables": [

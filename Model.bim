@@ -20,7 +20,7 @@
           "AuthenticationKind": "UsernamePassword",
           "kind": "SQL",
           "path": "192.168.220.10;DW",
-          "Username": "reportuser",
+          "Username": "REPORTUSER",
           "EncryptConnection": false
         }
       },
@@ -40,7 +40,7 @@
           "AuthenticationKind": "UsernamePassword",
           "kind": "SQL",
           "path": "192.168.221.10;BI",
-          "Username": "sa",
+          "Username": "bi",
           "EncryptConnection": false
         }
       }
@@ -218,7 +218,7 @@
           {
             "type": "calculated",
             "name": "AUM",
-            "dataType": "double",
+            "dataType": "int64",
             "isDataTypeInferred": true,
             "expression": [
               " ",
@@ -227,6 +227,16 @@
               "    'DimTimeTable'[IsBeforeTheDayBeforeYesterday], NOT DimFunds[FundType] in {\"اختصاصی بازارگردانی\", \"جسورانه\", \"خصوصی\", \"پروژه‌ای\", \"املاک و مستغلات\"}",
               ")"
             ]
+          },
+          {
+            "name": "InstrumentId",
+            "dataType": "double",
+            "sourceColumn": "InstrumentId"
+          },
+          {
+            "name": "BourseCode",
+            "dataType": "string",
+            "sourceColumn": "BourseCode"
           }
         ],
         "partitions": [
@@ -239,9 +249,10 @@
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
                 "    dbo_DimFunds = Source{[Schema=\"dbo\",Item=\"DimFunds\"]}[Data],",
-                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimFunds,{\"DimManager\", \"FactFunds\"})",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimFunds,{\"DimManager\", \"FactFunds\"}),",
+                "    #\"Replaced Value\" = Table.ReplaceValue(#\"Removed Columns\",null,0,Replacer.ReplaceValue,{\"InstrumentId\"})",
                 "in",
-                "    #\"Removed Columns\""
+                "    #\"Replaced Value\""
               ]
             }
           }
@@ -249,11 +260,13 @@
       },
       {
         "name": "DimTimeTable",
+        "dataCategory": "Time",
         "columns": [
           {
             "name": "Date",
             "dataType": "dateTime",
             "description": "تاریخ میلادی",
+            "isKey": true,
             "sourceColumn": "Date"
           },
           {
@@ -411,6 +424,27 @@
               "IF('DimTimeTable'[Date] <TODAY() - 1, TRUE(), FALSE())"
             ],
             "formatString": "\"TRUE\";\"TRUE\";\"FALSE\""
+          },
+          {
+            "type": "calculated",
+            "name": "GYear",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "expression": " YEAR('DimTimeTable'[Date])"
+          },
+          {
+            "type": "calculated",
+            "name": "GMonth",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "expression": " MONTH('DimTimeTable'[Date])"
+          },
+          {
+            "type": "calculated",
+            "name": "GDay",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "expression": " DAY('DimTimeTable'[Date])"
           }
         ],
         "partitions": [
@@ -428,6 +462,28 @@
                 "    #\"Removed Columns\""
               ]
             }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Date Hierarchy",
+            "levels": [
+              {
+                "name": "GYear",
+                "ordinal": 0,
+                "column": "GYear"
+              },
+              {
+                "name": "GMonth",
+                "ordinal": 1,
+                "column": "GMonth"
+              },
+              {
+                "name": "GDay",
+                "ordinal": 2,
+                "column": "GDay"
+              }
+            ]
           }
         ]
       },
@@ -628,7 +684,7 @@
           {
             "type": "calculated",
             "name": "AUM",
-            "dataType": "double",
+            "dataType": "int64",
             "isDataTypeInferred": true,
             "expression": [
               " ",
@@ -735,6 +791,20 @@
             "name": "IsAffiliated",
             "dataType": "boolean",
             "sourceColumn": "IsAffiliated"
+          },
+          {
+            "type": "calculated",
+            "name": "Affiliated",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              " ",
+              "SWITCH(",
+              "    TRUE(),",
+              "    'DimShareHoldersProfile'[IsAffiliated], \"Affiliated\",",
+              "    \"Non-Affiliated\"",
+              ")"
+            ]
           }
         ],
         "partitions": [
@@ -981,6 +1051,16 @@
             "name": "InsertTime",
             "dataType": "dateTime",
             "sourceColumn": "InsertTime"
+          },
+          {
+            "type": "calculated",
+            "name": "Trade Side Desc",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              " ",
+              "IF('FactShareHoldersTrade'[TradeSide], \"خرید\", \"فروش\")"
+            ]
           }
         ],
         "partitions": [
@@ -1046,7 +1126,7 @@
           },
           {
             "name": "AUM2",
-            "dataType": "double",
+            "dataType": "int64",
             "sourceColumn": "AUM"
           },
           {
@@ -1242,6 +1322,28 @@
               "RETURN",
               "CALCULATE(AVERAGE('FactFunds'[5YearRank]), 'DimTimeTable'[Date] = MaxDate)"
             ]
+          },
+          {
+            "name": "AUM Old",
+            "expression": [
+              " ",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "        ),",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]), 'FactFunds'[FundDataTypeId] = 4) ",
+              "        )",
+              ")",
+              "",
+              "VAR NAV = ",
+              "CALCULATE(SUM('FactFunds'[AUM2]),'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4)",
+              "RETURN NAV"
+            ],
+            "displayFolder": "AUM"
           }
         ]
       },
@@ -1319,24 +1421,20 @@
           {
             "name": "% 6 Month Return",
             "expression": [
-              " ",
-              "VAR MaxDate = ",
-              "MAX(DimTimeTable[Date])",
-              "// CALCULATE(",
-              "//     LASTNONBLANK(",
-              "//         DATESBETWEEN(",
-              "//             'DimTimeTable'[Date],",
-              "//             BLANK(),",
-              "//             CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "//         ),",
-              "//         CALCULATE(COUNT('FactFunds'[6MonthReturn]), 'FactFunds'[FundDataTypeId] = 4) ",
-              "//         )",
-              "// )",
               "",
-              "VAR r = ",
-              "CALCULATE(AVERAGE('FactFunds'[6MonthReturn]), 'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4, NOT(ISBLANK('FactFunds'[6MonthReturn])), 'FactFunds'[6MonthReturn] <> 0)",
-              "RETURN r"
-            ]
+              "VAR MaxDate =",
+              "    MAX ( DimTimeTable[Date] ) ",
+              "VAR r =",
+              "    CALCULATE (",
+              "        AVERAGE ( 'FactFunds'[6MonthReturn] ),",
+              "        'DimTimeTable'[Date] = MaxDate,",
+              "        NOT ( ISBLANK ( 'FactFunds'[6MonthReturn] ) ),",
+              "        'FactFunds'[6MonthReturn] <> 0",
+              "    )",
+              "RETURN",
+              "    r"
+            ],
+            "displayFolder": "Returns"
           },
           {
             "name": "% 6 Month Return (Average)",
@@ -1357,7 +1455,8 @@
               "    ALLSELECTED('DimTimeTable')",
               ")",
               ""
-            ]
+            ],
+            "displayFolder": "Returns"
           },
           {
             "name": "% Annual Return",
@@ -1379,7 +1478,8 @@
               "VAR r = ",
               "CALCULATE(AVERAGE('FactFunds'[YearReturn]), 'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4, NOT(ISBLANK('FactFunds'[YearReturn])), 'FactFunds'[YearReturn] <> 0)",
               "RETURN r "
-            ]
+            ],
+            "displayFolder": "Returns"
           },
           {
             "name": "% Annual Return (Average) old",
@@ -1401,28 +1501,23 @@
               ")",
               "",
               ""
-            ]
+            ],
+            "displayFolder": "Returns"
           },
           {
             "name": "AUM",
             "expression": [
               " ",
-              "VAR MaxDate = ",
-              "CALCULATE(",
-              "    LASTNONBLANK(",
-              "        DATESBETWEEN(",
-              "            'DimTimeTable'[Date],",
-              "            BLANK(),",
-              "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM2]), 'FactFunds'[FundDataTypeId] = 4) ",
-              "        )",
-              ")",
-              "",
-              "VAR NAV = ",
-              "CALCULATE(SUM('FactFunds'[AUM2]),'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4)",
-              "RETURN NAV"
-            ]
+              "SUMX (",
+              "    VALUES ( 'FactFunds'[FundId] ),",
+              "    VAR LastDay =",
+              "        CALCULATE ( MAX ( 'FactFunds'[Date] ), NOT ( ISBLANK ( 'FactFunds'[AUM2] ) ) )",
+              "    RETURN",
+              "        CALCULATE ( SUM ( 'FactFunds'[AUM2] ), 'FactFunds'[Date] = LastDay )",
+              ")"
+            ],
+            "formatString": "#,0",
+            "displayFolder": "AUM"
           },
           {
             "name": "% Annual Return Weighted",
@@ -1451,7 +1546,8 @@
               "CALCULATE([AUM], 'DimTimeTable'[Date] = MaxDate, ",
               "    'FactFunds'[FundDataTypeId] = 4)",
               "RETURN r "
-            ]
+            ],
+            "displayFolder": "Returns"
           },
           {
             "name": "% Average 6 Month Return (All Same Type)",
@@ -1479,7 +1575,8 @@
               ")",
               "",
               "RETURN r"
-            ]
+            ],
+            "displayFolder": "Returns"
           },
           {
             "name": "% Average 6 Month Return (All Selected)",
@@ -1865,7 +1962,9 @@
               "    CALCULATE([AUM], 'DimTimeTable'[Date] = BaseDate), ",
               "    BLANK()",
               ") "
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%",
+            "displayFolder": "Subscriptions"
           },
           {
             "name": "% Quarter Return",
@@ -2117,6 +2216,14 @@
             "expression": [
               " ",
               "[AUM]"
+            ],
+            "formatString": "\"IRR\" #,0.00;-\"IRR\" #,0.00;\"IRR\" #,0.00",
+            "displayFolder": "AUM",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
             ]
           },
           {
@@ -2127,7 +2234,9 @@
               "    [AUM],",
               "    CALCULATE([AUM], ALLSELECTED('DimFunds'))",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%",
+            "displayFolder": "AUM"
           },
           {
             "name": "AUM by Asset Class",
@@ -2148,7 +2257,8 @@
               "VAR AUM =",
               "CALCULATE(SUMX('FactFunds (Asset Allocation)',[AUM] * 'FactFunds (Asset Allocation)'[Value]/100),'DimTimeTable'[Date] = MaxDate)",
               "RETURN AUM"
-            ]
+            ],
+            "displayFolder": "AUM"
           },
           {
             "name": "AUM by Asset Class % of Total",
@@ -2158,14 +2268,17 @@
               "    [AUM by Asset Class],",
               "    CALCULATE([AUM by Asset Class], ALLSELECTED('DimFundAssets'))",
               ")"
-            ]
+            ],
+            "displayFolder": "AUM"
           },
           {
             "name": "AUM including Private Portfolios",
             "expression": [
               " ",
               "[AUM] + [AUM of Private Porfolios]"
-            ]
+            ],
+            "formatString": "#,0",
+            "displayFolder": "AUM"
           },
           {
             "name": "AUM Including Private Portfolios % of Total",
@@ -2175,7 +2288,8 @@
               "    [AUM],",
               "    CALCULATE([AUM including Private Portfolios], ALLSELECTED('DimFunds'))",
               ")"
-            ]
+            ],
+            "displayFolder": "AUM"
           },
           {
             "name": "AUM Including Private Portfolios Rank (Selected Managers)",
@@ -2185,7 +2299,8 @@
               "         ALLSELECTED('DimManager'[FinancialGroupName]),",
               "        [AUM including Private Portfolios]",
               "    )"
-            ]
+            ],
+            "displayFolder": "AUM"
           },
           {
             "name": "AUM Line",
@@ -2224,23 +2339,8 @@
               "    [AUM],",
               "    BLANK()",
               ")"
-            ]
-          },
-          {
-            "name": "AUM New",
-            "expression": [
-              " ",
-              "SUMX (",
-              "    'DimManager',",
-              "    SUMX(",
-              "        FILTER('DimFunds', 'DimFunds'[ManagerId] = EARLIER('DimManager'[ManagerId])),",
-              "        CALCULATE(",
-              "            SELECTEDVALUE('FactFunds'[AUM2]),",
-              "            'FactFunds'[Date] = MAX('FactFunds'[Date])",
-              "        )",
-              "    )",
-              ")"
-            ]
+            ],
+            "displayFolder": "AUM"
           },
           {
             "name": "AUM New 3",
@@ -2250,11 +2350,13 @@
               "    VALUES('FactFunds'[FundId]),",
               "    VAR LastDay = CALCULATE(MAX('FactFunds'[Date]), NOT(ISBLANK('FactFunds'[AUM2])))",
               "    RETURN CALCULATE(",
-              "        SELECTEDVALUE('FactFunds'[AUM2]),",
-              "        'FactFunds'[Date] = LastDay",
-              "    )",
+              "        SUM('FactFunds'[AUM2]),",
+              " 'FactFunds'[Date] = LastDay",
+              "",
+              ")",
               ")"
-            ]
+            ],
+            "displayFolder": "AUM"
           },
           {
             "name": "AUM of Private Porfolios",
@@ -2275,7 +2377,8 @@
               "VAR NAV = ",
               "CALCULATE(SUM('FactManagerAUM'[AUM2]),'DimTimeTable'[Date] = MaxDate)",
               "RETURN NAV"
-            ]
+            ],
+            "displayFolder": "AUM"
           },
           {
             "name": "AUM Rank (All Managers)",
@@ -2285,7 +2388,8 @@
               "        ALL('DimManager'[FinancialGroupName]),",
               "        [AUM including Private Portfolios]",
               "    )"
-            ]
+            ],
+            "displayFolder": "AUM"
           },
           {
             "name": "AUM Rank (Selected Managers)",
@@ -2295,7 +2399,8 @@
               "         ALLSELECTED('DimManager'[FinancialGroupName]),",
               "        [AUM]",
               "    )"
-            ]
+            ],
+            "displayFolder": "AUM"
           },
           {
             "name": "Average 6 Month Funds Return by Type",
@@ -2312,7 +2417,8 @@
             "expression": [
               " ",
               "CALCULATE([AUM] / CALCULATE(count('DimFunds'[FundId])), ALL('DimManager'), ALLEXCEPT('DimFunds','DimFunds'[FundType], 'DimFunds'[FundTypeEn]))"
-            ]
+            ],
+            "displayFolder": "AUM"
           },
           {
             "name": "Average All Return",
@@ -2322,7 +2428,8 @@
               "    AVERAGEX('DimFunds', [Return]),",
               "    ALL('DimFunds'[FundId], 'DimFunds'[FundName], 'DimFunds'[FundShortName])",
               ")"
-            ]
+            ],
+            "formatString": "0.0"
           },
           {
             "name": "Average Fund AUM",
@@ -2336,7 +2443,8 @@
             "expression": [
               " ",
               "[AUM] / CALCULATE(SUM('FactFunds'[InvestedUnits]))"
-            ]
+            ],
+            "displayFolder": "AUM"
           },
           {
             "name": "Average Month Funds Return by Type",
@@ -2376,7 +2484,8 @@
               "    AVERAGEX('DimFunds', [Return]),",
               "    ALLSELECTED('DimFunds'[FundId], 'DimFunds'[FundName], 'DimFunds'[FundShortName])",
               ")"
-            ]
+            ],
+            "formatString": "0.0"
           },
           {
             "name": "Manager Color Code",
@@ -2421,18 +2530,20 @@
               "    CALCULATE([AUM], ALLSELECTED('DimFunds'), ALLSELECTED('FactFunds'), ALLSELECTED('DimManager'), ALLSELECTED('DimFunds'),'DimTimeTable'[Date] = MaxDate),",
               "    0",
               "    )"
-            ]
+            ],
+            "formatString": "0.00%;-0.00%;0.00%"
           },
           {
             "name": "Market Share % of Non Bank-Affiliated",
             "expression": [
-              " ",
-              "DIVIDE(",
-              "    CALCULATE([AUM New]),",
-              "    CALCULATE([AUM New], ALL('DimManager'), NOT('DimManager'[IsBanking])),",
+              "",
+              "DIVIDE (",
+              "    CALCULATE ( [AUM] ),",
+              "    CALCULATE ( [AUM], ALL ( 'DimManager' ), NOT ( 'DimManager'[IsBanking] ) ),",
               "    0",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Market Share % of Non Bank-Affiliated (including Private Portfos)",
@@ -2443,7 +2554,8 @@
               "    CALCULATE([AUM including Private Portfolios], ALL('DimManager'), NOT('DimManager'[IsBanking])),",
               "    0",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Month Rank",
@@ -2519,7 +2631,9 @@
             "expression": [
               " ",
               "[Subscriptions Value] - [Redemptions Value]"
-            ]
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Subscriptions"
           },
           {
             "name": "Net Subscriptions Value Cum",
@@ -2554,7 +2668,9 @@
               "    'DimTimeTable'[Date] >= BaseDate,",
               "    'DimTimeTable'[Date] <= EndDate",
               ")"
-            ]
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Subscriptions"
           },
           {
             "name": "New Units %",
@@ -2667,7 +2783,8 @@
             "expression": [
               " ",
               "        CALCULATE(countrows(VALUES('DimManager'[FinancialGroupName])), ALLSELECTED('DimManager'))"
-            ]
+            ],
+            "displayFolder": "AUM"
           },
           {
             "name": "Rebased 100 NAV",
@@ -2767,7 +2884,8 @@
               "CALCULATE(",
               "    SUM('FactFunds'[UnitsRedDay])",
               ")"
-            ]
+            ],
+            "displayFolder": "Subscriptions"
           },
           {
             "name": "Redemptions Value",
@@ -2776,7 +2894,9 @@
               "CALCULATE(",
               "    SUMX('FactFunds', 'FactFunds'[UnitsRedDay] * 'FactFunds'[RedemptionPrice])",
               ")"
-            ]
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Subscriptions"
           },
           {
             "name": "Return",
@@ -2808,7 +2928,8 @@
               "CALCULATE(",
               "    SUM('FactFunds'[UnitsSubDay])",
               ")"
-            ]
+            ],
+            "displayFolder": "Subscriptions"
           },
           {
             "name": "Subscriptions Value",
@@ -2817,7 +2938,9 @@
               "CALCULATE(",
               "    SUMX('FactFunds', 'FactFunds'[UnitsSubDay] * 'FactFunds'[SubscriptionPrice])",
               ")"
-            ]
+            ],
+            "formatString": "#,0",
+            "displayFolder": "Subscriptions"
           },
           {
             "name": "Top X 6 Month Return",
@@ -2881,6 +3004,95 @@
               "    , BLANK()",
               ")"
             ]
+          },
+          {
+            "name": "Market Share % (All)",
+            "expression": [
+              " ",
+              "DIVIDE(",
+              "    CALCULATE([AUM New 3]),",
+              "    CALCULATE([AUM New 3], ALL('DimManager')),",
+              "    0",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Market Share % (All) (including Private Portfos)",
+            "expression": [
+              " ",
+              "DIVIDE(",
+              "    CALCULATE([AUM including Private Portfolios]),",
+              "    CALCULATE([AUM including Private Portfolios], ALL('DimManager')),",
+              "    0",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Market Share Growth % (All)",
+            "expression": [
+              " ",
+              "VAR BaseDate = CALCULATE(MIN('DimTimeTable'[Date]))",
+              "",
+              "VAR CurrentDate = CALCULATE(MAX('DimTimeTable'[Date]))",
+              "",
+              "VAR CurrentShare = ",
+              "CALCULATE(",
+              "    [Market Share % (All) by parameter],",
+              "    'DimTimeTable'[Date] = CurrentDate",
+              ")",
+              "",
+              "VAR BaseShare = ",
+              "CALCULATE(",
+              "    [Market Share % (All) by parameter],",
+              "    'DimTimeTable'[Date] = BaseDate",
+              ")",
+              "",
+              "",
+              "VAR ShareGrowth =",
+              "DIVIDE(    ",
+              "    CurrentShare,",
+              "    BaseShare",
+              ") - 1",
+              "",
+              "RETURN ShareGrowth"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%",
+            "displayFolder": "Market Share"
+          },
+          {
+            "name": "Market Share Growth % (All) YoY",
+            "expression": [
+              " ",
+              "",
+              "VAR CurrentDate = CALCULATE(MAX('DimTimeTable'[Date]))",
+              "",
+              "VAR BaseDate = EDATE(CurrentDate, -12) + 1",
+              "",
+              "VAR CurrentShare = ",
+              "CALCULATE(",
+              "    [Market Share % (All) by parameter],",
+              "    'DimTimeTable'[Date] = CurrentDate",
+              ")",
+              "",
+              "VAR BaseShare = ",
+              "CALCULATE(",
+              "    [Market Share % (All) by parameter],",
+              "    'DimTimeTable'[Date] = BaseDate",
+              ")",
+              "",
+              "",
+              "VAR ShareGrowth =",
+              "DIVIDE(",
+              "    CurrentShare,",
+              "    BaseShare",
+              ") - 1",
+              "",
+              "RETURN ShareGrowth"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%",
+            "displayFolder": "Market Share"
           }
         ]
       },
@@ -2959,7 +3171,9 @@
               "    [AUM including Private Portfolios],",
               "    [AUM]",
               ")"
-            ]
+            ],
+            "formatString": "#,0",
+            "displayFolder": "AUM"
           },
           {
             "name": "Include Private Potfolios",
@@ -2974,7 +3188,20 @@
               "    [Market Share % of Non Bank-Affiliated (including Private Portfos)],",
               "    [Market Share % of Non Bank-Affiliated]",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Market Share % (All) by parameter",
+            "expression": [
+              " ",
+              "IF(",
+              "    '@Include Private Potfolios'[Include Private Potfolios],",
+              "    [Market Share % (All) (including Private Portfos)],",
+              "    [Market Share % (All)]",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           }
         ]
       },
@@ -3100,9 +3327,9 @@
         "name": "Clients Measures",
         "columns": [
           {
-            "name": "Clients Measures",
+            "name": "Clients Measures/Partition",
             "dataType": "string",
-            "sourceColumn": "Clients Measures"
+            "sourceColumn": "Clients Measures/Partition"
           }
         ],
         "partitions": [
@@ -3140,17 +3367,20 @@
               "VAR NAV = ",
               "CALCULATE(SUM('FactShareHoldersTrade'[Value]),'DimTimeTable'[Date] = MaxDate)",
               "RETURN NAV"
-            ]
+            ],
+            "displayFolder": "Client Measures Folder"
           },
           {
             "name": "Net Subscription",
             "expression": [
               " ",
               "[Subscriptions (Rivarz)] - [Redemptions (Rivarz)]"
-            ]
+            ],
+            "displayFolder": "Subscriptions"
           },
           {
             "name": "Net Unit Subscriptions",
+            "description": "Subscriptions",
             "expression": [
               " ",
               "[Units Subscriptions (Rivarz)] - [Units Redemptions (Rivarz)]"
@@ -3164,7 +3394,8 @@
               "    SUM('FactShareHoldersTrade'[Value]),",
               "    NOT('FactShareHoldersTrade'[TradeSide])",
               ")"
-            ]
+            ],
+            "displayFolder": "Subscriptions"
           },
           {
             "name": "Subscriptions (Rivarz)",
@@ -3174,7 +3405,8 @@
               "    SUM('FactShareHoldersTrade'[Value]),",
               "    ('FactShareHoldersTrade'[TradeSide]",
               "))"
-            ]
+            ],
+            "displayFolder": "Subscriptions"
           },
           {
             "name": "Units Redemptions (Rivarz)",
@@ -3184,7 +3416,8 @@
               "    -SUM('FactShareHoldersTrade'[Volume]),",
               "    NOT('FactShareHoldersTrade'[TradeSide])",
               ")"
-            ]
+            ],
+            "displayFolder": "Subscriptions"
           },
           {
             "name": "Units Subscriptions (Rivarz)",
@@ -3194,6 +3427,461 @@
               "    SUM('FactShareHoldersTrade'[Volume]),",
               "    ('FactShareHoldersTrade'[TradeSide]",
               "))"
+            ],
+            "displayFolder": "Subscriptions"
+          },
+          {
+            "name": "Averarge Client Balance Value",
+            "expression": [
+              " ",
+              "DIVIDE([Client Balance Value], [Client Count])"
+            ],
+            "formatString": "#,0"
+          },
+          {
+            "name": "Averarge Client Balance Value (All Selected)",
+            "expression": [
+              "",
+              "CALCULATE (",
+              "    [Client Balance Value] / [Client Count],",
+              "    ALL (",
+              "        'DimShareHoldersProfile'[ShareHolderId],",
+              "        'DimShareHoldersProfile'[BourseCode],",
+              "        'DimShareHoldersProfile'[FullName]",
+              "    )",
+              ")"
+            ],
+            "formatString": "#,0"
+          },
+          {
+            "name": "Client Balance",
+            "expression": [
+              "",
+              "VAR Fund = SELECTEDVALUE('DimFunds'[FundId])",
+              "VAR Instrument = CALCULATETABLE(VALUES('DimFunds'[InstrumentId]), 'DimFunds'[FundId] = Fund)",
+              "VAR Company = CALCULATE(SELECTEDVALUE('DimCompany'[CompanyId]), 'DimCompany'[InstrumentId] = Instrument)",
+              "",
+              "VAR MaxDate =",
+              "    CALCULATE (",
+              "        MAX ( 'FactShareHolders'[Date] ),",
+              "        'DimCompany'[CompanyId] = Company",
+              "    ) --VAR MaxDate = CALCULATE(MAX('DimTimeTable'[Date]), NOT('DimTimeTable'[IsNonWorking]))",
+              "    ",
+              "RETURN",
+              "    CALCULATE (",
+              "        SUM ( 'FactShareHolders'[VolumeBalance] ),",
+              "        'DimCompany'[CompanyId] = Company,",
+              "        'DimShareHoldersProfile'[ShareHolderId] <> 59113,",
+              "        'DimTimeTable'[Date] = MaxDate",
+              "    )",
+              "    ",
+              "    ",
+              "// CALCULATE(",
+              "//     LASTNONBLANK(",
+              "//         DATESBETWEEN(",
+              "//             'DimTimeTable'[Date],",
+              "//             BLANK(),",
+              "//             CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "//         ),",
+              "//         CALCULATE(COUNT('FactShareHolders'[VolumeBalance])) ",
+              "//         )",
+              "// )",
+              ""
+            ]
+          },
+          {
+            "name": "Client Balance %",
+            "expression": [
+              " ",
+              "DIVIDE(",
+              "    [Client Balance],",
+              "    CALCULATE([Client Balance], ALL('DimShareHoldersProfile'))",
+              ")"
+            ]
+          },
+          {
+            "name": "Client Balance Value",
+            "expression": [
+              " ",
+              "VAR Fund = SELECTEDVALUE('DimFunds'[FundId])",
+              "VAR Instrument = CALCULATETABLE(VALUES('DimFunds'[InstrumentId]), 'DimFunds'[FundId] = Fund)",
+              "VAR Company = CALCULATE(SELECTEDVALUE('DimCompany'[CompanyId]), 'DimCompany'[InstrumentId] = Instrument)",
+              "",
+              "VAR MaxDate = CALCULATE(MAX('FactShareHolders'[Date]), 'DimCompany'[CompanyId] =Company)",
+              "// CALCULATE(",
+              "//     LASTNONBLANK(",
+              "//         DATESBETWEEN(",
+              "//             'DimTimeTable'[Date],",
+              "//             BLANK(),",
+              "//             CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "//         ),",
+              "//         CALCULATE(COUNT('FactShareHolders'[VolumeBalance])) ",
+              "//         )",
+              "// )",
+              "",
+              "RETURN ",
+              "CALCULATE(",
+              "    SUMX(",
+              "        CALCULATETABLE(DimShareHoldersProfile, 'DimShareHoldersProfile'[ShareHolderId] <> 59113),",
+              "        VAR Balance = CALCULATE(SELECTEDVALUE('FactShareHolders'[VolumeBalance]), 'DimTimeTable'[Date] = MaxDate, 'DimCompany'[CompanyId] = Company)",
+              "        VAR Price = CALCULATE(SELECTEDVALUE('FactTrade'[ClosePrice]), 'DimTimeTable'[Date] = MaxDate, 'DimCompany'[CompanyId] = Company)",
+              "        RETURN",
+              "        PRICE * Balance",
+              "    )",
+              ")"
+            ]
+          },
+          {
+            "name": "Client Balance Value %",
+            "expression": [
+              " ",
+              "DIVIDE(",
+              "    [Client Balance Value],",
+              "    CALCULATE([Client Balance Value], ALL('DimShareHoldersProfile'))",
+              ")",
+              "// [Client Balance Value] / CALCULATE([Client Balance Value], ALL('DimShareHoldersProfile'[KindCategory], 'DimShareHoldersProfile'[KindDesc], DimShareHoldersProfile[KindId], 'DimShareHoldersProfile'[FullName], 'DimShareHoldersProfile'[ShareHolderId], 'DimShareHoldersProfile'[BourseCode]))"
+            ]
+          },
+          {
+            "name": "Client Count",
+            "expression": [
+              " ",
+              "VAR Fund = SELECTEDVALUE('DimFunds'[FundId])",
+              "--VAR Company = SELECTEDVALUE('DimCompany'[CompanyId])",
+              "VAR Instrument = CALCULATETABLE(VALUES('DimFunds'[InstrumentId]), 'DimFunds'[FundId] = Fund)",
+              "VAR Company = CALCULATE(SELECTEDVALUE('DimCompany'[CompanyId]), 'DimCompany'[InstrumentId] = Instrument)",
+              "",
+              "VAR MaxDate = CALCULATE(MAX('FactShareHolders'[Date]), 'DimCompany'[CompanyId] = Company)",
+              "",
+              "RETURN ",
+              "CALCULATE(",
+              "    DISTINCTCOUNTNOBLANK('FactShareHolders'[ShareHolderId]),",
+              "    'DimCompany'[CompanyId] = Company,",
+              "    'DimShareHoldersProfile'[ShareHolderId] <> 59113,",
+              "    'DimTimeTable'[Date] = MaxDate",
+              ")"
+            ]
+          },
+          {
+            "name": "Client Count %",
+            "expression": [
+              " ",
+              "[Client Count] / CALCULATE([Client Count], ALL('DimShareHoldersProfile'[KindCategory], 'DimShareHoldersProfile'[KindDesc], DimShareHoldersProfile[KindId], 'DimShareHoldersProfile'[FullName], 'DimShareHoldersProfile'[ShareHolderId]))"
+            ]
+          },
+          {
+            "name": "Client Count 2",
+            "expression": [
+              " ",
+              "VAR Fund = SELECTEDVALUE('DimFunds'[FundId])",
+              "VAR Instrument = CALCULATETABLE(VALUES('DimFunds'[InstrumentId]), 'DimFunds'[FundId] = Fund)",
+              "VAR Company = CALCULATE(SELECTEDVALUE('DimCompany'[CompanyId]), 'DimCompany'[InstrumentId] = Instrument)",
+              "",
+              "RETURN",
+              "AVERAGEX(",
+              "    VALUES('DimTimeTable'[Date]),",
+              "    CALCULATE(",
+              "        DISTINCTCOUNTNOBLANK('FactShareHolders'[ShareHolderId]),",
+              "        'DimCompany'[CompanyId] = Company,",
+              "        'DimShareHoldersProfile'[ShareHolderId] <> 59113",
+              "    )",
+              ")"
+            ]
+          },
+          {
+            "name": "Client Value Delta",
+            "expression": [
+              " ",
+              "VAR Fund = SELECTEDVALUE('DimFunds'[FundId])",
+              "VAR Instrument = CALCULATETABLE(VALUES('DimFunds'[InstrumentId]), 'DimFunds'[FundId] = Fund)",
+              "VAR Company = CALCULATE(SELECTEDVALUE('DimCompany'[CompanyId]), 'DimCompany'[InstrumentId] = Instrument)",
+              "",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    MAX('DimTimeTable'[Date]),",
+              "    FILTER('DimTimeTable', COUNTROWS(RELATEDTABLE(FactTrade)) > 0 )",
+              ")",
+              "",
+              "VAR Price = ",
+              "CALCULATE(",
+              "    SELECTEDVALUE('FactTrade'[ClosePrice]), ",
+              "    'DimTimeTable'[Date] = MaxDate, ",
+              "    'DimCompany'[CompanyId] = Company",
+              ")",
+              "RETURN  Price * [Client Volume Delta] "
+            ]
+          },
+          {
+            "name": "Client Value Delta New",
+            "expression": [
+              " ",
+              "VAR Fund = SELECTEDVALUE('DimFunds'[FundId])",
+              "VAR Instrument = CALCULATETABLE(VALUES('DimFunds'[InstrumentId]), 'DimFunds'[FundId] = Fund)",
+              "VAR Company = CALCULATE(SELECTEDVALUE('DimCompany'[CompanyId]), 'DimCompany'[InstrumentId] = Instrument)",
+              "",
+              "VAR MaxDate = CALCULATE(MAX('FactShareHolders'[Date]), 'DimCompany'[CompanyId] = Company)",
+              "VAR PeriodFirstDay = MIN('DimTimeTable'[Date])",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    MAX('DimTimeTable'[Date]),",
+              "    DATESBETWEEN(",
+              "        'DimTimeTable'[Date],",
+              "        BLANK(),",
+              "        PeriodFirstDay - 1",
+              "    )",
+              "    , NOT 'DimTimeTable'[IsNonWorking]",
+              ")",
+              "VAR Price = ",
+              "CALCULATE(",
+              "    SELECTEDVALUE('FactTrade'[ClosePrice]), ",
+              "    'DimTimeTable'[Date] = MaxDate, ",
+              "    'DimCompany'[CompanyId] = Company",
+              ")",
+              "VAR T1 =  // All Share Holders of the selected Company and shareholders over time",
+              "CALCULATETABLE(",
+              "    VALUES('FactShareHolders'[ShareHolderId]),",
+              "    ALLEXCEPT('FactShareHolders', 'FactShareHolders'[CompanyId])",
+              ")",
+              "",
+              "VAR Delta =",
+              "IF(",
+              "    ISBLANK(SELECTEDVALUE('DimShareHoldersProfile'[FullName])) || ISBLANK(SELECTEDVALUE('DimShareHoldersProfile'[FullName])),",
+              "    SUMX(",
+              "        T1,",
+              "        CALCULATE([Client Balance]) - CALCULATE([Client Balance], 'DimTimeTable'[Date] = LastDay)",
+              "    ),",
+              "    CALCULATE([Client Balance]) - CALCULATE([Client Balance], 'DimTimeTable'[Date] = LastDay, 'DimCompany'[CompanyId] = Company)",
+              ")",
+              "",
+              "RETURN Delta * Price"
+            ]
+          },
+          {
+            "name": "Client Value Delta New New",
+            "expression": [
+              " ",
+              "VAR MaxDate = max('DimTimeTable'[Date])--CALCULATE(MAX('FactShareHolders'[Date]), 'DimCompany'[CompanyId] = SELECTEDVALUE('DimCompany'[CompanyId]))",
+              "",
+              "VAR Fund = SELECTEDVALUE('DimFunds'[FundId])",
+              "VAR Instrument = CALCULATETABLE(VALUES('DimFunds'[InstrumentId]), 'DimFunds'[FundId] = Fund)",
+              "VAR Company = CALCULATE(SELECTEDVALUE('DimCompany'[CompanyId]), 'DimCompany'[InstrumentId] = Instrument)",
+              "",
+              "VAR Price = ",
+              "CALCULATE(",
+              "    SELECTEDVALUE('FactTrade'[ClosePrice]), ",
+              "    'DimTimeTable'[Date] = MaxDate, ",
+              "    'DimCompany'[CompanyId] = Company",
+              ")",
+              "RETURN Price * [Client Volume Delta]"
+            ]
+          },
+          {
+            "name": "Client Value Delta Old",
+            "expression": [
+              " ",
+              "VAR Fund = SELECTEDVALUE('DimFunds'[FundId])",
+              "--VAR Company = SELECTEDVALUE('DimCompany'[CompanyId])",
+              "VAR Instrument = CALCULATETABLE(VALUES('DimFunds'[InstrumentId]), 'DimFunds'[FundId] = Fund)",
+              "VAR Company = CALCULATE(SELECTEDVALUE('DimCompany'[CompanyId]), 'DimCompany'[InstrumentId] = Instrument)",
+              "VAR MaxDate = CALCULATE(MAX('FactShareHolders'[Date]), 'DimCompany'[CompanyId] = Company)",
+              "VAR Price = ",
+              "CALCULATE(",
+              "    SELECTEDVALUE('FactTrade'[ClosePrice]), ",
+              "    'DimTimeTable'[Date] = MaxDate, ",
+              "    'DimCompany'[CompanyId] = Company",
+              ")",
+              "RETURN ",
+              "CALCULATE(",
+              "    SUMX(",
+              "        CALCULATETABLE(",
+              "            VALUES('FactShareHolders'[ShareHolderId]),",
+              "            ALLEXCEPT('FactShareHolders', 'FactShareHolders'[CompanyId])",
+              "        ),",
+              "        Price * [Client Volume Delta]",
+              "    )",
+              ")"
+            ]
+          },
+          {
+            "name": "Client Volume Delta",
+            "expression": [
+              " ",
+              "SUM('FactShareHolders'[VolumeDelta])"
+            ]
+          },
+          {
+            "name": "Client Volume Delta %",
+            "expression": [
+              " ",
+              "VAR PeriodFirstDay = CALCULATE(MIN('DimTimeTable'[Date]), NOT 'DimTimeTable'[IsNonWorking])",
+              "RETURN ",
+              "[Client Balance %] - CALCULATE([Client Balance %], 'DimTimeTable'[Date] = PeriodFirstDay)",
+              "// -    DIVIDE([Client Balance] - [Client Volume Delta], CALCULATE([Client Balance] - [Client Volume Delta], All('DimShareHoldersProfile')))"
+            ]
+          },
+          {
+            "name": "Client Volume Delta GPT",
+            "expression": [
+              " ",
+              "VAR PeriodFirstDay = MIN('DimTimeTable'[Date])",
+              "VAR LastDay = ",
+              "    CALCULATE(",
+              "        MAX('DimTimeTable'[Date]),",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            PeriodFirstDay - 1",
+              "        )",
+              "        , NOT 'DimTimeTable'[IsNonWorking]",
+              "    )",
+              "",
+              "VAR T1 = ",
+              "    SUMMARIZE(",
+              "        'FactShareHolders',",
+              "        'FactShareHolders'[ShareHolderId],",
+              "        \"CurrentBalance\", CALCULATE([Client Balance]),",
+              "        \"LastDayBalance\", CALCULATE([Client Balance], 'DimTimeTable'[Date] = LastDay)",
+              "    )",
+              "",
+              "VAR Delta =",
+              "    SUMX(",
+              "        T1,",
+              "        [LastDayBalance]",
+              "    )",
+              "",
+              "RETURN Delta",
+              ""
+            ]
+          },
+          {
+            "name": "Client Volume Delta New",
+            "expression": [
+              " ",
+              "VAR T1 =  // All Share Holders of the selected Company and shareholders over time",
+              "CALCULATETABLE(",
+              "    VALUES('FactShareHolders'[ShareHolderId]),",
+              "    ALLEXCEPT('FactShareHolders', 'FactShareHolders'[CompanyId])",
+              ")",
+              "VAR PeriodFirstDay = MIN('DimTimeTable'[Date]) ",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    MAX('DimTimeTable'[Date]),",
+              "    DATESBETWEEN(",
+              "        'DimTimeTable'[Date],",
+              "        BLANK(),",
+              "        PeriodFirstDay - 1",
+              "    )",
+              "    , NOT 'DimTimeTable'[IsNonWorking]",
+              ")",
+              "VAR Delta =",
+              "SUMX (",
+              "    T1,",
+              "    VAR CurrentBalance = CALCULATE([Client Balance])",
+              "",
+              "    VAR LastDayBalance = CALCULATE([Client Balance], 'DimTimeTable'[Date] = LastDay)",
+              "    RETURN CurrentBalance - LastDayBalance",
+              ")",
+              "RETURN Delta"
+            ]
+          },
+          {
+            "name": "Client Volume Delta Optimized",
+            "expression": [
+              " ",
+              "VAR PeriodFirstDay = MIN('DimTimeTable'[Date])",
+              "VAR LastDay = ",
+              "    CALCULATE(",
+              "        MAX('DimTimeTable'[Date]),",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            PeriodFirstDay - 1",
+              "        )",
+              "        , NOT 'DimTimeTable'[IsNonWorking]",
+              "    )",
+              "VAR T1 =  // All Share Holders of the selected Company and shareholders over time",
+              "CALCULATETABLE(",
+              "    VALUES('FactShareHolders'[ShareHolderId]),",
+              "    ALLEXCEPT('FactShareHolders', 'FactShareHolders'[CompanyId])",
+              ")",
+              "",
+              "VAR Delta =",
+              "IF(",
+              "    ISBLANK(SELECTEDVALUE('DimShareHoldersProfile'[ShareHolderId])),",
+              "    SUMX(",
+              "        T1,",
+              "        CALCULATE([Client Balance]) - CALCULATE([Client Balance], 'DimTimeTable'[Date] = LastDay)",
+              "    ),",
+              "    CALCULATE([Client Balance]) - CALCULATE([Client Balance], 'DimTimeTable'[Date] = LastDay)",
+              ")",
+              "",
+              "RETURN Delta"
+            ]
+          },
+          {
+            "name": "MAsdood",
+            "expression": [
+              " ",
+              "CALCULATE(",
+              "    [Client Balance],",
+              "    CONTAINSSTRING('DimShareHoldersProfile'[FullName], \"وثیقه\")",
+              ")"
+            ]
+          },
+          {
+            "name": "Total Masdood",
+            "expression": " CALCULATE([MAsdood], ALL('DimShareHoldersProfile'))"
+          },
+          {
+            "name": "Total Units",
+            "expression": [
+              " ",
+              "CALCULATE([Client Balance], ALL('DimShareHoldersProfile'))--, 'DimShareHoldersProfile'[ShareHolderId] <> 59113)"
+            ]
+          },
+          {
+            "name": "Total Units Delta",
+            "expression": [
+              " ",
+              "CALCULATE([Client Volume Delta], ALL('DimShareHoldersProfile'))--, 'DimShareHoldersProfile'[ShareHolderId] <>59113)"
+            ]
+          },
+          {
+            "name": "Client Volume Delta DAX",
+            "expression": [
+              " ",
+              "VAR Fund = SELECTEDVALUE('DimFunds'[FundId])",
+              "VAR Instrument = CALCULATETABLE(VALUES('DimFunds'[InstrumentId]), 'DimFunds'[FundId] = Fund)",
+              "VAR Company = CALCULATE(SELECTEDVALUE('DimCompany'[CompanyId]), 'DimCompany'[InstrumentId] = Instrument)",
+              "",
+              "VAR PeriodFirstDay = MIN('DimTimeTable'[Date])",
+              "VAR LastDay = ",
+              "    CALCULATE(",
+              "        MAX('DimTimeTable'[Date]),",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            PeriodFirstDay - 1",
+              "        )",
+              "        , NOT 'DimTimeTable'[IsNonWorking]",
+              "    )",
+              "VAR T1 =  // All Share Holders of the selected Company and shareholders over time",
+              "CALCULATETABLE(",
+              "    VALUES('FactShareHolders'[ShareHolderId]),",
+              "    ALLEXCEPT('FactShareHolders', 'FactShareHolders'[CompanyId])",
+              ")",
+              "",
+              "VAR Delta =",
+              "IF(",
+              "    ISBLANK(SELECTEDVALUE('DimShareHoldersProfile'[FullName])) || ISBLANK(SELECTEDVALUE('DimShareHoldersProfile'[FullName])),",
+              "    SUMX(",
+              "        T1,",
+              "        CALCULATE([Client Balance]) - CALCULATE([Client Balance], 'DimTimeTable'[Date] = LastDay)",
+              "    ),",
+              "    CALCULATE([Client Balance]) - CALCULATE([Client Balance], 'DimTimeTable'[Date] = LastDay, 'DimCompany'[CompanyId] = Company)",
+              ")",
+              "",
+              "RETURN Delta"
             ]
           }
         ]
@@ -3253,15 +3941,18 @@
             "expression": [
               " ",
               "IF([AUM]>=[Min AUM] && [AUM] <= [Max AUM], 1,0)"
-            ]
+            ],
+            "displayFolder": "AUM"
           },
           {
             "name": "Max AUM",
-            "expression": " Max('@AUM'[Value])"
+            "expression": " Max('@AUM'[Value])+0",
+            "displayFolder": "AUM"
           },
           {
             "name": "Min AUM",
-            "expression": " Min('@AUM'[Value])"
+            "expression": " Min('@AUM'[Value])",
+            "displayFolder": "AUM"
           }
         ]
       },
@@ -3279,7 +3970,7 @@
           {
             "type": "calculatedTableColumn",
             "name": "AUM",
-            "dataType": "double",
+            "dataType": "int64",
             "isNameInferred": true,
             "isDataTypeInferred": true,
             "sourceColumn": "[AUM]"
@@ -3307,6 +3998,990 @@
                 ")"
               ]
             }
+          }
+        ]
+      },
+      {
+        "name": "DimAsset",
+        "columns": [
+          {
+            "name": "AssetId",
+            "dataType": "int64",
+            "sourceColumn": "AssetId"
+          },
+          {
+            "name": "Asset",
+            "dataType": "string",
+            "sourceColumn": "Asset"
+          },
+          {
+            "name": "AssetTypeId",
+            "dataType": "int64",
+            "sourceColumn": "AssetTypeId"
+          },
+          {
+            "name": "AssetCompanyId",
+            "dataType": "int64",
+            "sourceColumn": "AssetCompanyId"
+          },
+          {
+            "name": "AssetCompany",
+            "dataType": "string",
+            "sourceColumn": "AssetCompany"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_DimAsset = Source{[Schema=\"dbo\",Item=\"DimAsset\"]}[Data]",
+                "in",
+                "    dbo_DimAsset"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "FactShareStatus",
+        "columns": [
+          {
+            "name": "InstrumentId",
+            "dataType": "int64",
+            "sourceColumn": "InstrumentId"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Date"
+          },
+          {
+            "name": "AssetId",
+            "dataType": "int64",
+            "sourceColumn": "AssetId"
+          },
+          {
+            "name": "IndustryId",
+            "dataType": "int64",
+            "sourceColumn": "IndustryId"
+          },
+          {
+            "name": "ShareNo",
+            "dataType": "int64",
+            "sourceColumn": "ShareNo"
+          },
+          {
+            "name": "Price",
+            "dataType": "int64",
+            "sourceColumn": "Price"
+          },
+          {
+            "name": "AVGBuyPrice",
+            "dataType": "double",
+            "sourceColumn": "AVGBuyPrice"
+          },
+          {
+            "name": "BreakEvenPrice",
+            "dataType": "double",
+            "sourceColumn": "BreakEvenPrice"
+          },
+          {
+            "name": "TotalInvest",
+            "dataType": "int64",
+            "sourceColumn": "TotalInvest"
+          },
+          {
+            "name": "ValueInDate",
+            "dataType": "int64",
+            "sourceColumn": "ValueInDate"
+          },
+          {
+            "name": "PureValueInDate",
+            "dataType": "int64",
+            "sourceColumn": "PureValueInDate"
+          },
+          {
+            "name": "PureDiffPrice",
+            "dataType": "int64",
+            "sourceColumn": "PureDiffPrice"
+          },
+          {
+            "name": "PureDiffPercent",
+            "dataType": "double",
+            "sourceColumn": "PureDiffPercent"
+          },
+          {
+            "name": "OwnershipPercent",
+            "dataType": "double",
+            "sourceColumn": "OwnershipPercent"
+          },
+          {
+            "name": "LastDPS",
+            "dataType": "int64",
+            "sourceColumn": "LastDPS"
+          },
+          {
+            "name": "InsertTime",
+            "dataType": "dateTime",
+            "sourceColumn": "InsertTime"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_FactShareStatus = Source{[Schema=\"dbo\",Item=\"FactShareStatus\"]}[Data]",
+                "in",
+                "    dbo_FactShareStatus"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "FactTrade",
+        "columns": [
+          {
+            "name": "InstrumentId",
+            "dataType": "int64",
+            "sourceColumn": "InstrumentId"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Date"
+          },
+          {
+            "name": "AssetId",
+            "dataType": "int64",
+            "sourceColumn": "AssetId"
+          },
+          {
+            "name": "ClosePrice",
+            "dataType": "double",
+            "sourceColumn": "ClosePrice"
+          },
+          {
+            "name": "InsertTime",
+            "dataType": "dateTime",
+            "sourceColumn": "InsertTime"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_FactTrade = Source{[Schema=\"dbo\",Item=\"FactTrade\"]}[Data]",
+                "in",
+                "    dbo_FactTrade"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "FactTradeDetails",
+        "columns": [
+          {
+            "name": "InstrumentId",
+            "dataType": "int64",
+            "sourceColumn": "InstrumentId"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Date"
+          },
+          {
+            "name": "Time",
+            "dataType": "dateTime",
+            "sourceColumn": "Time"
+          },
+          {
+            "name": "ClosePrice",
+            "dataType": "double",
+            "sourceColumn": "ClosePrice"
+          },
+          {
+            "name": "AdjPrice",
+            "dataType": "int64",
+            "sourceColumn": "AdjPrice"
+          },
+          {
+            "name": "TradeCount",
+            "dataType": "int64",
+            "sourceColumn": "TradeCount"
+          },
+          {
+            "name": "PersonBuyerCount",
+            "dataType": "int64",
+            "sourceColumn": "PersonBuyerCount"
+          },
+          {
+            "name": "CompanyBuyerCount",
+            "dataType": "int64",
+            "sourceColumn": "CompanyBuyerCount"
+          },
+          {
+            "name": "PersonBuyVolume",
+            "dataType": "int64",
+            "sourceColumn": "PersonBuyVolume"
+          },
+          {
+            "name": "CompanyBuyVolume",
+            "dataType": "int64",
+            "sourceColumn": "CompanyBuyVolume"
+          },
+          {
+            "name": "PersonSellerCount",
+            "dataType": "int64",
+            "sourceColumn": "PersonSellerCount"
+          },
+          {
+            "name": "CompanySellerCount",
+            "dataType": "int64",
+            "sourceColumn": "CompanySellerCount"
+          },
+          {
+            "name": "PersonSellVolume",
+            "dataType": "int64",
+            "sourceColumn": "PersonSellVolume"
+          },
+          {
+            "name": "CompanySellVolume",
+            "dataType": "int64",
+            "sourceColumn": "CompanySellVolume"
+          },
+          {
+            "name": "Volume",
+            "dataType": "double",
+            "sourceColumn": "Volume"
+          },
+          {
+            "name": "Value",
+            "dataType": "double",
+            "sourceColumn": "Value"
+          },
+          {
+            "name": "ShareNo",
+            "dataType": "double",
+            "sourceColumn": "ShareNo"
+          },
+          {
+            "name": "MarketCap",
+            "dataType": "double",
+            "sourceColumn": "MarketCap"
+          },
+          {
+            "name": "InsertTime",
+            "dataType": "dateTime",
+            "sourceColumn": "InsertTime"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_FactTradeDetails = Source{[Schema=\"dbo\",Item=\"FactTradeDetails\"]}[Data]",
+                "in",
+                "    dbo_FactTradeDetails"
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "% Individual Trade Turnover",
+            "expression": [
+              " ",
+              "DIVIDE(",
+              "    [Individual Buyers Value] + [Individual Seller Value], ",
+              "    CALCULATE([AUM], NOT ISBLANK('DimFunds'[InstrumentId])) ",
+              ") / 2"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "DimIndustry",
+        "columns": [
+          {
+            "name": "IndustryId",
+            "dataType": "int64",
+            "sourceColumn": "IndustryId"
+          },
+          {
+            "name": "Industry",
+            "dataType": "string",
+            "sourceColumn": "Industry"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_DimIndustry = Source{[Schema=\"dbo\",Item=\"DimIndustry\"]}[Data]",
+                "in",
+                "    dbo_DimIndustry"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "DimIndex",
+        "columns": [
+          {
+            "name": "IndexId",
+            "dataType": "int64",
+            "sourceColumn": "IndexId"
+          },
+          {
+            "name": "IndexName",
+            "dataType": "string",
+            "sourceColumn": "IndexName"
+          },
+          {
+            "name": "NameEn",
+            "dataType": "string",
+            "sourceColumn": "NameEn"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_DimIndex = Source{[Schema=\"dbo\",Item=\"DimIndex\"]}[Data]",
+                "in",
+                "    dbo_DimIndex"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "FactIndexValue",
+        "columns": [
+          {
+            "name": "IndexId",
+            "dataType": "int64",
+            "sourceColumn": "IndexId"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Date"
+          },
+          {
+            "name": "CloseValue",
+            "dataType": "int64",
+            "sourceColumn": "CloseValue"
+          },
+          {
+            "name": "InsertTime",
+            "dataType": "dateTime",
+            "sourceColumn": "InsertTime"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_FactIndexValue = Source{[Schema=\"dbo\",Item=\"FactIndexValue\"]}[Data]",
+                "in",
+                "    dbo_FactIndexValue"
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "% Index Return",
+            "expression": [
+              "",
+              "",
+              "VAR BaseDate = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(PREVIOUSDAY(FIRSTDATE('DimTimeTable'[Date])))",
+              "        ),",
+              "        CALCULATE(COUNT('FactIndexValue'[CloseValue]))",
+              "    )",
+              ") ",
+              "",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            LASTDATE('DimTimeTable'[Date])",
+              "        ),",
+              "        CALCULATE(COUNT('FactIndexValue'[CloseValue]))",
+              "        )",
+              ")",
+              "",
+              "VAR BaseFinal = ",
+              "CALCULATE(SELECTEDVALUE('FactIndexValue'[CloseValue]), 'DimTimeTable'[Date] = BaseDate)",
+              "",
+              "VAR EndFinal = ",
+              "CALCULATE(SELECTEDVALUE('FactIndexValue'[CloseValue]), 'DimTimeTable'[Date] = MaxDate)",
+              "",
+              "VAR R = IF(OR(ISBLANK(EndFinal), ISBLANK(BaseFinal)), BLANK(),DIVIDE(EndFinal-BaseFinal, BaseFinal))",
+              "",
+              "RETURN R"
+            ]
+          },
+          {
+            "name": "Return1",
+            "expression": [
+              "",
+              "[% Index Return] + [Return]"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "FactShareHolders",
+        "columns": [
+          {
+            "name": "CompanyId",
+            "dataType": "int64",
+            "sourceColumn": "CompanyId"
+          },
+          {
+            "name": "ShareHolderId",
+            "dataType": "int64",
+            "sourceColumn": "ShareHolderId"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Date"
+          },
+          {
+            "name": "VolumeBalance",
+            "dataType": "double",
+            "sourceColumn": "VolumeBalance"
+          },
+          {
+            "name": "VolumeDelta",
+            "dataType": "double",
+            "sourceColumn": "VolumeDelta"
+          },
+          {
+            "name": "IsNew",
+            "dataType": "boolean",
+            "sourceColumn": "IsNew"
+          },
+          {
+            "name": "IsLastDay",
+            "dataType": "boolean",
+            "sourceColumn": "IsLastDay"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"with ",
+                "cte1 as ",
+                "(SELECT a.[CompanyId]",
+                "      ,a.[ShareHolderId]",
+                "      ,a.[Date]",
+                "      ,a.[VolumeBalance]",
+                "    , a.[VolumeBalance] - isnull(b.[VolumeBalance],0) as VolumeDelta",
+                "    ",
+                "    from [FactShareHolders] A left join [FactShareHolders] B",
+                "    on B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MAX([Date]) from [FactShareHolders] WHERE CompanyId = A.CompanyId AND ShareHolderId = A.ShareHolderId AND [Date] < A.Date)",
+                "),",
+                "",
+                "cte2 as ",
+                "(SELECT a.[CompanyId]",
+                "      ,a.[ShareHolderId]",
+                "      ,a.[Date]",
+                "      ,a.[VolumeBalance]",
+                "      , isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MIN([Date]) from [FactShareHolders] WHERE CompanyId = A.CompanyId AND ShareHolderId = A.ShareHolderId AND [Date] > A.Date)), 0) as NextDayBalance",
+                "      --, isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MIN([Date]) from [DimTimeTable] WHERE [IsNonWorking] = 0 AND [Date] > A.Date)), 0) as NextDayBalance",
+                "    from [FactShareHolders] A ",
+                ")",
+                "",
+                "select cte1.*",
+                ", case",
+                "    when cte1.[VolumeBalance] = cte1.[VolumeDelta] then 1",
+                "    else 0",
+                "end as IsNew",
+                ", case",
+                "    when cte2.[NextDayBalance] = 0 then 1",
+                "    else 0",
+                "end as IsLastDay",
+                "",
+                "from cte1 left join cte2 on cte1.CompanyId = cte2.CompanyId and cte1.ShareHolderId = cte2.ShareHolderId and cte1.[Date] = cte2.[Date]\"]),",
+                "    #\"Changed Type\" = Table.TransformColumnTypes(Source,{{\"IsNew\", type logical}, {\"IsLastDay\", type logical}})",
+                "in",
+                "    #\"Changed Type\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Sold Out Clients",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "CompanyId",
+            "dataType": "int64",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "FactShareHolders[CompanyId]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "ShareHolderId",
+            "dataType": "int64",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "FactShareHolders[ShareHolderId]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "Date",
+            "dataType": "dateTime",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "FactShareHolders[Date]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "VolumeBalance",
+            "dataType": "double",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "FactShareHolders[VolumeBalance]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "VolumeDelta",
+            "dataType": "double",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "FactShareHolders[VolumeDelta]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "IsNew",
+            "dataType": "boolean",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "FactShareHolders[IsNew]",
+            "formatString": "\"TRUE\";\"TRUE\";\"FALSE\""
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "IsLastDay",
+            "dataType": "boolean",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "FactShareHolders[IsLastDay]",
+            "formatString": "\"TRUE\";\"TRUE\";\"FALSE\""
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "Report Date",
+            "dataType": "dateTime",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Report Date]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": [
+                " ",
+                "ADDCOLUMNS(",
+                "    FILTER(",
+                "        'FactShareHolders', ",
+                "        'FactShareHolders'[IsLastDay] = TRUE",
+                "    ),",
+                "    \"Report Date\",  ",
+                "        CALCULATE(",
+                "        MIN('DimTimeTable'[Date]),",
+                "        FILTER(",
+                "            'DimTimeTable', ",
+                "            'DimTimeTable'[Date] > earlier('FactShareHolders'[Date])",
+                "        )",
+                "    )",
+                "",
+                ")"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "DimInstrument",
+        "columns": [
+          {
+            "name": "InstrumentId",
+            "dataType": "int64",
+            "sourceColumn": "InstrumentId"
+          },
+          {
+            "name": "Instrument",
+            "dataType": "string",
+            "sourceColumn": "Instrument"
+          },
+          {
+            "name": "AssetId",
+            "dataType": "int64",
+            "sourceColumn": "AssetId"
+          },
+          {
+            "name": "InstrumentCode",
+            "dataType": "string",
+            "sourceColumn": "InstrumentCode"
+          },
+          {
+            "name": "TypeId",
+            "dataType": "int64",
+            "sourceColumn": "TypeId"
+          },
+          {
+            "name": "ExchangeId",
+            "dataType": "int64",
+            "sourceColumn": "ExchangeId"
+          },
+          {
+            "name": "Exchange",
+            "dataType": "string",
+            "sourceColumn": "Exchange"
+          },
+          {
+            "name": "MarketId",
+            "dataType": "int64",
+            "sourceColumn": "MarketId"
+          },
+          {
+            "name": "Market",
+            "dataType": "string",
+            "sourceColumn": "Market"
+          },
+          {
+            "name": "ExchangeState",
+            "dataType": "int64",
+            "sourceColumn": "ExchangeState"
+          },
+          {
+            "name": "IndustryId",
+            "dataType": "int64",
+            "sourceColumn": "IndustryId"
+          },
+          {
+            "name": "Industry",
+            "dataType": "string",
+            "sourceColumn": "Industry"
+          },
+          {
+            "name": "CategoryId",
+            "dataType": "int64",
+            "sourceColumn": "CategoryId"
+          },
+          {
+            "name": "Category",
+            "dataType": "string",
+            "sourceColumn": "Category"
+          },
+          {
+            "name": "IsDeleted",
+            "dataType": "boolean",
+            "sourceColumn": "IsDeleted"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_DimInstrument = Source{[Schema=\"dbo\",Item=\"DimInstrument\"]}[Data]",
+                "in",
+                "    dbo_DimInstrument"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "FactReturns",
+        "columns": [
+          {
+            "name": "Source",
+            "dataType": "string",
+            "sourceColumn": "Source"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Date"
+          },
+          {
+            "name": "FundId",
+            "dataType": "int64",
+            "sourceColumn": "FundId"
+          },
+          {
+            "name": "InstrumentId",
+            "dataType": "int64",
+            "sourceColumn": "InstrumentId"
+          },
+          {
+            "name": "IndexId",
+            "dataType": "int64",
+            "sourceColumn": "IndexId"
+          },
+          {
+            "name": "Description",
+            "dataType": "string",
+            "sourceColumn": "Description"
+          },
+          {
+            "name": "TickerClosePrice",
+            "dataType": "double",
+            "sourceColumn": "TickerClosePrice"
+          },
+          {
+            "name": "TickerAdjPrice",
+            "dataType": "int64",
+            "sourceColumn": "TickerAdjPrice"
+          },
+          {
+            "name": "IndexValue",
+            "dataType": "int64",
+            "sourceColumn": "IndexValue"
+          },
+          {
+            "name": "FundEfficiency",
+            "dataType": "double",
+            "sourceColumn": "FundEfficiency"
+          },
+          {
+            "name": "FundMonthReturn",
+            "dataType": "double",
+            "sourceColumn": "FundMonthReturn"
+          },
+          {
+            "name": "FundDayReturn",
+            "dataType": "double",
+            "sourceColumn": "FundDayReturn"
+          },
+          {
+            "name": "FundWeekReturn",
+            "dataType": "double",
+            "sourceColumn": "FundWeekReturn"
+          },
+          {
+            "name": "FundYearReturn",
+            "dataType": "double",
+            "sourceColumn": "FundYearReturn"
+          },
+          {
+            "name": "FundQuarterReturn",
+            "dataType": "double",
+            "sourceColumn": "FundQuarterReturn"
+          },
+          {
+            "name": "SubscriptionPrice",
+            "dataType": "double",
+            "sourceColumn": "SubscriptionPrice"
+          },
+          {
+            "name": "RedemptionPrice",
+            "dataType": "double",
+            "sourceColumn": "RedemptionPrice"
+          },
+          {
+            "name": "StatisticalPrice",
+            "dataType": "double",
+            "sourceColumn": "StatisticalPrice"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"#(lf)SELECT#(lf)    'Funds' AS Source,#(lf)    ViwFundsPivot.[Date],#(lf)    ViwFundsPivot.FundId,#(lf)    DimFunds.InstrumentId AS InstrumentId,#(lf)    NULL AS IndexId,#(lf)    DimFunds.FundShortName AS Description,#(lf)    Efficiency AS FundEfficiency,#(lf)    MonthReturn AS FundMonthReturn,#(lf)    DayReturn AS FundDayReturn,#(lf)    WeekReturn AS FundWeekReturn,#(lf)    YearReturn AS FundYearReturn,#(lf)    QuarterReturn AS FundQuarterReturn,#(lf)    FactFundsSplit.SubscriptionPrice,#(lf)    FactFundsSplit.RedemptionPrice,#(lf)    FactFundsSplit.StatisticalPrice,#(lf)    Null as TickerClosePrice,#(lf)    Null as TickerAdjPrice, #(lf)    Null as IndexValue #(lf)FROM ViwFundsPivot#(lf)JOIN DimFunds ON ViwFundsPivot.FundId = DimFunds.FundId inner join FactFundsSplit on FactFundsSplit.[Date] = ViwFundsPivot.[Date] and FactFundsSplit.FundId = ViwFundsPivot.FundId#(lf)UNION ALL#(lf)#(lf)    SELECT#(lf)        'Tickers' AS Source,#(lf)        FactTradeDetails.[Date],#(lf)        NULL AS FundId,#(lf)        FactTradeDetails.InstrumentId,#(lf)        NULL AS IndexId,#(lf)        DimInstrument.Instrument AS Description,#(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        FactTradeDetails.ClosePrice,#(lf)        FactTradeDetails.AdjPrice,#(lf)        Null#(lf)    FROM FactTradeDetails#(lf)    JOIN DimInstrument ON FactTradeDetails.InstrumentId = DimInstrument.InstrumentId#(lf)#(lf)    UNION ALL#(lf)#(lf)    SELECT#(lf)        'Indexes' AS Source,#(lf)        FactIndexValue.[Date],#(lf)        NULL AS FundId,#(lf)        NULL AS InstrumentId,#(lf)        FactIndexValue.IndexId,#(lf)        DimIndex.NameEn AS Description,#(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue    #(lf)    FROM FactIndexValue#(lf)    JOIN DimIndex ON FactIndexValue.IndexId = DimIndex.IndexId#(lf)\", CreateNavigationProperties=false])",
+                "in",
+                "    Source"
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "% Fund Return on NAV",
+            "expression": [
+              "",
+              "VAR BaseDate = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(PREVIOUSDAY(FIRSTDATE('DimTimeTable'[Date])))",
+              "        ),",
+              "        CALCULATE(COUNT('FactReturns'[RedemptionPrice]))",
+              "    )",
+              ") ",
+              "",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            LASTDATE('DimTimeTable'[Date])",
+              "        ),",
+              "        CALCULATE(COUNT('FactReturns'[RedemptionPrice]))",
+              "        )",
+              ")",
+              "",
+              "VAR BaseFinal = ",
+              "IF(",
+              "    SELECTEDVALUE('DimFunds'[FundType])= \"درآمد ثابت\",",
+              "    CALCULATE(SELECTEDVALUE('FactReturns'[StatisticalPrice]), 'DimTimeTable'[Date] = BaseDate),",
+              "    CALCULATE(SELECTEDVALUE('FactReturns'[RedemptionPrice]), 'DimTimeTable'[Date] = BaseDate)",
+              ")",
+              "",
+              "VAR EndFinal = ",
+              "IF(",
+              "    SELECTEDVALUE('DimFunds'[FundType]) = \"درآمد ثابت\",",
+              "    CALCULATE(SELECTEDVALUE('FactReturns'[StatisticalPrice]), 'DimTimeTable'[Date] = MaxDate),",
+              "    CALCULATE(SELECTEDVALUE('FactReturns'[RedemptionPrice]), 'DimTimeTable'[Date] = MaxDate)",
+              ")",
+              "",
+              "VAR R = IF(OR(ISBLANK(EndFinal), ISBLANK(BaseFinal)), BLANK(),DIVIDE(EndFinal-BaseFinal, BaseFinal))",
+              "",
+              "RETURN R"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "% Fund Return on NAV Cum",
+            "expression": [
+              "",
+              "VAR BaseDate = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(PREVIOUSDAY(FIRSTDATE('DimTimeTable'[Date])), ALLSELECTED('DimTimeTable'[Date]))",
+              "        ),",
+              "        CALCULATE(COUNT('FactReturns'[RedemptionPrice]))",
+              "    )",
+              ") ",
+              "",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            LASTDATE('DimTimeTable'[Date])",
+              "        ),",
+              "        CALCULATE(COUNT('FactReturns'[RedemptionPrice]))",
+              "        )",
+              ")",
+              "",
+              "VAR BaseFinal = ",
+              "IF(",
+              "    SELECTEDVALUE('DimFunds'[FundType])= \"درآمد ثابت\",",
+              "    CALCULATE(SELECTEDVALUE('FactReturns'[StatisticalPrice]), 'DimTimeTable'[Date] = BaseDate),",
+              "    CALCULATE(SELECTEDVALUE('FactReturns'[RedemptionPrice]), 'DimTimeTable'[Date] = BaseDate)",
+              ")",
+              "",
+              "VAR EndFinal = ",
+              "IF(",
+              "    SELECTEDVALUE('DimFunds'[FundType]) = \"درآمد ثابت\",",
+              "    CALCULATE(SELECTEDVALUE('FactReturns'[StatisticalPrice]), 'DimTimeTable'[Date] = MaxDate),",
+              "    CALCULATE(SELECTEDVALUE('FactReturns'[RedemptionPrice]), 'DimTimeTable'[Date] = MaxDate)",
+              ")",
+              "",
+              "VAR R = IF(OR(ISBLANK(EndFinal), ISBLANK(BaseFinal)), BLANK(),DIVIDE(EndFinal-BaseFinal, BaseFinal))",
+              "",
+              "RETURN R"
+            ],
+            "formatString": "0.00%;-0.00%;0.00%"
+          },
+          {
+            "name": "% Fund Alpha on NAV Cum",
+            "expression": [
+              "",
+              "CALCULATE(",
+              "\t[% Fund Return on NAV Cum]",
+              ")",
+              "-",
+              "CALCULATE(",
+              "\t[% Fund Return on NAV Cum]",
+              "\t, 'FactReturns'[Description] = \"TEDPIX\"",
+              "\t, ALL('FactReturns'[Description]),",
+              "\tALL('FactReturns'[Source]",
+              "))"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           }
         ]
       }
@@ -3397,14 +5072,751 @@
         "toColumn": "DateKey"
       },
       {
-        "name": "08d28904-87f1-432f-9f35-b524fb7104f8",
-        "fromCardinality": "one",
-        "fromTable": "DimManager",
+        "name": "8929441b-a055-43bb-8156-e5609878a5a4",
+        "fromTable": "FactManagerAUM",
         "fromColumn": "ManagerId",
-        "toTable": "FactManagerAUM",
-        "toColumn": "ManagerId",
-        "isActive": false,
+        "toTable": "DimManager",
+        "toColumn": "ManagerId"
+      },
+      {
+        "name": "9db6f0fb-61ef-4069-9a4d-4b44680f1a8d",
+        "fromTable": "FactShareStatus",
+        "fromColumn": "AssetId",
+        "toTable": "DimAsset",
+        "toColumn": "AssetId"
+      },
+      {
+        "name": "3aa30891-d6b1-4fb6-8ea3-72f94a7e772d",
+        "fromTable": "FactTrade",
+        "fromColumn": "AssetId",
+        "toTable": "DimAsset",
+        "toColumn": "AssetId"
+      },
+      {
+        "name": "b8ac0892-84fb-4220-bbcc-5facab644d30",
+        "fromTable": "FactShareStatus",
+        "fromColumn": "IndustryId",
+        "toTable": "DimIndustry",
+        "toColumn": "IndustryId"
+      },
+      {
+        "name": "9aaa1f37-7565-4f5c-b766-0cbad988564a",
+        "fromTable": "FactShareHolders",
+        "fromColumn": "Date",
+        "toTable": "DimTimeTable",
+        "toColumn": "Date"
+      },
+      {
+        "name": "500aec78-4201-426b-bc40-ea79561b051d",
+        "fromTable": "Sold Out Clients",
+        "fromColumn": "Date",
+        "toTable": "DimTimeTable",
+        "toColumn": "Date"
+      },
+      {
+        "name": "ed9c26ed-ec14-4f46-84c6-2c7c4ce5f88b",
+        "fromTable": "FactShareHolders",
+        "fromColumn": "ShareHolderId",
+        "toTable": "DimShareHoldersProfile",
+        "toColumn": "ShareHolderId"
+      },
+      {
+        "name": "a3c32d52-90b8-44db-aa55-1d2ef139b73a",
+        "fromTable": "Sold Out Clients",
+        "fromColumn": "ShareHolderId",
+        "toTable": "DimShareHoldersProfile",
+        "toColumn": "ShareHolderId"
+      },
+      {
+        "name": "d4f20adc-c69e-46f0-99fe-08c1176c4b74",
+        "fromTable": "Sold Out Clients",
+        "fromColumn": "CompanyId",
+        "toTable": "DimCompany",
+        "toColumn": "CompanyId"
+      },
+      {
+        "name": "f7e14484-c2c4-4608-b6c6-61971cbcd541",
+        "fromTable": "FactShareHolders",
+        "fromColumn": "CompanyId",
+        "toTable": "DimCompany",
+        "toColumn": "CompanyId"
+      },
+      {
+        "name": "72e6fdf6-2277-4d3e-bb05-96c129274ad5",
+        "fromCardinality": "one",
+        "fromTable": "DimCompany",
+        "fromColumn": "InstrumentId",
+        "toTable": "DimInstrument",
+        "toColumn": "InstrumentId",
         "crossFilteringBehavior": "bothDirections"
+      },
+      {
+        "name": "6c229887-68ca-455d-9f16-d4385c7293af",
+        "fromTable": "FactTrade",
+        "fromColumn": "InstrumentId",
+        "toTable": "DimInstrument",
+        "toColumn": "InstrumentId"
+      },
+      {
+        "name": "97b023c1-e102-46b7-b449-a993532079e3",
+        "fromTable": "FactTradeDetails",
+        "fromColumn": "Date",
+        "toTable": "DimTimeTable",
+        "toColumn": "Date"
+      },
+      {
+        "name": "c7270c50-a117-4fd5-9721-cb4539bc72ef",
+        "fromTable": "FactTradeDetails",
+        "fromColumn": "InstrumentId",
+        "toTable": "DimInstrument",
+        "toColumn": "InstrumentId"
+      },
+      {
+        "name": "20ab4a0a-2a32-4021-92a2-82cc5aa1b73c",
+        "fromTable": "FactTrade",
+        "fromColumn": "Date",
+        "toTable": "DimTimeTable",
+        "toColumn": "Date"
+      },
+      {
+        "name": "2b9ad1c4-bf98-424e-9fe6-2b129f6f368a",
+        "fromTable": "DimFunds",
+        "fromColumn": "InstrumentId",
+        "toTable": "DimInstrument",
+        "toColumn": "InstrumentId",
+        "crossFilteringBehavior": "bothDirections"
+      },
+      {
+        "name": "320454be-1af1-4995-8989-c43205f77624",
+        "fromTable": "FactIndexValue",
+        "fromColumn": "IndexId",
+        "toTable": "DimIndex",
+        "toColumn": "IndexId"
+      },
+      {
+        "name": "153590f8-ea80-4f4f-8178-76baf76d694a",
+        "fromTable": "FactIndexValue",
+        "fromColumn": "Date",
+        "toTable": "DimTimeTable",
+        "toColumn": "Date"
+      },
+      {
+        "name": "a196a662-9c9d-47a9-b9d2-e26c9dcfb478",
+        "fromTable": "FactReturns",
+        "fromColumn": "Date",
+        "toTable": "DimTimeTable",
+        "toColumn": "Date"
+      },
+      {
+        "name": "ffc2d295-7cb2-4326-840a-93bcfacb9fac",
+        "fromTable": "FactReturns",
+        "fromColumn": "FundId",
+        "toTable": "DimFunds",
+        "toColumn": "FundId"
+      }
+    ],
+    "perspectives": [
+      {
+        "name": "Unit Holders",
+        "tables": [
+          {
+            "name": "DimShareHoldersProfile",
+            "columns": [
+              {
+                "name": "Affiliated"
+              },
+              {
+                "name": "BirthDate"
+              },
+              {
+                "name": "Born"
+              },
+              {
+                "name": "BourseCode"
+              },
+              {
+                "name": "FatherName"
+              },
+              {
+                "name": "FullName"
+              },
+              {
+                "name": "Gender"
+              },
+              {
+                "name": "IdNo"
+              },
+              {
+                "name": "IsAffiliated"
+              },
+              {
+                "name": "KindCategory"
+              },
+              {
+                "name": "KindDesc"
+              },
+              {
+                "name": "KindId"
+              },
+              {
+                "name": "NationalId"
+              },
+              {
+                "name": "ShareHolderId"
+              }
+            ]
+          },
+          {
+            "name": "FactShareHoldersTrade",
+            "columns": [
+              {
+                "name": "CompanyId"
+              },
+              {
+                "name": "Date"
+              },
+              {
+                "name": "InsertTime"
+              },
+              {
+                "name": "Price"
+              },
+              {
+                "name": "ShareHolderId"
+              },
+              {
+                "name": "ShareKindId"
+              },
+              {
+                "name": "Trade Side Desc"
+              },
+              {
+                "name": "TradeSide"
+              },
+              {
+                "name": "Value"
+              },
+              {
+                "name": "Volume"
+              },
+              {
+                "name": "VolumeBalance"
+              }
+            ]
+          },
+          {
+            "name": "FactShareStatus",
+            "columns": [
+              {
+                "name": "AssetId"
+              },
+              {
+                "name": "AVGBuyPrice"
+              },
+              {
+                "name": "BreakEvenPrice"
+              },
+              {
+                "name": "Date"
+              },
+              {
+                "name": "IndustryId"
+              },
+              {
+                "name": "InsertTime"
+              },
+              {
+                "name": "InstrumentId"
+              },
+              {
+                "name": "LastDPS"
+              },
+              {
+                "name": "OwnershipPercent"
+              },
+              {
+                "name": "Price"
+              },
+              {
+                "name": "PureDiffPercent"
+              },
+              {
+                "name": "PureDiffPrice"
+              },
+              {
+                "name": "PureValueInDate"
+              },
+              {
+                "name": "ShareNo"
+              },
+              {
+                "name": "TotalInvest"
+              },
+              {
+                "name": "ValueInDate"
+              }
+            ]
+          },
+          {
+            "name": "DimCompany",
+            "columns": [
+              {
+                "name": "Company"
+              },
+              {
+                "name": "CompanyId"
+              },
+              {
+                "name": "InstrumentId"
+              },
+              {
+                "name": "IsETF"
+              },
+              {
+                "name": "ShortName"
+              }
+            ]
+          },
+          {
+            "name": "DimTimeTable",
+            "columns": [
+              {
+                "name": "Date"
+              },
+              {
+                "name": "DateKey"
+              },
+              {
+                "name": "DateNumber"
+              },
+              {
+                "name": "DayNameOfWeek"
+              },
+              {
+                "name": "DayNameOfWeek2"
+              },
+              {
+                "name": "DayNumberOfMonth"
+              },
+              {
+                "name": "DayNumberOfWeek"
+              },
+              {
+                "name": "DayNumberOfYear"
+              },
+              {
+                "name": "EDATE"
+              },
+              {
+                "name": "EDATE1"
+              },
+              {
+                "name": "FDATE"
+              },
+              {
+                "name": "FYearMonth"
+              },
+              {
+                "name": "FYearMonthNum"
+              },
+              {
+                "name": "IsBeforeTheDayBeforeYesterday"
+              },
+              {
+                "name": "IsBeforeToday"
+              },
+              {
+                "name": "IsBeforeYesterday"
+              },
+              {
+                "name": "IsNonWorking"
+              },
+              {
+                "name": "Month"
+              },
+              {
+                "name": "Month2"
+              },
+              {
+                "name": "MonthOfYear"
+              },
+              {
+                "name": "NormDate"
+              },
+              {
+                "name": "Quarter"
+              },
+              {
+                "name": "QuarterOfYear"
+              },
+              {
+                "name": "SixMonths"
+              },
+              {
+                "name": "WeekNumber"
+              },
+              {
+                "name": "WeekNumberOfYear"
+              },
+              {
+                "name": "Year"
+              }
+            ]
+          },
+          {
+            "name": "FactShareHolders",
+            "columns": [
+              {
+                "name": "CompanyId"
+              },
+              {
+                "name": "Date"
+              },
+              {
+                "name": "IsLastDay"
+              },
+              {
+                "name": "IsNew"
+              },
+              {
+                "name": "ShareHolderId"
+              },
+              {
+                "name": "VolumeBalance"
+              },
+              {
+                "name": "VolumeDelta"
+              }
+            ]
+          },
+          {
+            "name": "Sold Out Clients",
+            "columns": [
+              {
+                "name": "CompanyId"
+              },
+              {
+                "name": "Date"
+              },
+              {
+                "name": "IsLastDay"
+              },
+              {
+                "name": "IsNew"
+              },
+              {
+                "name": "Report Date"
+              },
+              {
+                "name": "ShareHolderId"
+              },
+              {
+                "name": "VolumeBalance"
+              },
+              {
+                "name": "VolumeDelta"
+              }
+            ]
+          },
+          {
+            "name": "DimFunds",
+            "columns": [
+              {
+                "name": "AUM"
+              },
+              {
+                "name": "ColorCode"
+              },
+              {
+                "name": "Custodian"
+              },
+              {
+                "name": "FiscalYear"
+              },
+              {
+                "name": "FundEnName"
+              },
+              {
+                "name": "FundEnShortName"
+              },
+              {
+                "name": "FundId"
+              },
+              {
+                "name": "FundLink"
+              },
+              {
+                "name": "FundName"
+              },
+              {
+                "name": "FundShortName"
+              },
+              {
+                "name": "FundSubType"
+              },
+              {
+                "name": "FundSubTypeEn"
+              },
+              {
+                "name": "FundType"
+              },
+              {
+                "name": "FundTypeEn"
+              },
+              {
+                "name": "Guarantor"
+              },
+              {
+                "name": "InitiationDate"
+              },
+              {
+                "name": "InvestmentManager"
+              },
+              {
+                "name": "ManagerId"
+              },
+              {
+                "name": "MarketMaker"
+              },
+              {
+                "name": "TypeOfInvest"
+              }
+            ]
+          },
+          {
+            "name": "DimInstrument",
+            "columns": [
+              {
+                "name": "AssetId"
+              },
+              {
+                "name": "Category"
+              },
+              {
+                "name": "CategoryId"
+              },
+              {
+                "name": "Exchange"
+              },
+              {
+                "name": "ExchangeId"
+              },
+              {
+                "name": "ExchangeState"
+              },
+              {
+                "name": "Industry"
+              },
+              {
+                "name": "IndustryId"
+              },
+              {
+                "name": "Instrument"
+              },
+              {
+                "name": "InstrumentCode"
+              },
+              {
+                "name": "InstrumentId"
+              },
+              {
+                "name": "IsDeleted"
+              },
+              {
+                "name": "Market"
+              },
+              {
+                "name": "MarketId"
+              },
+              {
+                "name": "TypeId"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "roles": [
+      {
+        "name": "Full Access",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "IIDIC\\507485",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1521"
+          },
+          {
+            "memberName": "IIDIC\\507481",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1390"
+          },
+          {
+            "memberName": "IIDIC\\402VC042",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2653"
+          },
+          {
+            "memberName": "IIDIC\\507153",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1647"
+          },
+          {
+            "memberName": "IIDIC\\507201",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1731"
+          },
+          {
+            "memberName": "IIDIC\\507268",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1393"
+          },
+          {
+            "memberName": "IIDIC\\507275",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1462"
+          },
+          {
+            "memberName": "IIDIC\\507382",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1734"
+          }
+        ]
+      },
+      {
+        "name": "Fipiran",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "IIDIC\\507485",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1521"
+          },
+          {
+            "memberName": "IIDIC\\507481",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1390"
+          },
+          {
+            "memberName": "IIDIC\\507440",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1253"
+          },
+          {
+            "memberName": "IIDIC\\507392",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1710"
+          },
+          {
+            "memberName": "IIDIC\\10045",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1414"
+          },
+          {
+            "memberName": "IIDIC\\140201",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2052"
+          },
+          {
+            "memberName": "IIDIC\\402BI038",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2647"
+          },
+          {
+            "memberName": "IIDIC\\402bi060",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2708"
+          },
+          {
+            "memberName": "IIDIC\\402MG040",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2644"
+          },
+          {
+            "memberName": "IIDIC\\402sa051",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2660"
+          },
+          {
+            "memberName": "IIDIC\\410036",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1756"
+          },
+          {
+            "memberName": "IIDIC\\507333",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1737"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "DimShareHoldersProfile",
+            "metadataPermission": "none"
+          },
+          {
+            "name": "FactShareHoldersTrade",
+            "metadataPermission": "none"
+          },
+          {
+            "name": "FactFunds (Asset Allocation)",
+            "columnPermissions": [
+              {
+                "name": "FundId",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Date",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FundDataTypeId",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FundAssetId",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Value",
+                "metadataPermission": "none"
+              }
+            ]
+          },
+          {
+            "name": "FactShareStatus",
+            "metadataPermission": "none"
+          },
+          {
+            "name": "FactShareHolders",
+            "metadataPermission": "none"
+          },
+          {
+            "name": "Sold Out Clients",
+            "metadataPermission": "none"
+          },
+          {
+            "name": "Clients Measures",
+            "metadataPermission": "none"
+          }
+        ]
+      },
+      {
+        "name": "Asset Manager",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "IIDIC\\402sa051",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2660"
+          },
+          {
+            "memberName": "IIDIC\\507201",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1731"
+          },
+          {
+            "memberName": "IIDIC\\507268",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1393"
+          },
+          {
+            "memberName": "IIDIC\\507275",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1462"
+          },
+          {
+            "memberName": "IIDIC\\507382",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1734"
+          },
+          {
+            "memberName": "IIDIC\\507481",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1390"
+          },
+          {
+            "memberName": "IIDIC\\507484",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1520"
+          },
+          {
+            "memberName": "IIDIC\\507485",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1521"
+          }
+        ]
       }
     ],
     "annotations": [

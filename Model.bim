@@ -136,7 +136,8 @@
           {
             "name": "FundLink",
             "dataType": "string",
-            "sourceColumn": "FundLink"
+            "sourceColumn": "FundLink",
+            "dataCategory": "WebUrl"
           },
           {
             "name": "TypeOfInvest",
@@ -217,6 +218,20 @@
             "name": "BourseCode",
             "dataType": "string",
             "sourceColumn": "BourseCode"
+          },
+          {
+            "type": "calculated",
+            "name": "ETF",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              "",
+              "IF(",
+              "    'DimFunds'[TypeOfInvest],",
+              "    \"ETF\",",
+              "    \"Non-ETF\"",
+              ")"
+            ]
           }
         ],
         "partitions": [
@@ -425,6 +440,41 @@
             "dataType": "int64",
             "isDataTypeInferred": true,
             "expression": " DAY('DimTimeTable'[Date])"
+          },
+          {
+            "type": "calculated",
+            "name": "Slicer Date",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              " ",
+              "VAR LastTradeDay = MAX('FactTradeDetails'[Date])",
+              "RETURN ",
+              "SWITCH(",
+              "    TRUE(),",
+              "    'DimTimeTable'[Date] = LastTradeDay, \"Last Day\",",
+              "    'DimTimeTable'[Date] > LastTradeDay, BLANK(),",
+              "    'DimTimeTable'[DateKey]",
+              ")"
+            ]
+          },
+          {
+            "type": "calculated",
+            "name": "Slicer Date (TheDateBeforeYesterday)",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              " ",
+              "VAR LastTradeDay = CALCULATE(MAX('FactTradeDetails'[Date]), FILTER('DimTimeTable', 'DimTimeTable'[IsBeforeTheDayBeforeYesterday]))",
+              "",
+              "RETURN ",
+              "SWITCH(",
+              "    TRUE(),",
+              "    'DimTimeTable'[Date] = LastTradeDay, \"Last Day\",",
+              "    'DimTimeTable'[Date] > LastTradeDay, BLANK(),",
+              "    'DimTimeTable'[DateKey]",
+              ")"
+            ]
           }
         ],
         "partitions": [
@@ -3073,6 +3123,321 @@
             ],
             "formatString": "0.0%;-0.0%;0.0%",
             "displayFolder": "Market Share"
+          },
+          {
+            "name": "AUM Label",
+            "expression": [
+              "",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    MAX('DimTimeTable'[Date]), ",
+              "    ALLSELECTED('DimTimeTable'[Date])",
+              ")",
+              "",
+              "VAR Label =",
+              "IF(",
+              "    SELECTEDVALUE('DimTimeTable'[Date]) = MaxDate,",
+              "    [AUM], ",
+              "    --[% Fund Return on NAV Cum],",
+              "    \" \"",
+              ")",
+              "RETURN Label",
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "name": "Fund Surplus / Deficit",
+            "expression": [
+              "",
+              "VAR MaxDate = CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "VAR PriceDate = -- Latest date that has price in FactTrade table, since there is no price in holidays",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            MaxDate",
+              "        ),",
+              "        CALCULATE(COUNT('FactTradeDetails'[Date]))",
+              "    )",
+              ")",
+              "VAR Ins = SELECTEDVALUE('DimFunds'[InstrumentId]) -- The instrument selected in the report",
+              "",
+              "VAR Price = -- price of selected instrument in PriceDate",
+              "CALCULATE(",
+              "    SELECTEDVALUE('FactTradeDetails'[AdjPrice]), ",
+              "    'DimTimeTable'[Date] = PriceDate,",
+              "    'FactTradeDetails'[InstrumentId] = Ins",
+              ")",
+              "",
+              "VAR RedPrice = -- If the fund is ETF then we use price for calculating delta, otherwise we use redemption price",
+              "IF (",
+              "    SELECTEDVALUE('DimFunds'[TypeOfInvest]),",
+              "    Price,",
+              "    CALCULATE(",
+              "        SELECTEDVALUE('FactFunds'[RedemptionPrice]),",
+              "        'DimTimeTable'[Date] = MaxDate,",
+              "        'DimFunds'[InstrumentId] = Ins",
+              "    ) ",
+              ")",
+              "",
+              "VAR Delta = -- is the sum of difference between statistical and redemption price (fore ETF's trade price) multiplied by total number of units",
+              "IF(",
+              "    ISBLANK(RedPrice) || ISBLANK(SELECTEDVALUE('FactFunds'[StatisticalPrice])) || ISBLANK(SELECTEDVALUE('FactFunds'[InvestedUnits])),",
+              "    BLANK(),",
+              "    CALCULATE(",
+              "        (SELECTEDVALUE('FactFunds'[StatisticalPrice]) - RedPrice) * SELECTEDVALUE('FactFunds'[InvestedUnits]), ",
+              "        'DimTimeTable'[Date] = MaxDate",
+              "    )",
+              ")",
+              "RETURN Delta",
+              ""
+            ],
+            "formatString": "#,0",
+            "kpi": {
+              "targetExpression": "0",
+              "targetFormatString": "#,0",
+              "statusExpression": [
+                "var x='Fipiran Measures'[Fund Surplus / Deficit]/'Fipiran Measures'[_Fund Surplus / Deficit Goal] return",
+                "            if(ISBLANK(x),BLANK(),",
+                "                    If(x<0.33,-1,",
+                "\t                If(x<0.66,0,1)",
+                "                )",
+                "            )",
+                "            "
+              ],
+              "annotations": [
+                {
+                  "name": "GoalType",
+                  "value": "StaticValue"
+                },
+                {
+                  "name": "KpiStatusType",
+                  "value": "Linear"
+                },
+                {
+                  "name": "KpiThresholdType",
+                  "value": "Percentage"
+                },
+                {
+                  "name": "KpiThresholdOrdering",
+                  "value": "Ascending"
+                },
+                {
+                  "name": "KpiThresholdCount",
+                  "value": "2"
+                },
+                {
+                  "name": "KpiThreshold_0",
+                  "value": "33"
+                },
+                {
+                  "name": "KpiThreshold_1",
+                  "value": "66"
+                }
+              ]
+            }
+          },
+          {
+            "name": "Fund Surplus / Deficit Label",
+            "expression": [
+              " ",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    MAX('DimTimeTable'[Date]), ",
+              "    ALLSELECTED('DimTimeTable'[Date])",
+              ")",
+              "",
+              "VAR Label =",
+              "IF(",
+              "    SELECTEDVALUE('DimTimeTable'[Date]) = MaxDate,",
+              "    [Fund Surplus / Deficit], ",
+              "    \" \"",
+              ")",
+              "RETURN Label",
+              "",
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "name": "Fund Surplus / Deficit to AUM Ratio",
+            "expression": [
+              "",
+              "DIVIDE(",
+              "    [Fund Surplus / Deficit],",
+              "    [AUM]",
+              ")"
+            ],
+            "formatString": "0.00%;-0.00%;0.00%",
+            "kpi": {
+              "targetExpression": "0",
+              "targetFormatString": "0.00%;-0.00%;0.00%",
+              "statusExpression": [
+                "var x='Fipiran Measures'[Fund Surplus / Deficit to AUM Ratio]/'Fipiran Measures'[_Fund Surplus / Deficit to AUM Ratio Goal] return",
+                "            if(ISBLANK(x),BLANK(),",
+                "                    If(x<0.33,-1,",
+                "\t                If(x<0.66,0,1)",
+                "                )",
+                "            )",
+                "            "
+              ],
+              "annotations": [
+                {
+                  "name": "GoalType",
+                  "value": "StaticValue"
+                },
+                {
+                  "name": "KpiStatusType",
+                  "value": "Linear"
+                },
+                {
+                  "name": "KpiThresholdType",
+                  "value": "Percentage"
+                },
+                {
+                  "name": "KpiThresholdOrdering",
+                  "value": "Ascending"
+                },
+                {
+                  "name": "KpiThresholdCount",
+                  "value": "2"
+                },
+                {
+                  "name": "KpiThreshold_0",
+                  "value": "33"
+                },
+                {
+                  "name": "KpiThreshold_1",
+                  "value": "66"
+                }
+              ]
+            }
+          },
+          {
+            "name": "Fund Surplus / Deficit to AUM Ratio Label",
+            "expression": [
+              "",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    MAX('DimTimeTable'[Date]), ",
+              "    ALLSELECTED('DimTimeTable'[Date])",
+              ")",
+              "",
+              "VAR Label =",
+              "IF(",
+              "    SELECTEDVALUE('DimTimeTable'[Date]) = MaxDate,",
+              "    [Fund Surplus / Deficit to AUM Ratio], ",
+              "    --[% Fund Return on NAV Cum],",
+              "    \" \"",
+              ")",
+              "RETURN Label",
+              "",
+              "",
+              ""
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Fixed Income Effective Annual Return",
+            "expression": [
+              " ",
+              "VAR d = SELECTEDVALUE('DimTimeTable'[Date])",
+              "VAR r = CALCULATE([Return on Price (average 3 weeks)], 'DimTimeTable'[Date] = d) / 100",
+              "VAR t = SELECTEDVALUE('DimFunds'[FundType])",
+              "RETURN ",
+              "IF(",
+              "    t = \"درآمد ثابت\" && r < .0017 && r > -.0017 ,",
+              "    (((1 + r) ^ 365) -1)  * 100",
+              ")"
+            ]
+          },
+          {
+            "name": "Return on Price (average 3 weeks)",
+            "expression": [
+              " ",
+              "VAR CurrentDate = SELECTEDVALUE('DimTimeTable'[Date])",
+              "VAR PreviousDate = --CurrentDate - 14",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CurrentDate - 21",
+              "        ),",
+              "        CALCULATE(COUNT('FactTradeDetails'[ClosePrice])) ",
+              "        )",
+              ")",
+              "VAR CurrentPrice = ",
+              "CALCULATE(",
+              "    SELECTEDVALUE('FactTradeDetails'[ClosePrice]),",
+              "    'DimTimeTable'[Date] = CurrentDate",
+              ")",
+              "VAR PreviousPrice = ",
+              "CALCULATE(",
+              "    SELECTEDVALUE('FactTradeDetails'[ClosePrice]),",
+              "    'DimTimeTable'[Date] = PreviousDate",
+              ")",
+              "VAR R = ",
+              "DIVIDE(CurrentPrice-PreviousPrice, PreviousPrice)",
+              "",
+              "RETURN (((1 + R) ^ (1/21) ) - 1) * 100",
+              "--CurrentPrice - PreviousPrice",
+              "-- (DIVIDE(DIVIDE(CurrentPrice-PreviousPrice, PreviousPrice), VALUE(CurrentDate-PreviousDate)))",
+              "--VALUE(CurrentDate-PreviousDate))"
+            ]
+          },
+          {
+            "name": "Fund Delta trade",
+            "expression": [
+              "",
+              "VAR MaxDate = CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "VAR PriceDate = -- Latest date that has price in FactTrade table, since there is no price in holidays",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            MaxDate",
+              "        ),",
+              "        CALCULATE(COUNT('FactTrade'[Date]))",
+              "    )",
+              ")",
+              "VAR Ins = SELECTEDVALUE('DimFunds'[InstrumentId]) -- The instrument selected in the report",
+              "",
+              "VAR Price = -- price of selected instrument in PriceDate",
+              "CALCULATE(",
+              "    SELECTEDVALUE('FactTrade'[ClosePrice]), ",
+              "    'DimTimeTable'[Date] = PriceDate,",
+              "    'FactTrade'[InstrumentId] = Ins",
+              ")",
+              "",
+              "VAR RedPrice = -- If the fund is ETF then we use price for calculating delta, otherwise we use redemption price",
+              "IF (",
+              "    SELECTEDVALUE('DimFunds'[TypeOfInvest]),",
+              "    Price,",
+              "    CALCULATE(",
+              "        SELECTEDVALUE('FactFunds'[RedemptionPrice]),",
+              "        'DimTimeTable'[Date] = MaxDate,",
+              "        'DimFunds'[InstrumentId] = Ins",
+              "    ) ",
+              ")",
+              "",
+              "VAR Delta = -- is the sum of difference between statistical and redemption price (fore ETF's trade price) multiplied by total number of units",
+              "IF(",
+              "    ISBLANK(RedPrice) || ISBLANK(SELECTEDVALUE('FactFunds'[StatisticalPrice])) || ISBLANK(SELECTEDVALUE('FactFunds'[InvestedUnits])),",
+              "    BLANK(),",
+              "    CALCULATE(",
+              "        (SELECTEDVALUE('FactFunds'[StatisticalPrice]) - RedPrice) * SELECTEDVALUE('FactFunds'[InvestedUnits]), ",
+              "        'DimTimeTable'[Date] = MaxDate",
+              "    )",
+              ")",
+              "RETURN Delta",
+              ""
+            ]
           }
         ]
       },
@@ -4052,11 +4417,6 @@
             "sourceColumn": "AssetId"
           },
           {
-            "name": "IndustryId",
-            "dataType": "int64",
-            "sourceColumn": "IndustryId"
-          },
-          {
             "name": "ShareNo",
             "dataType": "int64",
             "sourceColumn": "ShareNo"
@@ -4115,6 +4475,16 @@
             "name": "InsertTime",
             "dataType": "dateTime",
             "sourceColumn": "InsertTime"
+          },
+          {
+            "name": "PortfolioId",
+            "dataType": "int64",
+            "sourceColumn": "PortfolioId"
+          },
+          {
+            "name": "SourceId",
+            "dataType": "int64",
+            "sourceColumn": "SourceId"
           }
         ],
         "partitions": [
@@ -4950,10 +5320,75 @@
               "-",
               "CALCULATE(",
               "\t[% Fund Return on NAV Cum]",
-              "\t, 'FactReturns'[Description] = \"TEDPIX\"",
+              "\t, 'FactReturns'[IndexId] = 67  // شاخص کل",
               "\t, ALL('FactReturns'[Description]),",
               "\tALL('FactReturns'[Source]",
               "))"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "% Fund Return on NAV Cum Label",
+            "expression": [
+              "",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    MAX('DimTimeTable'[Date]), ",
+              "    ALLSELECTED('DimTimeTable'[Date])",
+              ")",
+              "",
+              "VAR Label =",
+              "IF(",
+              "    SELECTEDVALUE('DimTimeTable'[Date]) = MaxDate,",
+              "    FORMAT([% Fund Alpha on NAV Cum], \"0.0%\"),",
+              "    --[% Fund Return on NAV Cum],",
+              "    \" \"",
+              ")",
+              "RETURN Label",
+              "",
+              "",
+              ""
+            ],
+            "formatString": "0.00%;-0.00%;0.00%"
+          },
+          {
+            "name": "% TEDPIX Return Cum",
+            "expression": [
+              "",
+              "CALCULATE(",
+              "    [% Fund Return on NAV Cum],",
+              "    'FactReturns'[indexId] = 67",
+              "    --All('FactReturns'[Description], 'FactReturns'[FundId], factr),",
+              "    , REMOVEFILTERS('FactReturns'[FundId], 'FactReturns'[InstrumentId])",
+              "    , ALL('DimFunds')",
+              "    , ALL('DimManager')",
+              "",
+              ")",
+              ""
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "% TEDPIX Return Cum Label",
+            "expression": [
+              "",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    MAX('DimTimeTable'[Date]), ",
+              "    ALLSELECTED('DimTimeTable'[Date])",
+              ")",
+              "",
+              "VAR Label =",
+              "IF(",
+              "    SELECTEDVALUE('DimTimeTable'[Date]) = MaxDate,",
+              "    FORMAT([% TEDPIX Return Cum], \"0.0%\"),",
+              "    --[% Fund Return on NAV Cum],",
+              "    \" \"",
+              ")",
+              "RETURN Label",
+              "",
+              "",
+              ""
             ],
             "formatString": "0.0%;-0.0%;0.0%"
           }
@@ -5065,13 +5500,6 @@
         "fromColumn": "AssetId",
         "toTable": "DimAsset",
         "toColumn": "AssetId"
-      },
-      {
-        "name": "b8ac0892-84fb-4220-bbcc-5facab644d30",
-        "fromTable": "FactShareStatus",
-        "fromColumn": "IndustryId",
-        "toTable": "DimIndustry",
-        "toColumn": "IndustryId"
       },
       {
         "name": "9aaa1f37-7565-4f5c-b766-0cbad988564a",
@@ -5294,9 +5722,6 @@
                 "name": "Date"
               },
               {
-                "name": "IndustryId"
-              },
-              {
                 "name": "InsertTime"
               },
               {
@@ -5328,6 +5753,12 @@
               },
               {
                 "name": "ValueInDate"
+              },
+              {
+                "name": "PortfolioId"
+              },
+              {
+                "name": "SourceId"
               }
             ]
           },

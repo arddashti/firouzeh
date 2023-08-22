@@ -232,6 +232,11 @@
               "    \"Non-ETF\"",
               ")"
             ]
+          },
+          {
+            "name": "DividendIntervalPeriod",
+            "dataType": "int64",
+            "sourceColumn": "DividendIntervalPeriod"
           }
         ],
         "partitions": [
@@ -475,6 +480,13 @@
               "    'DimTimeTable'[DateKey]",
               ")"
             ]
+          },
+          {
+            "type": "calculated",
+            "name": "GQuarter",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": " FORMAT ( 'DimTimeTable'[Date], \"q\")"
           }
         ],
         "partitions": [
@@ -505,13 +517,18 @@
               },
               {
                 "name": "GMonth",
-                "ordinal": 1,
+                "ordinal": 2,
                 "column": "GMonth"
               },
               {
                 "name": "GDay",
-                "ordinal": 2,
+                "ordinal": 3,
                 "column": "GDay"
+              },
+              {
+                "name": "GQuarter",
+                "ordinal": 1,
+                "column": "GQuarter"
               }
             ]
           }
@@ -3348,10 +3365,18 @@
               "VAR d = SELECTEDVALUE('DimTimeTable'[Date])",
               "VAR r = CALCULATE([Return on Price (average 3 weeks)], 'DimTimeTable'[Date] = d) / 100",
               "VAR t = SELECTEDVALUE('DimFunds'[FundType])",
-              "RETURN ",
+              "VAR ETF = SELECTEDVALUE('DimFunds'[TypeOfInvest])",
+              "VAR Period = SELECTEDVALUE('DimFunds'[DividendIntervalPeriod])",
+              "VAR RFixed =",
               "IF(",
               "    t = \"درآمد ثابت\" && r < .0017 && r > -.0017 ,",
               "    (((1 + r) ^ 365) -1)  * 100",
+              ")",
+              "RETURN ",
+              "IF(",
+              "    ETF && Period = 0,",
+              "    RFixed,",
+              "    BLANK()",
               ")"
             ]
           },
@@ -3437,6 +3462,193 @@
               ")",
               "RETURN Delta",
               ""
+            ]
+          },
+          {
+            "name": "Return Percentile Value",
+            "expression": [
+              " ",
+              "VAR Period = '@Period'[@Period Value]",
+              "VAR MinAUM = '@AUM'[Min AUM]",
+              "VAR MaxAUM = '@AUM'[Max AUM]",
+              "VAR T0 = ",
+              "CALCULATETABLE(",
+              "    VALUES(DimFunds[FundId]),",
+              "    NOT(ISBLANK('FactFunds'[YearReturn]) || 'FactFunds'[YearReturn] = 0),",
+              "    All('DimFunds')",
+              ")",
+              "VAR T1 =",
+              "CALCULATETABLE(",
+              "    FILTER(ALL('DimFunds'), [Filter Percentile] = 1)",
+              "//    'DimFunds'[AUM] <= MaxAUM, ",
+              "//    'DimFunds'[AUM] >= MinAUM,",
+              "    , 'DimFunds'[FundId] IN T0",
+              ")",
+              "VAR T2 = ",
+              "ADDCOLUMNS(",
+              "FILTER(",
+              "    T1,",
+              "    VAR r =",
+              "    SWITCH(",
+              "        TRUE(),",
+              "        Period = 1, [Month Rank],",
+              "        Period = 3, [Quarter Rank],",
+              "        Period = 6, [6 Month Rank],",
+              "        Period = 12, [Annual Rank]",
+              "    )",
+              "    RETURN",
+              "    CALCULATE((r-1)/COUNTROWS(T1)) <= (1-[@Percentile]/100)",
+              "),",
+              "\"Rank11\", ",
+              "SWITCH(",
+              "    TRUE(),",
+              "    Period = 1, [Month Rank],",
+              "    Period = 3, [Quarter Rank],",
+              "    Period = 6, [6 Month Rank],",
+              "    Period = 12, [Annual Rank]",
+              ")",
+              ")",
+              "VAR T3 =",
+              "ADDCOLUMNS(",
+              "    T2,",
+              "    \"PeriodReturn\", ",
+              "    SWITCH(",
+              "        TRUE(),",
+              "        Period = 1, [% Month Return],",
+              "        Period = 3, [% Quarter Return],",
+              "        Period = 6, [% 6 Month Return],",
+              "        Period = 12, [% Annual Return]",
+              "    )",
+              ")",
+              "RETURN",
+              "--period",
+              "--CALCULATE(CONCATENATEX('DimFunds', 'DimFunds'[FundName], \", \"), FILTER(T2, ISBLANK([Rank11]) ))",
+              "--MAXX(T2, [Rank11])",
+              "--COUNTROWS(T3)",
+              "--CALCULATE(COUNTROWS(T2), FILTER(T2, False() && [Rank11] =-5))",
+              "--CALCULATE(COUNTROWS(T1))",
+              "CALCULATE(MINX(T3, [PeriodReturn]))",
+              ""
+            ]
+          },
+          {
+            "name": "Filter Percentile",
+            "expression": [
+              " ",
+              "VAR BaseDate = MIN('DimTimeTable'[Date])",
+              "VAR BaseAUM = CALCULATE([AUM], 'DimTimeTable'[Date] = BaseDate, 'DimFunds'[FundId] = 10789)",
+              "VAR AUM = CALCULATE([AUM], 'DimTimeTable'[Date] = BaseDate)",
+              "",
+              "VAR b = ",
+              "(",
+              "    CALCULATE(",
+              "        SELECTEDVALUE('DimManager'[FinancialGroupName]), ",
+              "        CROSSFILTER('DimManager'[ManagerId], 'DimFunds'[ManagerId], Both)",
+              "    )",
+              "    in {\"کیان\", \"ترنج\", \"مفید\", \"آگاه\", \"کاریزما\", \"فارابی\"}",
+              "|| ",
+              "    (AUM >= .5 * BaseAUM && AUM <= 2 * BaseAUM)",
+              ") ",
+              "&& SELECTEDVALUE('DimFunds'[FundSubType]) <> \"اهرمی\"",
+              "&& SELECTEDVALUE('DimFunds'[FundType]) = \"در سهام\"",
+              "return ",
+              "if (b, 1, 0) ",
+              ""
+            ]
+          },
+          {
+            "name": "Return Percentile Value New",
+            "expression": [
+              " ",
+              "VAR Period = '@Period'[@Period Value]",
+              "VAR BaseDate = MIN('DimTimeTable'[Date])",
+              "VAR BaseAUM = CALCULATE([AUM], ALL(), 'DimTimeTable'[Date] = BaseDate,  'DimFunds'[FundId] = 10789)",
+              "",
+              "",
+              "VAR T1 =",
+              "CALCULATETABLE(",
+              "    VALUES('DimFunds'[FundId])",
+              ",",
+              "    filter(",
+              "        ALL('DimFunds'),",
+              "        VAR AUM = CALCULATE([AUM], 'DimTimeTable'[Date] <= BaseDate)",
+              "        RETURN",
+              "        CALCULATE(",
+              "        selectedvalue('dimmanager'[financialgroupname]) ",
+              "        , crossfilter('dimmanager'[managerid], 'dimfunds'[managerid], both)",
+              "        )   ",
+              "        in {\"کیان\", \"ترنج\", \"مفید\", \"آگاه\", \"کاریزما\", \"فارابی\"}",
+              "        || ",
+              "        (aum >= .5 * baseaum && aum <= 2 * baseaum)",
+              "        )",
+              ", ",
+              "    FILTER(",
+              "        ALL('dimfunds')",
+              "        , 'dimfunds'[fundsubtype] <> \"اهرمی\"",
+              "        && 'dimfunds'[fundtype] = \"در سهام\"",
+              "    )",
+              ",     all('dimfunds')",
+              "    , NOT (ISBLANK('factfunds'[yearreturn]) || 'factfunds'[yearreturn] = 0)",
+              "",
+              ")",
+              "",
+              "",
+              "VAR T2 = ",
+              "ADDCOLUMNS(",
+              "FILTER(",
+              "    T1,",
+              "    VAR r =",
+              "    SWITCH(",
+              "        TRUE(),",
+              "        Period = 1, [Month Rank],",
+              "        Period = 3, [Quarter Rank],",
+              "        Period = 6, [6 Month Rank],",
+              "        Period = 12, RANKX(T1, [% Annual Return], , DESC, Skip)--[Annual Rank]",
+              "    )",
+              "    RETURN ",
+              "   (r-0)/CALCULATE(COUNTROWS(T1)) <= (1-[@Percentile]/100)",
+              "),",
+              "\"Rank11\", ",
+              "SWITCH(",
+              "    TRUE(),",
+              "    Period = 1, [Month Rank],",
+              "    Period = 3, [Quarter Rank],",
+              "    Period = 6, [6 Month Rank],",
+              "    Period = 12, [Annual Rank]",
+              ")",
+              ")",
+              "VAR T3 =",
+              "ADDCOLUMNS(",
+              "    T2,",
+              "    \"PeriodReturn\", ",
+              "    SWITCH(",
+              "        TRUE(),",
+              "        Period = 1, [% Month Return],",
+              "        Period = 3, [% Quarter Return],",
+              "        Period = 6, [% 6 Month Return],",
+              "        Period = 12, [% Annual Return]",
+              "    )",
+              ")",
+              "RETURN",
+              "--period",
+              "--CALCULATE(CONCATENATEX('DimFunds', 'DimFunds'[FundName], \", \"), FILTER(T2, ISBLANK([Rank11]) ))",
+              "--MAXX(T2, [Rank11])",
+              "--COUNTROWS(T2)",
+              "--CALCULATE(COUNTROWS(T2), FILTER(T2, False() && [Rank11] =-5))",
+              "--CALCULATE(COUNTROWS(T1))",
+              "CALCULATE(MINX(T3, [PeriodReturn]))",
+              "",
+              ""
+            ]
+          },
+          {
+            "name": "AUMMMMMMMMMMMMMM",
+            "expression": [
+              "",
+              "VAR BaseDate = MIN('DimTimeTable'[Date])",
+              "VAR BaseAUM = CALCULATE([AUM], ALL(), 'DimTimeTable'[Date] = BaseDate,  'DimFunds'[FundId] = 10789)",
+              "VAR AUM = CALCULATE([AUM], 'DimTimeTable'[Date] <= BaseDate)",
+              "RETURN AUM/10^10"
             ]
           }
         ]
@@ -5292,14 +5504,14 @@
               "",
               "VAR BaseFinal = ",
               "IF(",
-              "    SELECTEDVALUE('DimFunds'[FundType])= \"درآمد ثابت\",",
+              "    CALCULATE(SELECTEDVALUE('DimFunds'[FundTypeEn]), CROSSFILTER('FactReturns'[FundId], 'DimFunds'[FundId],Both))= \"Fixed Income\",",
               "    CALCULATE(SELECTEDVALUE('FactReturns'[StatisticalPrice]), 'DimTimeTable'[Date] = BaseDate),",
               "    CALCULATE(SELECTEDVALUE('FactReturns'[RedemptionPrice]), 'DimTimeTable'[Date] = BaseDate)",
               ")",
               "",
               "VAR EndFinal = ",
               "IF(",
-              "    SELECTEDVALUE('DimFunds'[FundType]) = \"درآمد ثابت\",",
+              "    CALCULATE(SELECTEDVALUE('DimFunds'[FundTypeEn]), CROSSFILTER('FactReturns'[FundId], 'DimFunds'[FundId],Both))= \"Fixed Income\",",
               "    CALCULATE(SELECTEDVALUE('FactReturns'[StatisticalPrice]), 'DimTimeTable'[Date] = MaxDate),",
               "    CALCULATE(SELECTEDVALUE('FactReturns'[RedemptionPrice]), 'DimTimeTable'[Date] = MaxDate)",
               ")",
@@ -5391,6 +5603,219 @@
               ""
             ],
             "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Rebased 100 NAV (FactReturns)",
+            "expression": [
+              " ",
+              "",
+              "VAR BaseDate = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(PREVIOUSDAY(FIRSTDATE('DimTimeTable'[Date])))",
+              "        ),",
+              "        CALCULATE(COUNT('FactReturns'[RedemptionPrice]))",
+              "    )",
+              "    , ALLSELECTED('DimTimeTable')",
+              ")",
+              "",
+              "VAR BaseClose = CALCULATE(SELECTEDVALUE('FactReturns'[RedemptionPrice]), 'DimTimeTable'[Date] = BaseDate)",
+              "VAR CurrentDate = CALCULATE(SELECTEDVALUE('DimTimeTable'[Date]))",
+              "-- VAR Rebased = DIVIDE(SUM('TurquoiseStocks'[Adj NAVPU]), BaseClose)*100",
+              "VAR FinalClose = CALCULATE(SELECTEDVALUE('FactReturns'[RedemptionPrice]))",
+              "VAR Rebased = DIVIDE(FinalClose, BaseClose) * 100",
+              "",
+              "RETURN IF(CurrentDate = CALCULATE(FIRSTDATE('DimTimeTable'[Date]), ALLSELECTED('DimTimeTable')), 100, Rebased)"
+            ]
+          },
+          {
+            "name": "Rebased 0 NAV (FactReturns)",
+            "expression": [
+              " ",
+              "[Rebased 100 NAV (FactReturns)] /100 - if(ISBLANK([Rebased 100 NAV (FactReturns)]), BLANK(), 1) "
+            ],
+            "formatString": "0.00%;-0.00%;0.00%"
+          },
+          {
+            "name": "% Return on Index Range",
+            "expression": [
+              " ",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    MAX('DimTimeTable'[Date]),",
+              "    ALLSELECTED('DimTimeTable')",
+              ")",
+              "VAR Y = if(year(EDATE(MaxDate, -'@Months'[Months Value])) < year(MaxDate), YEAR(MaxDate)-1, year(maxdate))",
+              "VAR MinDate = ",
+              "CALCULATE(ENDOFMONTH('DimTimeTable'[Date]), filter(ALL('DimTimeTable'),'DimTimeTable'[Date] = EDATE(MaxDate, -'@Months'[Months Value]))) + 1",
+              "RETURN ",
+              "CALCULATE(",
+              "    [% TEDPIX Return Cum],",
+              "    DATESBETWEEN(",
+              "        'DimTimeTable'[Date],",
+              "        MinDate,",
+              "        MaxDate",
+              "    ),",
+              "    'FactReturns'[Description] = \"TEDPIX\"",
+              ")"
+            ],
+            "formatString": "0.00%;-0.00%;0.00%"
+          },
+          {
+            "name": "% Return on NAV Range",
+            "expression": [
+              " ",
+              "VAR Fund = SELECTEDVALUE('FactReturns'[FundId])",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    MAX('DimTimeTable'[Date]),",
+              "    ALLSELECTED('DimTimeTable')",
+              ")",
+              "VAR Y = if(year(EDATE(MaxDate, -'@Months'[Months Value])) < year(MaxDate), YEAR(MaxDate)-1, year(maxdate))",
+              "VAR MinDate = ",
+              "CALCULATE(ENDOFMONTH('DimTimeTable'[Date]), filter(ALL('DimTimeTable'),'DimTimeTable'[Date] = EDATE(MaxDate, -'@Months'[Months Value]))) + 1",
+              "RETURN ",
+              "    CALCULATE(",
+              "        [% Fund Return on NAV Cum],",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            MinDate,",
+              "            MaxDate",
+              "        ),",
+              "        'DimFunds'[FundId] = Fund",
+              "    )"
+            ],
+            "formatString": "0.00%;-0.00%;0.00%"
+          }
+        ]
+      },
+      {
+        "name": "@Months",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Months",
+            "dataType": "int64",
+            "isNameInferred": false,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Value]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": "GENERATESERIES(1, 12, 1)"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Months Value",
+            "expression": " SELECTEDVALUE('@Months'[Months])"
+          }
+        ]
+      },
+      {
+        "name": "@Percentile",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Value",
+            "dataType": "int64",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Value]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": " GENERATESERIES(0, 100, 1)"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "@Percentile",
+            "expression": [
+              " ",
+              "SELECTEDVALUE('@Percentile'[Value])"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "T111",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "FundId",
+            "dataType": "int64",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "DimFunds[FundId]"
+          },
+          {
+            "type": "calculated",
+            "name": "Calculated Column 1",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              " CALCULATE(",
+              "    selectedvalue('dimfunds'[fundname]),",
+              "    FILTER(",
+              "        'DimFunds',",
+              "        DimFunds[FundId] = 'T111'[Fundid]",
+              "    )",
+              ")",
+              ""
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": [
+                "",
+                "VAR Period = '@Period'[@Period Value]",
+                "VAR BaseDate = MIN('DimTimeTable'[Date])",
+                "VAR BaseAUM = CALCULATE([AUM], ALL(), 'DimTimeTable'[Date] = BaseDate,  'DimFunds'[FundId] = 10789)",
+                "VAR AUM = CALCULATE([AUM], 'DimTimeTable'[Date] <= BaseDate)",
+                "RETURN",
+                "CALCULATETABLE(",
+                "    VALUES('DimFunds'[FundId])",
+                ",",
+                "    filter(",
+                "        ALL('dimmanager'),",
+                "        (calculate(",
+                "        selectedvalue('dimmanager'[financialgroupname]) ",
+                "        --, crossfilter('dimmanager'[managerid], 'dimfunds'[managerid], both)",
+                "        )   ",
+                "        in {\"کیان\", \"ترنج\", \"مفید\", \"آگاه\", \"کاریزما\", \"فارابی\"}",
+                "        || (aum >= .5 * baseaum && aum <= 2 * baseaum)",
+                "        )",
+                "    )",
+                ", ",
+                "    FILTER(",
+                "        ALL('dimfunds')",
+                "        , 'dimfunds'[fundsubtype] <> \"اهرمی\"",
+                "        && 'dimfunds'[fundtype] = \"در سهام\"",
+                "    )",
+                ",     all('dimfunds')",
+                "    , NOT (ISBLANK('factfunds'[yearreturn]) || 'factfunds'[yearreturn] = 0)",
+                "",
+                ")"
+              ]
+            }
           }
         ]
       }
@@ -5985,6 +6410,9 @@
               },
               {
                 "name": "TypeOfInvest"
+              },
+              {
+                "name": "DividendIntervalPeriod"
               }
             ]
           },

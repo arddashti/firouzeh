@@ -5818,6 +5818,400 @@
             }
           }
         ]
+      },
+      {
+        "name": "Trades Measures",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Value",
+            "dataType": "int64",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Value]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": " {1, 3, 5}"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "% Individual Trade Turnover",
+            "expression": [
+              " ",
+              "DIVIDE(",
+              "    [Individual Buyers Value] + [Individual Seller Value], ",
+              "    CALCULATE([AUM], NOT ISBLANK('DimFunds'[InstrumentId])) ",
+              ") / 2"
+            ]
+          },
+          {
+            "name": "% Trade Turnover",
+            "expression": [
+              " ",
+              "DIVIDE([Trade Value], CALCULATE([AUM], NOT ISBLANK('DimFunds'[InstrumentId]))",
+              ")"
+            ]
+          },
+          {
+            "name": "% Trade Turnover Competitors",
+            "expression": [
+              " ",
+              "CALCULATE(",
+              "    [% Trade Turnover], ",
+              "    ALL('DimFunds'), ",
+              "    'DimManager'[IsCompetitor]",
+              ")"
+            ]
+          },
+          {
+            "name": "Business Buyers Count",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[CompanyBuyerCount]",
+              ")"
+            ]
+          },
+          {
+            "name": "Business Buyers Value",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[CompanyBuyVolume] * 'FactTradeDetails'[Value] / 'FactTradeDetails'[Volume]",
+              ")"
+            ]
+          },
+          {
+            "name": "Business Buyers Volume",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[CompanyBuyVolume]",
+              ")"
+            ]
+          },
+          {
+            "name": "Business Seller Value",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[CompanySellVolume] * 'FactTradeDetails'[Value] / 'FactTradeDetails'[Volume]",
+              ")"
+            ]
+          },
+          {
+            "name": "Business Seller Volume",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[CompanySellVolume]",
+              ")"
+            ]
+          },
+          {
+            "name": "Business Sellers Count",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[CompanySellerCount]",
+              ")"
+            ]
+          },
+          {
+            "name": "Buyers Count",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[PersonBuyerCount]",
+              ")"
+            ]
+          },
+          {
+            "name": "Buyers Volume",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[PersonBuyVolume]",
+              ")"
+            ]
+          },
+          {
+            "name": "Firouzeh Individual Buyers Count",
+            "expression": [
+              " ",
+              "CALCULATE(",
+              "    [Individual Buyers Count],",
+              "    'DimManager'[FinancialGroupName] = \"فیروزه\"",
+              ")"
+            ]
+          },
+          {
+            "name": "Firouzeh Individual Buyers Count %",
+            "expression": [
+              " ",
+              "DIVIDE(",
+              "    [Firouzeh Individual Buyers Count],",
+              "    CALCULATE(",
+              "        [Individual Buyers Count],",
+              "        FILTER(",
+              "            ALLEXCEPT('DimFunds', DimFunds[FundType]),",
+              "            'DimFunds'[TypeOfInvest] ",
+              "        )   ",
+              "    )",
+              ")"
+            ]
+          },
+          {
+            "name": "Individual Buyers Count",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[PersonBuyerCount]",
+              ")"
+            ]
+          },
+          {
+            "name": "Individual Buyers Count %",
+            "expression": [
+              " ",
+              "DIVIDE(",
+              "    [Individual Buyers Count],",
+              "    CALCULATE(",
+              "        [Individual Buyers Count],",
+              "        FILTER(",
+              "            ALLEXCEPT('DimFunds', DimFunds[FundType]),",
+              "            'DimFunds'[TypeOfInvest] ",
+              "        )   ",
+              "    )",
+              ")"
+            ]
+          },
+          {
+            "name": "Individual Buyers Count DoD %",
+            "expression": [
+              " ",
+              "VAR CurrentDay = ",
+              "SELECTEDVALUE('DimTimeTable'[Date])",
+              "",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CurrentDay - 1",
+              "        ),",
+              "        CALCULATE(COUNT('FactTradeDetails'[PersonBuyerCount])",
+              "        )",
+              "    )",
+              ")",
+              "",
+              "VAR CurrentDayBuyerCount = [Individual Buyers Count]",
+              "VAR LastDayBuyerCount = ",
+              "CALCULATE(",
+              "    [Individual Buyers Count],",
+              "    'DimTimeTable'[Date] = LastDay ",
+              ")",
+              "",
+              "RETURN ",
+              "DIVIDE(",
+              "    CurrentDayBuyerCount,",
+              "    LastDayBuyerCount",
+              ") - 1"
+            ]
+          },
+          {
+            "name": "Individual Buyers Size",
+            "expression": [
+              " ",
+              "[Individual Buyers Value] / [Individual Buyers Count]"
+            ]
+          },
+          {
+            "name": "Individual Buyers Value",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[PersonBuyVolume] * 'FactTradeDetails'[Value] / 'FactTradeDetails'[Volume]",
+              ")"
+            ]
+          },
+          {
+            "name": "Individual Buyers Volume",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[PersonBuyVolume]",
+              ")"
+            ]
+          },
+          {
+            "name": "Individual Seller Value",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[PersonSellVolume] * 'FactTradeDetails'[Value] / 'FactTradeDetails'[Volume]",
+              ")"
+            ]
+          },
+          {
+            "name": "Individual Seller Volume",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[PersonSellerCount]",
+              ")"
+            ]
+          },
+          {
+            "name": "Individual Sellers Count",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[PersonSellerCount]",
+              ")"
+            ]
+          },
+          {
+            "name": "Individual Sellers Count DoD %",
+            "expression": [
+              " ",
+              "VAR CurrentDay = ",
+              "SELECTEDVALUE('DimTimeTable'[Date])",
+              "",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CurrentDay - 1",
+              "        ),",
+              "        CALCULATE(COUNT('FactTradeDetails'[PersonSellerCount])",
+              "        )",
+              "    )",
+              ")",
+              "",
+              "VAR CurrentDayBuyerCount = [Individual Sellers Count]",
+              "VAR LastDayBuyerCount = ",
+              "CALCULATE(",
+              "    [Individual Sellers Count],",
+              "    'DimTimeTable'[Date] = LastDay ",
+              ")",
+              "",
+              "RETURN ",
+              "DIVIDE(",
+              "    CurrentDayBuyerCount,",
+              "    LastDayBuyerCount",
+              ") - 1"
+            ]
+          },
+          {
+            "name": "Sellers Count",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[PersonSellerCount]",
+              ")"
+            ]
+          },
+          {
+            "name": "Sellers Volume",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[PersonSellVolume]",
+              ")"
+            ]
+          },
+          {
+            "name": "Trade Count",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[TradeCount]",
+              ")"
+            ]
+          },
+          {
+            "name": "Trade Value",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[Value]",
+              ")"
+            ]
+          },
+          {
+            "name": "Trade Value DoD %",
+            "expression": [
+              " ",
+              "VAR CurrentDay = ",
+              "SELECTEDVALUE('DimTimeTable'[Date])",
+              "",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CurrentDay - 1",
+              "        ),",
+              "        CALCULATE(COUNT('FactTradeDetails'[Value])",
+              "        )",
+              "    )",
+              ")",
+              "",
+              "VAR CurrentTradeValue = [Trade Value]",
+              "VAR LastDayTradeValue = ",
+              "CALCULATE(",
+              "    [Trade Value],",
+              "    'DimTimeTable'[Date] = LastDay ",
+              ")",
+              "",
+              "RETURN ",
+              "DIVIDE(",
+              "    CurrentTradeValue,",
+              "    LastDayTradeValue",
+              ") - 1"
+            ]
+          },
+          {
+            "name": "Trade Volume",
+            "expression": [
+              " ",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    'FactTradeDetails'[Volume]",
+              ")"
+            ]
+          }
+        ]
       }
     ],
     "relationships": [

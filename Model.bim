@@ -487,6 +487,17 @@
             "dataType": "string",
             "isDataTypeInferred": true,
             "expression": " FORMAT ( 'DimTimeTable'[Date], \"q\")"
+          },
+          {
+            "type": "calculated",
+            "name": "IsTodayOrBefore",
+            "dataType": "boolean",
+            "isDataTypeInferred": true,
+            "expression": [
+              " ",
+              "IF('DimTimeTable'[Date] <= TODAY(), TRUE(), FALSE())"
+            ],
+            "formatString": "\"TRUE\";\"TRUE\";\"FALSE\""
           }
         ],
         "partitions": [
@@ -1555,13 +1566,23 @@
             "name": "AUM",
             "expression": [
               " ",
-              "SUMX (",
-              "    VALUES ( 'FactFunds'[FundId] ),",
-              "    VAR LastDay =",
-              "        CALCULATE ( MAX ( 'FactFunds'[Date] ), NOT ( ISBLANK ( 'FactFunds'[AUM2] ) ) )",
+              "SUMX(",
+              "    VALUES ( 'DimFunds'[FundId] ),",
+              "    VAR LastDay = ",
+              "    CALCULATE(",
+              "        LASTNONBLANK(",
+              "            DATESBETWEEN(",
+              "                'DimTimeTable'[Date],",
+              "                BLANK(),",
+              "                CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "            ),",
+              "            CALCULATE(COUNT('FactFunds'[AUM2]))",
+              "        )",
+              "    )",
               "    RETURN",
-              "        CALCULATE ( SUM ( 'FactFunds'[AUM2] ), 'FactFunds'[Date] = LastDay )",
-              ")"
+              "    CALCULATE (SELECTEDVALUE( 'FactFunds'[AUM2] ), 'DimTimeTable'[Date] = LastDay )",
+              ")",
+              ""
             ],
             "formatString": "#,0",
             "displayFolder": "AUM"
@@ -3653,6 +3674,46 @@
               "VAR BaseAUM = CALCULATE([AUM], ALL(), 'DimTimeTable'[Date] = BaseDate,  'DimFunds'[FundId] = 10789)",
               "VAR AUM = CALCULATE([AUM], 'DimTimeTable'[Date] <= BaseDate)",
               "RETURN AUM/10^10"
+            ]
+          },
+          {
+            "name": "LastDayyyyyyyyyyyy",
+            "expression": [
+              "",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "        ),",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
+              "    )",
+              ")"
+            ]
+          },
+          {
+            "name": "aum OLD VERSION",
+            "expression": [
+              "",
+              "SUMX (",
+              "    VALUES ( 'FactFunds'[FundId] ),",
+              "//    VAR LastDay =",
+              "//        CALCULATE ( MAX ( 'FactFunds'[Date] ), NOT ( ISBLANK ( 'FactFunds'[AUM2] ) ) )",
+              "    VAR LastDay = ",
+              "    CALCULATE(",
+              "        LASTNONBLANK(",
+              "            DATESBETWEEN(",
+              "                'DimTimeTable'[Date],",
+              "                BLANK(),",
+              "                CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "            ),",
+              "            CALCULATE(COUNT('FactFunds'[AUM2]))",
+              "        )",
+              "    )",
+              "    RETURN",
+              "    CALCULATE (SUM( 'FactFunds'[AUM2] ), 'FactFunds'[Date] = LastDay )",
+              ")"
             ]
           }
         ]

@@ -3608,7 +3608,7 @@
               "        , 'dimfunds'[fundsubtype] <> \"اهرمی\"",
               "        && 'dimfunds'[fundtype] = \"در سهام\"",
               "    )",
-              "    , all('dimfunds')",
+              "    , ALL('dimfunds')",
               "    , NOT (ISBLANK('factfunds'[yearreturn]) || 'factfunds'[yearreturn] = 0)",
               "//    ,VAR r1 = ",
               "//    SWITCH(",
@@ -3660,7 +3660,8 @@
               "    )",
               ")",
               "RETURN",
-              "CALCULATE(MINX(T3, [PeriodReturn]))/100",
+              "COUNTROWS(T1)",
+              "// CALCULATE(MINX(T3, [PeriodReturn]))/100",
               "",
               "",
               ""

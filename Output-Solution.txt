@@ -1,0 +1,2 @@
+﻿C:\Users\402bi038\Source\Repos\arddashti\firouzeh\firouzehgroup.smproj : error  : One or more errors occurred.
+

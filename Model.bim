@@ -6890,6 +6890,71 @@
             }
           }
         ]
+      },
+      {
+        "name": "CalculatedTable 1",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Titles",
+            "dataType": "string",
+            "isNameInferred": false,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Value]"
+          },
+          {
+            "type": "calculated",
+            "name": "Compound Titles",
+            "dataType": "int64",
+            "isDataTypeInferred": true
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": "{\"Titles\"}"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Title - Dates",
+            "expression": [
+              "",
+              "VAR MinDay = MIN('DimTimeTable'[DateKey])",
+              "VAR MaxDay = MAX('DimTimeTable'[DateKey])",
+              "RETURN \"(\" & MinDay & \" to \" & MaxDay & \")\"",
+              "",
+              ""
+            ]
+          },
+          {
+            "name": "Title Subscriptions",
+            "expression": [
+              "",
+              "\"Subscriptions - \" & [Title - Fund Type] & \" - \" & [Title - Dates]"
+            ]
+          },
+          {
+            "name": "Title - Fund Type",
+            "expression": [
+              "",
+              "IF(",
+              "    ISFILTERED('DimFunds'[FundType]),",
+              "    CONCATENATEX(",
+              "        VALUES('DimFunds'[FundTypeEn]),",
+              "        'DimFunds'[FundTypeEn],",
+              "        \",\"",
+              "    ),",
+              "    \" - \" & \"All Funds -\"",
+              ")",
+              "",
+              ""
+            ]
+          }
+        ]
       }
     ],
     "relationships": [

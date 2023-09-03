@@ -1481,6 +1481,7 @@
               "RETURN",
               "    r"
             ],
+            "formatString": "0.0%;-0.0%;0.0%",
             "displayFolder": "Returns"
           },
           {
@@ -1503,6 +1504,7 @@
               ")",
               ""
             ],
+            "formatString": "0.0%;-0.0%;0.0%",
             "displayFolder": "Returns"
           },
           {
@@ -1526,6 +1528,7 @@
               "CALCULATE(AVERAGE('FactFunds'[YearReturn]), 'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4, NOT(ISBLANK('FactFunds'[YearReturn])), 'FactFunds'[YearReturn] <> 0)",
               "RETURN r "
             ],
+            "formatString": "0.0%;-0.0%;0.0%",
             "displayFolder": "Returns"
           },
           {
@@ -1549,6 +1552,7 @@
               "",
               ""
             ],
+            "formatString": "0.0%;-0.0%;0.0%",
             "displayFolder": "Returns"
           },
           {
@@ -1594,6 +1598,7 @@
               "    'FactFunds'[FundDataTypeId] = 4)",
               "RETURN r "
             ],
+            "formatString": "0.0%;-0.0%;0.0%",
             "displayFolder": "Returns"
           },
           {
@@ -1623,6 +1628,7 @@
               "",
               "RETURN r"
             ],
+            "formatString": "0.0%;-0.0%;0.0%",
             "displayFolder": "Returns"
           },
           {
@@ -1652,7 +1658,8 @@
               ")",
               "",
               "RETURN r"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Average 6 Month Return (Top X)",
@@ -1667,7 +1674,8 @@
               "    FILTER('DimFunds', CALCULATE([6 Month Rank + Firouzeh Funds])     <= [@TopX])",
               ")",
               ""
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Average Annual Return (All Same Type)",
@@ -1701,7 +1709,8 @@
               ")",
               "",
               "RETURN r"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Average Annual Return (All Selected)",
@@ -1735,7 +1744,8 @@
               ")",
               "",
               "RETURN r"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Average Annual Return (Top X)",
@@ -1750,7 +1760,8 @@
               "    FILTER('DimFunds', CALCULATE([Annual Rank + Firouzeh Funds])     <= [@TopX])",
               ")",
               ""
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Average Month Return (All Same Type)",
@@ -1778,7 +1789,8 @@
               ")",
               "",
               "RETURN r"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Average Month Return (All Selected)",
@@ -1807,7 +1819,8 @@
               ")",
               "",
               "RETURN r"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Average Month Return (Top X)",
@@ -1822,7 +1835,8 @@
               "    FILTER('DimFunds', CALCULATE([Month Rank + Firouzeh Funds]) <= [@TopX])",
               ")",
               ""
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Average Quarter Return (All Same Type)",
@@ -1850,7 +1864,8 @@
               ")",
               "",
               "RETURN r"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Average Quarter Return (All Selected)",
@@ -1879,7 +1894,8 @@
               ")",
               "",
               "RETURN r"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Average Quarter Return (Top X)",
@@ -1894,7 +1910,8 @@
               "    FILTER('DimFunds', CALCULATE([Quarter Rank + Firouzeh Funds])     <= [@TopX])",
               ")",
               ""
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Day Return",
@@ -1915,7 +1932,8 @@
               "VAR r = ",
               "CALCULATE(SELECTEDVALUE('FactFunds'[DayReturn]), 'FactFunds'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4)",
               "RETURN r"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Day Return (Average)",
@@ -1936,14 +1954,16 @@
               "    ),",
               "    ALLSELECTED('DimTimeTable')",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Fund Type AUM Ratio",
             "expression": [
               " ",
               "[AUM]/CALCULATE([AUM], ALL('DimFunds'[FundType]))"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Month Return",
@@ -1965,7 +1985,8 @@
               "VAR r = ",
               "CALCULATE(AVERAGE('FactFunds'[MonthReturn]), 'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4, NOT(ISBLANK('FactFunds'[MonthReturn])), 'FactFunds'[MonthReturn] <> 0)",
               "RETURN r"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Month Return (Average)",
@@ -1986,7 +2007,8 @@
               "    ALLSELECTED('DimTimeTable')",
               ")",
               ""
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Net Subscription Value",
@@ -2033,7 +2055,8 @@
               "VAR r = ",
               "CALCULATE(AVERAGE('FactFunds'[QuarterReturn]), 'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4, NOT(ISBLANK('FactFunds'[QuarterReturn])), 'FactFunds'[QuarterReturn] <> 0)",
               "RETURN r"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Quarter Return (Average)",
@@ -2053,7 +2076,8 @@
               "    ),",
               "    ALLSELECTED('DimTimeTable')",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Return on NAV",
@@ -2094,7 +2118,8 @@
               "VAR R = IF(OR(ISBLANK(EndFinal), ISBLANK(BaseFinal)), BLANK(),DIVIDE(EndFinal-BaseFinal, BaseFinal))",
               "",
               "RETURN R"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Return on Statistical NAV",
@@ -2135,7 +2160,8 @@
               "VAR R = IF(OR(ISBLANK(EndFinal), ISBLANK(BaseFinal)), BLANK(),DIVIDE(EndFinal-BaseFinal, BaseFinal))",
               "",
               "RETURN R"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "6 Month Rank",
@@ -2316,6 +2342,7 @@
               "    CALCULATE([AUM by Asset Class], ALLSELECTED('DimFundAssets'))",
               ")"
             ],
+            "formatString": "0.0%;-0.0%;0.0%",
             "displayFolder": "AUM"
           },
           {
@@ -2336,6 +2363,7 @@
               "    CALCULATE([AUM including Private Portfolios], ALLSELECTED('DimFunds'))",
               ")"
             ],
+            "formatString": "0.0%;-0.0%;0.0%",
             "displayFolder": "AUM"
           },
           {
@@ -2578,7 +2606,7 @@
               "    0",
               "    )"
             ],
-            "formatString": "0.00%;-0.00%;0.00%"
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Market Share % of Non Bank-Affiliated",
@@ -2773,7 +2801,8 @@
               "        'FactFunds'[FundDataTypeId] = 4",
               ")",
               "RETURN DIVIDE(IF(ISBLANK(NewUnits), 0, NewUnits) , BaseUnits, 0)"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Quarter Rank",
@@ -3811,7 +3840,8 @@
               "        [AUM] * [Period Return])),",
               "        CALCULATE([AUM], FILTER('DimFunds', AND(NOT(ISBLANK([Period Return])), [Period Return] <>0))))",
               "RETURN r "
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Period Return",
@@ -4054,7 +4084,8 @@
               "    [Client Balance],",
               "    CALCULATE([Client Balance], ALL('DimShareHoldersProfile'))",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Client Balance Value",
@@ -4097,7 +4128,8 @@
               "    CALCULATE([Client Balance Value], ALL('DimShareHoldersProfile'))",
               ")",
               "// [Client Balance Value] / CALCULATE([Client Balance Value], ALL('DimShareHoldersProfile'[KindCategory], 'DimShareHoldersProfile'[KindDesc], DimShareHoldersProfile[KindId], 'DimShareHoldersProfile'[FullName], 'DimShareHoldersProfile'[ShareHolderId], 'DimShareHoldersProfile'[BourseCode]))"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Client Count",
@@ -4124,7 +4156,8 @@
             "expression": [
               " ",
               "[Client Count] / CALCULATE([Client Count], ALL('DimShareHoldersProfile'[KindCategory], 'DimShareHoldersProfile'[KindDesc], DimShareHoldersProfile[KindId], 'DimShareHoldersProfile'[FullName], 'DimShareHoldersProfile'[ShareHolderId]))"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Client Count 2",
@@ -4274,7 +4307,8 @@
               "RETURN ",
               "[Client Balance %] - CALCULATE([Client Balance %], 'DimTimeTable'[Date] = PeriodFirstDay)",
               "// -    DIVIDE([Client Balance] - [Client Volume Delta], CALCULATE([Client Balance] - [Client Volume Delta], All('DimShareHoldersProfile')))"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Client Volume Delta GPT",
@@ -5024,7 +5058,8 @@
               "VAR R = IF(OR(ISBLANK(EndFinal), ISBLANK(BaseFinal)), BLANK(),DIVIDE(EndFinal-BaseFinal, BaseFinal))",
               "",
               "RETURN R"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Return1",
@@ -5520,7 +5555,7 @@
               "",
               "RETURN R"
             ],
-            "formatString": "0.00%;-0.00%;0.00%"
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Fund Alpha on NAV Cum",
@@ -5561,7 +5596,7 @@
               "",
               ""
             ],
-            "formatString": "0.00%;-0.00%;0.00%"
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% TEDPIX Return Cum",
@@ -5662,7 +5697,7 @@
               "    'FactReturns'[Description] = \"TEDPIX\"",
               ")"
             ],
-            "formatString": "0.00%;-0.00%;0.00%"
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Return on NAV Range",
@@ -5688,7 +5723,7 @@
               "        'DimFunds'[FundId] = Fund",
               "    )"
             ],
-            "formatString": "0.00%;-0.00%;0.00%"
+            "formatString": "0.0%;-0.0%;0.0%"
           }
         ]
       },
@@ -5849,7 +5884,8 @@
               "    [Individual Buyers Value] + [Individual Seller Value], ",
               "    CALCULATE([AUM], NOT ISBLANK('DimFunds'[InstrumentId])) ",
               ") / 2"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Trade Turnover",
@@ -5857,7 +5893,8 @@
               " ",
               "DIVIDE([Trade Value], CALCULATE([AUM], NOT ISBLANK('DimFunds'[InstrumentId]))",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Trade Turnover Competitors",
@@ -5868,7 +5905,8 @@
               "    ALL('DimFunds'), ",
               "    'DimManager'[IsCompetitor]",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Business Buyers Count",
@@ -5974,7 +6012,8 @@
               "        )   ",
               "    )",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Individual Buyers Count",
@@ -6000,7 +6039,8 @@
               "        )   ",
               "    )",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Individual Buyers Count DoD %",
@@ -6034,7 +6074,8 @@
               "    CurrentDayBuyerCount,",
               "    LastDayBuyerCount",
               ") - 1"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Individual Buyers Size",
@@ -6125,7 +6166,8 @@
               "    CurrentDayBuyerCount,",
               "    LastDayBuyerCount",
               ") - 1"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Sellers Count",
@@ -6199,7 +6241,8 @@
               "    CurrentTradeValue,",
               "    LastDayTradeValue",
               ") - 1"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Trade Volume",

@@ -5849,7 +5849,8 @@
               "    [Individual Buyers Value] + [Individual Seller Value], ",
               "    CALCULATE([AUM], NOT ISBLANK('DimFunds'[InstrumentId])) ",
               ") / 2"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Trade Turnover",
@@ -5857,7 +5858,8 @@
               " ",
               "DIVIDE([Trade Value], CALCULATE([AUM], NOT ISBLANK('DimFunds'[InstrumentId]))",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Trade Turnover Competitors",
@@ -5868,7 +5870,8 @@
               "    ALL('DimFunds'), ",
               "    'DimManager'[IsCompetitor]",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Business Buyers Count",
@@ -5974,7 +5977,8 @@
               "        )   ",
               "    )",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Individual Buyers Count",
@@ -6000,7 +6004,8 @@
               "        )   ",
               "    )",
               ")"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Individual Buyers Count DoD %",
@@ -6034,7 +6039,8 @@
               "    CurrentDayBuyerCount,",
               "    LastDayBuyerCount",
               ") - 1"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Individual Buyers Size",
@@ -6125,7 +6131,8 @@
               "    CurrentDayBuyerCount,",
               "    LastDayBuyerCount",
               ") - 1"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Sellers Count",
@@ -6199,7 +6206,8 @@
               "    CurrentTradeValue,",
               "    LastDayTradeValue",
               ") - 1"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Trade Volume",

@@ -4433,7 +4433,7 @@
               "    CALCULATE (",
               "        SUM ( 'FactShareHolders'[VolumeBalance] ),",
               "        'DimCompany'[CompanyId] = Company,",
-              "        'DimShareHoldersProfile'[ShareHolderId] <> 59113,",
+              "        KEEPFILTERS('DimShareHoldersProfile'[ShareHolderId] <> 59113),",
               "        'DimTimeTable'[Date] = MaxDate",
               "    )",
               "    ",
@@ -4484,7 +4484,7 @@
               "RETURN ",
               "CALCULATE(",
               "    SUMX(",
-              "        CALCULATETABLE(DimShareHoldersProfile, 'DimShareHoldersProfile'[ShareHolderId] <> 59113),",
+              "        CALCULATETABLE(DimShareHoldersProfile, KEEPFILTERS('DimShareHoldersProfile'[ShareHolderId] <> 59113)),",
               "        VAR Balance = CALCULATE(SELECTEDVALUE('FactShareHolders'[VolumeBalance]), 'DimTimeTable'[Date] = MaxDate, 'DimCompany'[CompanyId] = Company)",
               "        VAR Price = CALCULATE(SELECTEDVALUE('FactTrade'[ClosePrice]), 'DimTimeTable'[Date] = MaxDate, 'DimCompany'[CompanyId] = Company)",
               "        RETURN",
@@ -5119,6 +5119,50 @@
               ]
             }
           }
+        ],
+        "measures": [
+          {
+            "name": "Portfolio Value",
+            "expression": [
+              "",
+              "SUMX(",
+              "    'FactShareStatus',",
+              "    VAR t = 'FactShareStatus'[InstrumentId]",
+              "    VAR d = //SELECTEDVALUE('DimTimeTable'[Date])",
+              "    CALCULATE(",
+              "        LASTNONBLANK(",
+              "            DATESBETWEEN(",
+              "                'DimTimeTable'[Date],",
+              "                BLANK(),",
+              "                CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "            ),",
+              "            CALCULATE(COUNT('FactShareStatus'[TotalInvest]))",
+              "        )",
+              ") ",
+              "    VAR p = CALCULATE([Ticker Price], 'DimTimeTable'[Date] = d , 'DimInstrument'[InstrumentId] = t)",
+              "    RETURN",
+              "    'FactShareStatus'[TotalInvest] ",
+              "    //CALCULATE(COUNTROWS('FactTradeDetails'), DimTimeTable[Date] = d, 'DimInstrument'[InstrumentId] = t)+0",
+              ")"
+            ],
+            "formatString": "#,0"
+          },
+          {
+            "name": "Portfolio Value % AllSelected DimInstruments",
+            "expression": [
+              "",
+              "DIVIDE(",
+              "    [Portfolio Value],",
+              "    CALCULATE(",
+              "        [Portfolio Value] ,",
+              "        --ALLEXCEPT('DimPortfolio', 'DimPortfolio'[PortfolioManager])--, 'DimPortfolio'[PortfolioManagerEn], 'DimPortfolio'[PortfolioManagerId])",
+              "        --ALLEXCEPT('DimInstrument', 'DimInstrument'[Industry])",
+              "        ALLSELECTED('DimInstrument')",
+              "    )",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          }
         ]
       },
       {
@@ -5280,6 +5324,33 @@
                 "    dbo_FactTradeDetails"
               ]
             }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Ticker Price",
+            "expression": [
+              " ",
+              "VAR t = SELECTEDVALUE('DimInstrument'[InstrumentId])",
+              "VAR d = //SELECTEDVALUE('DimTimeTable'[Date])",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "        ),",
+              "        CALCULATE(COUNT('FactTradeDetails'[AdjPrice]), 'FactTradeDetails'[InstrumentId] = t)",
+              "    )",
+              ") ",
+              "",
+              "RETURN",
+              "CALCULATE(",
+              "    SELECTEDVALUE('FactTradeDetails'[AdjPrice]), ",
+              "    'DimTimeTable'[Date] = d, ",
+              "    'DimInstrument'[InstrumentId] = t",
+              ")"
+            ]
           }
         ]
       },
@@ -5702,6 +5773,23 @@
             "name": "IsDeleted",
             "dataType": "boolean",
             "sourceColumn": "IsDeleted"
+          },
+          {
+            "type": "calculated",
+            "name": "Instrument & Industry Label",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              "",
+              "'DimInstrument'[Instrument] &",
+              "IF(",
+              "    ISBLANK('DimInstrument'[Industry]),",
+              "    \"\", ",
+              "    \" (\" &",
+              "    'DimInstrument'[Industry] &",
+              "    \")\"",
+              ")"
+            ]
           }
         ],
         "partitions": [
@@ -6900,7 +6988,7 @@
         ]
       },
       {
-        "name": "CalculatedTable 1",
+        "name": "Titles",
         "columns": [
           {
             "type": "calculatedTableColumn",
@@ -6942,25 +7030,327 @@
             "name": "Title Subscriptions",
             "expression": [
               "",
-              "\"Subscriptions - \" & [Title - Fund Type] & \" - \" & [Title - Dates]"
+              "\"Subscriptions - \" & [Title - Fund Type] & [Title - Fund Sub Type] & \" - \" & [Title - Dates]"
             ]
           },
           {
             "name": "Title - Fund Type",
             "expression": [
               "",
+              "VAR NumToShow = 3",
+              "VAR T1 =",
+              "",
+              "ADDCOLUMNS(",
+              "    VALUES('DimFunds'[FundTypeEn]),",
+              "    \"Rank\", ",
+              "    RANKX(",
+              "        VALUES('DimFunds'[FundTypeEn]),",
+              "        [AUM],",
+              "        ,",
+              "        DESC",
+              "    )",
+              ")",
+              "",
+              "VAR T2 = ",
+              "FILTER(",
+              "    T1,",
+              "    [Rank] <= NumToShow",
+              ")",
+              "        ",
+              "//IF(",
+              "//    ISFILTERED('DimFunds'[FundType]),",
+              "//    CONCATENATEX(",
+              "//        VALUES('DimFunds'[FundTypeEn]),",
+              "//        'DimFunds'[FundTypeEn],",
+              "//        \",\"",
+              "//    ),",
+              "//    \" - \" & \"All Funds -\"",
+              "//)",
+              "RETURN",
               "IF(",
               "    ISFILTERED('DimFunds'[FundType]),",
               "    CONCATENATEX(",
-              "        VALUES('DimFunds'[FundTypeEn]),",
+              "        T2,",
               "        'DimFunds'[FundTypeEn],",
-              "        \",\"",
-              "    ),",
+              "        \", \"",
+              "    ) &",
+              "    IF(COUNTROWS(T1) > NumToShow, \", etc\"),",
               "    \" - \" & \"All Funds -\"",
+              ")",
+              ""
+            ]
+          },
+          {
+            "name": "Title Subscriptions - Trailing 3 Months",
+            "expression": [
+              "",
+              "\"Subscriptions T3 - \" & [Title - Fund Type] & \" - \" & [Title - Dates]"
+            ]
+          },
+          {
+            "name": "Title - Fund Sub Type",
+            "expression": [
+              "",
+              "IF(",
+              "    ISFILTERED('DimFunds'[FundSubType]),",
+              "    \"(\" & CONCATENATEX(",
+              "        VALUES('DimFunds'[FundSubTypeEn]),",
+              "        'DimFunds'[FundSubTypeEn], ",
+              "        \", \"",
+              "    ) & \")\",",
+              "    \"\"",
               ")",
               "",
               ""
             ]
+          }
+        ]
+      },
+      {
+        "name": "DimPortfolio",
+        "columns": [
+          {
+            "name": "PortfolioId",
+            "dataType": "int64",
+            "sourceColumn": "PortfolioId"
+          },
+          {
+            "name": "PortfolioName",
+            "dataType": "string",
+            "sourceColumn": "PortfolioName"
+          },
+          {
+            "name": "PortfolioNameEn",
+            "dataType": "string",
+            "sourceColumn": "PortfolioNameEn"
+          },
+          {
+            "name": "PRX",
+            "dataType": "string",
+            "sourceColumn": "PRX"
+          },
+          {
+            "name": "PortfolioManagerId",
+            "dataType": "int64",
+            "sourceColumn": "PortfolioManagerId"
+          },
+          {
+            "name": "PortfolioManager",
+            "dataType": "string",
+            "sourceColumn": "PortfolioManager"
+          },
+          {
+            "name": "PortfolioManagerEn",
+            "dataType": "string",
+            "sourceColumn": "PortfolioManagerEn"
+          },
+          {
+            "name": "Status",
+            "dataType": "string",
+            "sourceColumn": "Status"
+          },
+          {
+            "name": "StatusEn",
+            "dataType": "string",
+            "sourceColumn": "StatusEn"
+          },
+          {
+            "name": "Type",
+            "dataType": "string",
+            "sourceColumn": "Type"
+          },
+          {
+            "name": "TypeEn",
+            "dataType": "string",
+            "sourceColumn": "TypeEn"
+          },
+          {
+            "name": "RiskProfile",
+            "dataType": "string",
+            "sourceColumn": "RiskProfile"
+          },
+          {
+            "name": "RiskProfileEn",
+            "dataType": "string",
+            "sourceColumn": "RiskProfileEn"
+          },
+          {
+            "name": "Category",
+            "dataType": "string",
+            "sourceColumn": "Category"
+          },
+          {
+            "name": "CategoryEn",
+            "dataType": "string",
+            "sourceColumn": "CategoryEn"
+          },
+          {
+            "name": "BroadcastList",
+            "dataType": "string",
+            "sourceColumn": "BroadcastList"
+          },
+          {
+            "name": "BroadcastListEn",
+            "dataType": "string",
+            "sourceColumn": "BroadcastListEn"
+          },
+          {
+            "name": "Introducer",
+            "dataType": "string",
+            "sourceColumn": "Introducer"
+          },
+          {
+            "name": "IntroducerEn",
+            "dataType": "string",
+            "sourceColumn": "IntroducerEn"
+          },
+          {
+            "name": "IsOnline",
+            "dataType": "boolean",
+            "sourceColumn": "IsOnline"
+          },
+          {
+            "name": "Region",
+            "dataType": "string",
+            "sourceColumn": "Region"
+          },
+          {
+            "name": "RegionEn",
+            "dataType": "string",
+            "sourceColumn": "RegionEn"
+          },
+          {
+            "name": "TEL",
+            "dataType": "string",
+            "sourceColumn": "TEL"
+          },
+          {
+            "name": "Email",
+            "dataType": "string",
+            "sourceColumn": "Email"
+          },
+          {
+            "name": "MoreInfo",
+            "dataType": "string",
+            "sourceColumn": "MoreInfo"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_DimPortfolio = Source{[Schema=\"dbo\",Item=\"DimPortfolio\"]}[Data]",
+                "in",
+                "    dbo_DimPortfolio"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "FactDPS",
+        "columns": [
+          {
+            "name": "AssetId",
+            "dataType": "int64",
+            "sourceColumn": "AssetId"
+          },
+          {
+            "name": "FiscalYear",
+            "dataType": "string",
+            "sourceColumn": "FiscalYear"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Date"
+          },
+          {
+            "name": "EPS",
+            "dataType": "double",
+            "sourceColumn": "EPS"
+          },
+          {
+            "name": "DPS",
+            "dataType": "double",
+            "sourceColumn": "DPS"
+          },
+          {
+            "name": "Capital",
+            "dataType": "double",
+            "sourceColumn": "Capital"
+          },
+          {
+            "name": "InsertTime",
+            "dataType": "dateTime",
+            "sourceColumn": "InsertTime"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_FactDPS = Source{[Schema=\"dbo\",Item=\"FactDPS\"]}[Data]",
+                "in",
+                "    dbo_FactDPS"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "FactCapitalIncrease",
+        "columns": [
+          {
+            "name": "AssetId",
+            "dataType": "int64",
+            "sourceColumn": "AssetId"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Date"
+          },
+          {
+            "name": "PreviousCapital",
+            "dataType": "double",
+            "sourceColumn": "PreviousCapital"
+          },
+          {
+            "name": "NewCapital",
+            "dataType": "double",
+            "sourceColumn": "NewCapital"
+          },
+          {
+            "name": "InsertTime",
+            "dataType": "dateTime",
+            "sourceColumn": "InsertTime"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_FactCapitalIncrease = Source{[Schema=\"dbo\",Item=\"FactCapitalIncrease\"]}[Data]",
+                "in",
+                "    dbo_FactCapitalIncrease"
+              ]
+            }
           }
         ]
       }
@@ -7185,6 +7575,34 @@
         "fromColumn": "FundId",
         "toTable": "DimFunds",
         "toColumn": "FundId"
+      },
+      {
+        "name": "ce548627-b463-41e3-bf14-bbe8d3abe31f",
+        "fromTable": "FactShareStatus",
+        "fromColumn": "Date",
+        "toTable": "DimTimeTable",
+        "toColumn": "Date"
+      },
+      {
+        "name": "cefa7ce0-0904-454e-ab6f-cd7a5636403d",
+        "fromTable": "FactShareStatus",
+        "fromColumn": "PortfolioId",
+        "toTable": "DimPortfolio",
+        "toColumn": "PortfolioId"
+      },
+      {
+        "name": "5899f20a-3441-4d95-bbe9-d1be839f1263",
+        "fromTable": "FactShareStatus",
+        "fromColumn": "InstrumentId",
+        "toTable": "DimInstrument",
+        "toColumn": "InstrumentId"
+      },
+      {
+        "name": "24bcda68-8537-4d77-b396-51d81b78558f",
+        "fromTable": "DimInstrument",
+        "fromColumn": "IndustryId",
+        "toTable": "DimIndustry",
+        "toColumn": "IndustryId"
       }
     ],
     "perspectives": [
@@ -7612,6 +8030,379 @@
             ]
           }
         ]
+      },
+      {
+        "name": "Sabad",
+        "tables": [
+          {
+            "name": "DimAsset",
+            "columns": [
+              {
+                "name": "Asset"
+              },
+              {
+                "name": "AssetCompany"
+              },
+              {
+                "name": "AssetCompanyId"
+              },
+              {
+                "name": "AssetId"
+              },
+              {
+                "name": "AssetTypeId"
+              }
+            ],
+            "measures": [
+              {
+                "name": "test"
+              }
+            ]
+          },
+          {
+            "name": "DimInstrument",
+            "columns": [
+              {
+                "name": "AssetId"
+              },
+              {
+                "name": "Category"
+              },
+              {
+                "name": "CategoryId"
+              },
+              {
+                "name": "Exchange"
+              },
+              {
+                "name": "ExchangeId"
+              },
+              {
+                "name": "ExchangeState"
+              },
+              {
+                "name": "Industry"
+              },
+              {
+                "name": "IndustryId"
+              },
+              {
+                "name": "Instrument"
+              },
+              {
+                "name": "InstrumentCode"
+              },
+              {
+                "name": "InstrumentId"
+              },
+              {
+                "name": "IsDeleted"
+              },
+              {
+                "name": "Market"
+              },
+              {
+                "name": "MarketId"
+              },
+              {
+                "name": "TypeId"
+              },
+              {
+                "name": "Instrument & Industry Label"
+              }
+            ]
+          },
+          {
+            "name": "DimTimeTable",
+            "columns": [
+              {
+                "name": "Date"
+              },
+              {
+                "name": "DateKey"
+              },
+              {
+                "name": "DateNumber"
+              },
+              {
+                "name": "DayNameOfWeek"
+              },
+              {
+                "name": "DayNameOfWeek2"
+              },
+              {
+                "name": "DayNumberOfMonth"
+              },
+              {
+                "name": "DayNumberOfWeek"
+              },
+              {
+                "name": "DayNumberOfYear"
+              },
+              {
+                "name": "EDATE"
+              },
+              {
+                "name": "EDATE1"
+              },
+              {
+                "name": "FDATE"
+              },
+              {
+                "name": "FYearMonth"
+              },
+              {
+                "name": "FYearMonthNum"
+              },
+              {
+                "name": "GDay"
+              },
+              {
+                "name": "GMonth"
+              },
+              {
+                "name": "GMonthName"
+              },
+              {
+                "name": "GQuarter"
+              },
+              {
+                "name": "GYear"
+              },
+              {
+                "name": "IsBeforeTheDayBeforeYesterday"
+              },
+              {
+                "name": "IsBeforeToday"
+              },
+              {
+                "name": "IsBeforeYesterday"
+              },
+              {
+                "name": "IsNonWorking"
+              },
+              {
+                "name": "IsTodayOrBefore"
+              },
+              {
+                "name": "Month"
+              },
+              {
+                "name": "Month2"
+              },
+              {
+                "name": "MonthOfYear"
+              },
+              {
+                "name": "NormDate"
+              },
+              {
+                "name": "Quarter"
+              },
+              {
+                "name": "QuarterOfYear"
+              },
+              {
+                "name": "SixMonths"
+              },
+              {
+                "name": "Slicer Date"
+              },
+              {
+                "name": "Slicer Date (TheDateBeforeYesterday)"
+              },
+              {
+                "name": "WeekNumber"
+              },
+              {
+                "name": "WeekNumberOfYear"
+              },
+              {
+                "name": "Year"
+              }
+            ],
+            "hierarchies": [
+              {
+                "name": "Date Hierarchy"
+              }
+            ]
+          },
+          {
+            "name": "FactShareStatus",
+            "columns": [
+              {
+                "name": "AssetId"
+              },
+              {
+                "name": "AVGBuyPrice"
+              },
+              {
+                "name": "BreakEvenPrice"
+              },
+              {
+                "name": "Date"
+              },
+              {
+                "name": "InsertTime"
+              },
+              {
+                "name": "InstrumentId"
+              },
+              {
+                "name": "LastDPS"
+              },
+              {
+                "name": "OwnershipPercent"
+              },
+              {
+                "name": "PortfolioId"
+              },
+              {
+                "name": "Price"
+              },
+              {
+                "name": "PureDiffPercent"
+              },
+              {
+                "name": "PureDiffPrice"
+              },
+              {
+                "name": "PureValueInDate"
+              },
+              {
+                "name": "ShareNo"
+              },
+              {
+                "name": "SourceId"
+              },
+              {
+                "name": "TotalInvest"
+              },
+              {
+                "name": "ValueInDate"
+              }
+            ],
+            "measures": [
+              {
+                "name": "Portfolio Value"
+              },
+              {
+                "name": "Portfolio Value % AllSelected DimInstruments"
+              }
+            ]
+          },
+          {
+            "name": "DimPortfolio",
+            "columns": [
+              {
+                "name": "BroadcastList"
+              },
+              {
+                "name": "BroadcastListEn"
+              },
+              {
+                "name": "Category"
+              },
+              {
+                "name": "CategoryEn"
+              },
+              {
+                "name": "Email"
+              },
+              {
+                "name": "Introducer"
+              },
+              {
+                "name": "IntroducerEn"
+              },
+              {
+                "name": "IsOnline"
+              },
+              {
+                "name": "MoreInfo"
+              },
+              {
+                "name": "PortfolioId"
+              },
+              {
+                "name": "PortfolioManager"
+              },
+              {
+                "name": "PortfolioManagerEn"
+              },
+              {
+                "name": "PortfolioManagerId"
+              },
+              {
+                "name": "PortfolioName"
+              },
+              {
+                "name": "PortfolioNameEn"
+              },
+              {
+                "name": "PRX"
+              },
+              {
+                "name": "Region"
+              },
+              {
+                "name": "RegionEn"
+              },
+              {
+                "name": "RiskProfile"
+              },
+              {
+                "name": "RiskProfileEn"
+              },
+              {
+                "name": "Status"
+              },
+              {
+                "name": "StatusEn"
+              },
+              {
+                "name": "TEL"
+              },
+              {
+                "name": "Type"
+              },
+              {
+                "name": "TypeEn"
+              }
+            ]
+          },
+          {
+            "name": "DimIndustry",
+            "columns": [
+              {
+                "name": "Industry"
+              },
+              {
+                "name": "IndustryId"
+              }
+            ]
+          },
+          {
+            "name": "DimCompany",
+            "columns": [
+              {
+                "name": "Company"
+              },
+              {
+                "name": "CompanyId"
+              },
+              {
+                "name": "InstrumentId"
+              },
+              {
+                "name": "IsETF"
+              },
+              {
+                "name": "ShortName"
+              }
+            ]
+          }
+        ]
       }
     ],
     "roles": [
@@ -7654,6 +8445,10 @@
           {
             "memberName": "IIDIC\\507484",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1520"
+          },
+          {
+            "memberName": "IIDIC\\507333",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1737"
           }
         ]
       },

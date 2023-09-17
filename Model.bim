@@ -5790,6 +5790,21 @@
               "    \")\"",
               ")"
             ]
+          },
+          {
+            "name": "AssetClassId",
+            "dataType": "int64",
+            "sourceColumn": "AssetClassId"
+          },
+          {
+            "name": "AssetClassName",
+            "dataType": "string",
+            "sourceColumn": "AssetClassName"
+          },
+          {
+            "name": "IsAffiliated",
+            "dataType": "boolean",
+            "sourceColumn": "IsAffiliated"
           }
         ],
         "partitions": [
@@ -7103,6 +7118,44 @@
               "",
               ""
             ]
+          },
+          {
+            "name": "Title - Portfo Names",
+            "expression": [
+              "",
+              "VAR NumToShow = 3",
+              "VAR T1 =",
+              "",
+              "ADDCOLUMNS(",
+              "    VALUES('FactReturns'[Description]),",
+              "    \"Rank\", ",
+              "    RANKX(",
+              "        VALUES('FactReturns'[Description]),",
+              "        [AUM],",
+              "        ,",
+              "        DESC",
+              "    )",
+              ")",
+              "",
+              "VAR T2 = ",
+              "FILTER(",
+              "    T1,",
+              "    [Rank] <= NumToShow",
+              ")",
+              "        ",
+              "RETURN",
+              "IF(",
+              "    ISFILTERED('FactReturns'[Description]),",
+              "    CONCATENATEX(",
+              "        T2,",
+              "        'FactReturns'[Description],",
+              "        \", \"",
+              "    ) &",
+              "    IF(COUNTROWS(T1) > NumToShow, \", etc\"),",
+              "    \" - \" & \"All Funds -\"",
+              ")",
+              ""
+            ]
           }
         ]
       },
@@ -7233,6 +7286,25 @@
             "name": "MoreInfo",
             "dataType": "string",
             "sourceColumn": "MoreInfo"
+          },
+          {
+            "name": "IsCompany",
+            "dataType": "boolean",
+            "sourceColumn": "IsCompany"
+          },
+          {
+            "type": "calculated",
+            "name": "PortfolioType",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              " ",
+              "IF(",
+              "'DimPortfolio'[IsCompany],",
+              "\"Company\",",
+              "\"PRX\"",
+              ")"
+            ]
           }
         ],
         "partitions": [
@@ -8026,6 +8098,15 @@
               },
               {
                 "name": "TypeId"
+              },
+              {
+                "name": "AssetClassId"
+              },
+              {
+                "name": "AssetClassName"
+              },
+              {
+                "name": "IsAffiliated"
               }
             ]
           }
@@ -8368,6 +8449,12 @@
               },
               {
                 "name": "TypeEn"
+              },
+              {
+                "name": "IsCompany"
+              },
+              {
+                "name": "PortfolioType"
               }
             ]
           },

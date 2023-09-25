@@ -874,6 +874,16 @@
               "    \"Non-Affiliated\"",
               ")"
             ]
+          },
+          {
+            "name": "ManagerId",
+            "dataType": "int64",
+            "sourceColumn": "ManagerId"
+          },
+          {
+            "name": "KindCategoryId",
+            "dataType": "int64",
+            "sourceColumn": "KindCategoryId"
           }
         ],
         "partitions": [
@@ -885,10 +895,9 @@
               "expression": [
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_DimShareHoldersProfile = Source{[Schema=\"dbo\",Item=\"DimShareHoldersProfile\"]}[Data],",
-                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimShareHoldersProfile,{\"FactShareHolders\", \"FactShareHoldersTrade\"})",
+                "    dbo_DimShareHoldersProfile = Source{[Schema=\"dbo\",Item=\"DimShareHoldersProfile\"]}[Data]",
                 "in",
-                "    #\"Removed Columns\""
+                "    dbo_DimShareHoldersProfile"
               ]
             }
           }
@@ -932,10 +941,9 @@
               "expression": [
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_DimCompany = Source{[Schema=\"dbo\",Item=\"DimCompany\"]}[Data],",
-                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimCompany,{\"FactShareHolders\", \"FactShareHoldersTrade\"})",
+                "    dbo_DimCompany = Source{[Schema=\"dbo\",Item=\"DimCompany\"]}[Data]",
                 "in",
-                "    #\"Removed Columns\""
+                "    dbo_DimCompany"
               ]
             }
           }
@@ -1130,6 +1138,21 @@
               " ",
               "IF('FactShareHoldersTrade'[TradeSide], \"خرید\", \"فروش\")"
             ]
+          },
+          {
+            "name": "Id",
+            "dataType": "int64",
+            "sourceColumn": "Id"
+          },
+          {
+            "name": "TransactorId",
+            "dataType": "int64",
+            "sourceColumn": "TransactorId"
+          },
+          {
+            "name": "BrokerId",
+            "dataType": "int64",
+            "sourceColumn": "BrokerId"
           }
         ],
         "partitions": [
@@ -1141,10 +1164,9 @@
               "expression": [
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_FactShareHoldersTrade = Source{[Schema=\"dbo\",Item=\"FactShareHoldersTrade\"]}[Data],",
-                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_FactShareHoldersTrade,{\"DimCompany\", \"DimShareHoldersProfile\"})",
+                "    dbo_FactShareHoldersTrade = Source{[Schema=\"dbo\",Item=\"FactShareHoldersTrade\"]}[Data]",
                 "in",
-                "    #\"Removed Columns\""
+                "    dbo_FactShareHoldersTrade"
               ]
             }
           }
@@ -3380,7 +3402,7 @@
               "VAR RFixed =",
               "IF(",
               "    t = \"درآمد ثابت\" && r < .0017 && r > -.0017 ,",
-              "    (((1 + r) ^ 365) -1)  * 100",
+              "    ((1 + r) ^ 365) -1",
               ")",
               "RETURN ",
               "IF(",
@@ -3389,7 +3411,7 @@
               "    BLANK()",
               ")"
             ],
-            "formatString": "0.00%;-0.00%;0.00%"
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Return on Price (average 3 weeks)",
@@ -5804,37 +5826,6 @@
         ]
       },
       {
-        "name": "DimIndustry",
-        "columns": [
-          {
-            "name": "IndustryId",
-            "dataType": "int64",
-            "sourceColumn": "IndustryId"
-          },
-          {
-            "name": "Industry",
-            "dataType": "string",
-            "sourceColumn": "Industry"
-          }
-        ],
-        "partitions": [
-          {
-            "name": "Partition",
-            "dataView": "full",
-            "source": {
-              "type": "m",
-              "expression": [
-                "let",
-                "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_DimIndustry = Source{[Schema=\"dbo\",Item=\"DimIndustry\"]}[Data]",
-                "in",
-                "    dbo_DimIndustry"
-              ]
-            }
-          }
-        ]
-      },
-      {
         "name": "DimIndex",
         "columns": [
           {
@@ -7427,6 +7418,53 @@
               "    'FactTradeDetails'[Volume]",
               ")"
             ]
+          },
+          {
+            "name": "Market Cap (Currency)",
+            "expression": [
+              " ",
+              "VAR T = ",
+              "CALCULATETABLE(",
+              "    VALUES('DimInstrument'[AssetId]),",
+              "    FILTER(",
+              "        'DimInstrument',",
+              "        NOT 'DimInstrument'[IsDeleted] &&",
+              "        'DimInstrument'[MarketId] = 6 &&",
+              "        'DimInstrument'[ExchangeId] in {1,2} ",
+              "    )",
+              ")",
+              "RETURN",
+              "sumx(",
+              "    T,",
+              "    var lastday = ",
+              "    calculate(",
+              "        lastnonblank(",
+              "            datesbetween(",
+              "                'dimtimetable'[date],",
+              "                blank(),",
+              "                calculate(lastdate('dimtimetable'[date]))",
+              "            ),",
+              "            calculate(count('facttradedetails'[marketcap]))",
+              "        )",
+              "    )",
+              "    return",
+              "    calculate (",
+              "        MAX('facttradedetails'[marketcap]), ",
+              "        'dimtimetable'[date] = lastday,",
+              "        NOT 'DimInstrument'[IsDeleted],",
+              "        'DimInstrument'[MarketId] = 6,",
+              "        'DimInstrument'[ExchangeId] in {1, 2} ",
+              "    )",
+              ")",
+              ""
+            ],
+            "formatString": "#,0 \"IRR\";-#,0 \"IRR\";#,0 \"IRR\"",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"1065\" DisplayName=\"IRR\" Symbol=\"IRR\" PositivePattern=\"3\" NegativePattern=\"8\" /></Format>"
+              }
+            ]
           }
         ]
       },
@@ -8184,13 +8222,6 @@
         "fromColumn": "InstrumentId",
         "toTable": "DimInstrument",
         "toColumn": "InstrumentId"
-      },
-      {
-        "name": "24bcda68-8537-4d77-b396-51d81b78558f",
-        "fromTable": "DimInstrument",
-        "fromColumn": "IndustryId",
-        "toTable": "DimIndustry",
-        "toColumn": "IndustryId"
       }
     ],
     "perspectives": [
@@ -8975,17 +9006,6 @@
             ]
           },
           {
-            "name": "DimIndustry",
-            "columns": [
-              {
-                "name": "Industry"
-              },
-              {
-                "name": "IndustryId"
-              }
-            ]
-          },
-          {
             "name": "DimCompany",
             "columns": [
               {
@@ -9211,6 +9231,10 @@
           {
             "memberName": "IIDIC\\402sa066",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2717"
+          },
+          {
+            "memberName": "IIDIC\\410036",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1756"
           }
         ]
       }

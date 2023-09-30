@@ -5487,7 +5487,7 @@
         ]
       },
       {
-        "name": "FactShareStatus",
+        "name": "FactPortfolio",
         "columns": [
           {
             "name": "InstrumentId",
@@ -5584,9 +5584,9 @@
               "expression": [
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_FactShareStatus = Source{[Schema=\"dbo\",Item=\"FactShareStatus\"]}[Data]",
+                "    dbo_FactPortfolio = Source{[Schema=\"dbo\",Item=\"FactPortfolio\"]}[Data]",
                 "in",
-                "    dbo_FactShareStatus"
+                "    dbo_FactPortfolio"
               ]
             }
           }
@@ -5633,11 +5633,11 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactShareStatus'[TotalInvest]))",
+              "        CALCULATE(COUNT('FactPortfolio'[TotalInvest]))",
               "    )",
               ") ",
               "RETURN",
-              "CALCULATE(SUM('FactShareStatus'[TotalInvest]), 'DimTimeTable'[Date] = LastDay)",
+              "CALCULATE(SUM('FactPortfolio'[TotalInvest]), 'DimTimeTable'[Date] = LastDay)",
               "",
               "//SUMX(",
               "//    'FactShareStatus',",
@@ -5689,12 +5689,12 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactShareStatus'[TotalInvest]))",
+              "        CALCULATE(COUNT('FactPortfolio'[TotalInvest]))",
               "    )",
               ") ",
               "RETURN",
               "CALCULATE(",
-              "    DISTINCTCOUNT('FactShareStatus'[PortfolioId]), ",
+              "    DISTINCTCOUNT('FactPortfolio'[PortfolioId]), ",
               "    'DimTimeTable'[Date] = LastDay,",
               "    'DimPortfolio'[StatusEn] <> \"Suspended\" )"
             ]
@@ -8156,11 +8156,6 @@
             "name": "NetProfitLoss",
             "dataType": "double",
             "sourceColumn": "NetProfitLoss"
-          },
-          {
-            "name": "InsertTime",
-            "dataType": "dateTime",
-            "sourceColumn": "InsertTime"
           }
         ],
         "partitions": [
@@ -8172,9 +8167,10 @@
               "expression": [
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_FactBuySell = Source{[Schema=\"dbo\",Item=\"FactBuySell\"]}[Data]",
+                "    dbo_FactPortfolioTrade = Source{[Schema=\"dbo\",Item=\"FactPortfolioTrade\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_FactPortfolioTrade,{\"DimAsset\", \"DimInstrument\", \"DimPortfolio\", \"DimTimeTable\", \"InsertTime\"})",
                 "in",
-                "    dbo_FactBuySell"
+                "    #\"Removed Columns\""
               ]
             }
           }
@@ -8186,17 +8182,6 @@
               " ",
               " SUM('FactPortfolioTrade'[NetAmount])"
             ]
-          }
-        ]
-      },
-      {
-        "name": "CalculatedTable 1",
-        "partitions": [
-          {
-            "name": "CalculatedTable 1",
-            "source": {
-              "type": "calculated"
-            }
           }
         ]
       },
@@ -8225,6 +8210,47 @@
           {
             "name": "@Days",
             "expression": "SELECTEDVALUE('@Days'[Value])"
+          }
+        ]
+      },
+      {
+        "name": "FactMarketCap",
+        "columns": [
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Date"
+          },
+          {
+            "name": "MarketId",
+            "dataType": "int64",
+            "sourceColumn": "MarketId"
+          },
+          {
+            "name": "MarketCap",
+            "dataType": "double",
+            "sourceColumn": "MarketCap"
+          },
+          {
+            "name": "InsertTime",
+            "dataType": "dateTime",
+            "sourceColumn": "InsertTime"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_FactMarketCap = Source{[Schema=\"dbo\",Item=\"FactMarketCap\"]}[Data]",
+                "in",
+                "    dbo_FactMarketCap"
+              ]
+            }
           }
         ]
       }
@@ -8323,7 +8349,7 @@
       },
       {
         "name": "9db6f0fb-61ef-4069-9a4d-4b44680f1a8d",
-        "fromTable": "FactShareStatus",
+        "fromTable": "FactPortfolio",
         "fromColumn": "AssetId",
         "toTable": "DimAsset",
         "toColumn": "AssetId"
@@ -8452,21 +8478,21 @@
       },
       {
         "name": "ce548627-b463-41e3-bf14-bbe8d3abe31f",
-        "fromTable": "FactShareStatus",
+        "fromTable": "FactPortfolio",
         "fromColumn": "Date",
         "toTable": "DimTimeTable",
         "toColumn": "Date"
       },
       {
         "name": "cefa7ce0-0904-454e-ab6f-cd7a5636403d",
-        "fromTable": "FactShareStatus",
+        "fromTable": "FactPortfolio",
         "fromColumn": "PortfolioId",
         "toTable": "DimPortfolio",
         "toColumn": "PortfolioId"
       },
       {
         "name": "5899f20a-3441-4d95-bbe9-d1be839f1263",
-        "fromTable": "FactShareStatus",
+        "fromTable": "FactPortfolio",
         "fromColumn": "InstrumentId",
         "toTable": "DimInstrument",
         "toColumn": "InstrumentId"
@@ -8492,6 +8518,13 @@
         "toTable": "DimPortfolio",
         "toColumn": "PortfolioId",
         "crossFilteringBehavior": "bothDirections"
+      },
+      {
+        "name": "ef61b498-e648-43cb-8400-086aee8faf16",
+        "fromTable": "FactMarketCap",
+        "fromColumn": "Date",
+        "toTable": "DimTimeTable",
+        "toColumn": "Date"
       }
     ],
     "perspectives": [
@@ -8584,7 +8617,7 @@
             ]
           },
           {
-            "name": "FactShareStatus",
+            "name": "FactPortfolio",
             "columns": [
               {
                 "name": "AssetId"
@@ -9126,7 +9159,7 @@
             ]
           },
           {
-            "name": "FactShareStatus",
+            "name": "FactPortfolio",
             "columns": [
               {
                 "name": "AssetId"
@@ -9621,9 +9654,6 @@
                 "name": "Date"
               },
               {
-                "name": "InsertTime"
-              },
-              {
                 "name": "InstrumentId"
               },
               {
@@ -9652,7 +9682,7 @@
             ]
           },
           {
-            "name": "FactShareStatus",
+            "name": "FactPortfolio",
             "columns": [
               {
                 "name": "AssetId"
@@ -9856,7 +9886,7 @@
             ]
           },
           {
-            "name": "FactShareStatus",
+            "name": "FactPortfolio",
             "metadataPermission": "none"
           },
           {
@@ -10054,7 +10084,7 @@
             "metadataPermission": "none"
           },
           {
-            "name": "FactShareStatus",
+            "name": "FactPortfolio",
             "metadataPermission": "none"
           }
         ]

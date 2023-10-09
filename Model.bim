@@ -553,6 +553,26 @@
                 "column": "GQuarter"
               }
             ]
+          },
+          {
+            "name": "PDate Hierarchy",
+            "levels": [
+              {
+                "name": "Year",
+                "ordinal": 0,
+                "column": "Year"
+              },
+              {
+                "name": "Month2",
+                "ordinal": 1,
+                "column": "Month2"
+              },
+              {
+                "name": "DateKey",
+                "ordinal": 2,
+                "column": "DateKey"
+              }
+            ]
           }
         ]
       },
@@ -3917,7 +3937,8 @@
               "",
               "//RETURN",
               "//PERCENTILEX.EXC(T3, [PeriodReturn], [@Percentile]/100)/100"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "Fixed Income Funds Return Percentile Value",
@@ -4524,6 +4545,80 @@
               "    1,",
               "    0",
               ")",
+              ""
+            ]
+          },
+          {
+            "name": "Gold Funds Return Percentile Value Cum",
+            "expression": [
+              " ",
+              "",
+              "VAR Period = '@Months'[Months Value]",
+              "",
+              "VAR LastDay = CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "        ),",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
+              "    )",
+              ")",
+              "VAR BaseDay = ",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(PREVIOUSDAY(FIRSTDATE('DimTimeTable'[Date])), ALLSELECTED('DimTimeTable'))",
+              "        ),",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
+              "    )",
+              "",
+              "",
+              "VAR T1 =",
+              "FILTER(",
+              "    'DimFunds',",
+              "    'DimFunds'[FundSubTypeEn] = \"Gold\"",
+              ")",
+              "VAR T2 =",
+              "ADDCOLUMNS(",
+              "    T1,",
+              "    \"PeriodReturn\",",
+              "    VAR Fund = 'DimFunds'[FundId]",
+              "    RETURN ",
+              "    CALCULATE(",
+              "        [Return],",
+              "        'DimTimeTable'[Date] <=LastDay,",
+              "        'DimTimeTable'[Date] >=BaseDay",
+              "    )",
+              ")",
+              "",
+              "VAR T3 =",
+              "FILTER(",
+              "    T2,",
+              "    NOT ISBLANK([PeriodReturn])",
+              ")",
+              "",
+              "VAR T4 =",
+              "ADDCOLUMNS(",
+              "    T3,",
+              "    \"Rank1\",",
+              "    RANKX(T3,[return],,DESC)",
+              ")",
+              "",
+              "VAR T5 = ",
+              "FILTER(",
+              "    T4, ",
+              "    [Rank1] <= 3",
+              ")",
+              "",
+              "RETURN",
+              "AVERAGEX(T5, [Return])",
+              "",
+              "",
+              "",
+              "",
               ""
             ]
           }
@@ -5596,68 +5691,10 @@
             "name": "Portfolio Value",
             "expression": [
               "",
-              "//SUMX(",
-              "//    VALUES('DimInstrument'[InstrumentId]),",
-              "//    VAR Ticker = 'DimInstrument'[InstrumentId]",
-              "//    VAR LastDay =",
-              "//    CALCULATE(",
-              "//        LASTNONBLANK(",
-              "//            DATESBETWEEN(",
-              "//                'DimTimeTable'[Date],",
-              "//                BLANK(),",
-              "//                CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "//            ),",
-              "//            CALCULATE(COUNT('FactShareStatus'[TotalInvest]))",
-              "//        )",
-              "//    )",
-              "//    RETURN",
-              "//    VAR Price = 1--CALCULATE([Ticker Price], 'DimTimeTable'[Date] = LastDay , 'DimInstrument'[InstrumentId] = Ticker)",
-              "//    RETURN",
-              "//    CALCULATE(SELECTEDVALUE('FactShareStatus'[TotalInvest]), 'DimTimeTable'[Date] = LastDay)",
-              "//    CALCULATE(",
-              "//        SUM('FactShareStatus'[ShareNo]) * Price , ",
-              "//        'DimTimeTable'[Date] = LastDay",
-              "//    --, 'DimInstrument'[InstrumentId] = Ticker",
-              "//    ) ",
-              "//)",
-              "",
-              "",
-              "//    //CALCULATE(COUNTROWS('FactTradeDetails'), DimTimeTable[Date] = d, 'DimInstrument'[InstrumentId] = t)+0",
-              "//)",
-              "",
-              "VAR LastDay = ",
-              "CALCULATE(",
-              "    LASTNONBLANK(",
-              "        DATESBETWEEN(",
-              "            'DimTimeTable'[Date],",
-              "            BLANK(),",
-              "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "        ),",
-              "        CALCULATE(COUNT('FactPortfolio'[TotalInvest]))",
-              "    )",
-              ") ",
+              "VAR LastDay = MAX('DimTimeTable'[Date])",
               "RETURN",
-              "CALCULATE(SUM('FactPortfolio'[TotalInvest]), 'DimTimeTable'[Date] = LastDay)",
-              "",
-              "//SUMX(",
-              "//    'FactShareStatus',",
-              "//    VAR t = 'FactShareStatus'[InstrumentId]",
-              "//    VAR d = //SELECTEDVALUE('DimTimeTable'[Date])",
-              "//    CALCULATE(",
-              "//        LASTNONBLANK(",
-              "//            DATESBETWEEN(",
-              "//                'DimTimeTable'[Date],",
-              "//                BLANK(),",
-              "//                CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "//            ),",
-              "//            CALCULATE(COUNT('FactShareStatus'[TotalInvest]))",
-              "//        )",
-              "//) ",
-              "//    VAR p = CALCULATE([Ticker Price], 'DimTimeTable'[Date] = d , 'DimInstrument'[InstrumentId] = t)",
-              "//    RETURN",
-              "//    SUM('FactShareStatus'[TotalInvest])",
-              "//    //CALCULATE(COUNTROWS('FactTradeDetails'), DimTimeTable[Date] = d, 'DimInstrument'[InstrumentId] = t)+0",
-              "//)"
+              "CALCULATE(SUM('FactPortfolio'[ValueInDate]), 'DimTimeTable'[Date] = LastDay)",
+              ""
             ],
             "formatString": "#,0"
           },
@@ -5669,8 +5706,6 @@
               "    [Portfolio Value],",
               "    CALCULATE(",
               "        [Portfolio Value] ,",
-              "        --ALLEXCEPT('DimPortfolio', 'DimPortfolio'[PortfolioManager])--, 'DimPortfolio'[PortfolioManagerEn], 'DimPortfolio'[PortfolioManagerId])",
-              "        --ALLEXCEPT('DimInstrument', 'DimInstrument'[Industry])",
               "        ALLSELECTED('DimInstrument')",
               "    )",
               ")"
@@ -5695,8 +5730,9 @@
               "RETURN",
               "CALCULATE(",
               "    DISTINCTCOUNT('FactPortfolio'[PortfolioId]), ",
-              "    'DimTimeTable'[Date] = LastDay,",
-              "    'DimPortfolio'[StatusEn] <> \"Suspended\" )"
+              "    'DimTimeTable'[Date] = LastDay, ",
+              "    'DimPortfolio'[StatusEn] <> \"Rescinded\" ",
+              ")"
             ]
           }
         ]
@@ -5844,6 +5880,11 @@
             "name": "InsertTime",
             "dataType": "dateTime",
             "sourceColumn": "InsertTime"
+          },
+          {
+            "name": "LastPrice",
+            "dataType": "double",
+            "sourceColumn": "LastPrice"
           }
         ],
         "partitions": [
@@ -5886,6 +5927,36 @@
               "    'DimTimeTable'[Date] = d, ",
               "    'DimInstrument'[InstrumentId] = t",
               ")"
+            ]
+          },
+          {
+            "name": "Exchange Market Cap FactTradeDetails (Currency)",
+            "expression": [
+              " ",
+              "VAR MaxDate = --SELECTEDVALUE('DimTimeTable'[Date])",
+              "calculate(",
+              "    lastnonblank(",
+              "        datesbetween(",
+              "            'dimtimetable'[date],",
+              "            blank(),",
+              "            calculate(lastdate('dimtimetable'[date]))",
+              "        ),",
+              "        calculate(count('FactTradeDetails'[MarketCap])) ",
+              "        )",
+              ")",
+              "RETURN",
+              "CALCULATE(",
+              "    SUM('FactTradeDetails'[MarketCap]),",
+              "    'DimTimeTable'[Date] = MaxDate",
+              "    , 'DimInstrument'[MarketId] = 6",
+              ") "
+            ],
+            "formatString": "\\$#,0;(\\$#,0);\\$#,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+              }
             ]
           }
         ]
@@ -6310,6 +6381,25 @@
             "name": "IsAffiliated",
             "dataType": "boolean",
             "sourceColumn": "IsAffiliated"
+          },
+          {
+            "name": "MarketLevel",
+            "dataType": "string",
+            "sourceColumn": "MarketLevel"
+          },
+          {
+            "type": "calculated",
+            "name": "Affiliated",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              "",
+              "if (",
+              "    'DimInstrument'[IsAffiliated],",
+              "    \"Affiliated\",",
+              "    \"Non-Affiliated\"",
+              ")"
+            ]
           }
         ],
         "partitions": [
@@ -6321,9 +6411,10 @@
               "expression": [
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_DimInstrument = Source{[Schema=\"dbo\",Item=\"DimInstrument\"]}[Data]",
+                "    dbo_DimInstrument = Source{[Schema=\"dbo\",Item=\"DimInstrument\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimInstrument,{\"FactPortfolio\", \"FactPortfolioTrade\", \"FactTrade\", \"FactTradeDetails\"})",
                 "in",
-                "    dbo_DimInstrument"
+                "    #\"Removed Columns\""
               ]
             }
           }
@@ -7615,6 +7706,15 @@
               ]
             }
           }
+        ],
+        "measures": [
+          {
+            "name": "Zero",
+            "expression": [
+              " 0",
+              ""
+            ]
+          }
         ]
       },
       {
@@ -8222,11 +8322,6 @@
             "sourceColumn": "Date"
           },
           {
-            "name": "MarketId",
-            "dataType": "int64",
-            "sourceColumn": "MarketId"
-          },
-          {
             "name": "MarketCap",
             "dataType": "double",
             "sourceColumn": "MarketCap"
@@ -8235,6 +8330,11 @@
             "name": "InsertTime",
             "dataType": "dateTime",
             "sourceColumn": "InsertTime"
+          },
+          {
+            "name": "ExchangeId",
+            "dataType": "int64",
+            "sourceColumn": "ExchangeId"
           }
         ],
         "partitions": [
@@ -8251,6 +8351,53 @@
                 "    dbo_FactMarketCap"
               ]
             }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Exchange Market Cap FactMArketCap (Currency)",
+            "description": "Source: TSETMC Market Cap",
+            "expression": [
+              "",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "        ),",
+              "        CALCULATE(COUNT('FactMarketCap'[MarketCap])) ",
+              "        )",
+              ")",
+              "RETURN",
+              "CALCULATE(",
+              "    SUM('FactMarketCap'[MarketCap]),",
+              "    'DimTimeTable'[Date] = MaxDate",
+              ") ",
+              "* 10 ^ 9"
+            ],
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Funds Market to Market Cap %",
+            "expression": [
+              "",
+              "DIVIDE(",
+              "    CALCULATE(",
+              "        [AUM],",
+              "        'DimFunds'[FundTypeEn] <> \"MarketMaking\"",
+              "    ),",
+              "    [Exchange Market Cap FactMArketCap (Currency)]",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           }
         ]
       }
@@ -8957,6 +9104,9 @@
               },
               {
                 "name": "IsAffiliated"
+              },
+              {
+                "name": "MarketLevel"
               }
             ]
           }
@@ -9796,6 +9946,202 @@
             "memberName": "IIDIC\\507333",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1737"
           }
+        ],
+        "tablePermissions": [
+          {
+            "name": "DimFunds",
+            "columnPermissions": [
+              {
+                "name": "FundId",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FundName",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FundEnName",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FundShortName",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FundEnShortName",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FundType",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FundTypeEn",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FundLink",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "TypeOfInvest",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "ManagerId",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Guarantor",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "InitiationDate",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "MarketMaker",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Custodian",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "InvestmentManager",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FiscalYear",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FundSubType",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FundSubTypeEn",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "ColorCode",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "AUM",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "InstrumentId",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "BourseCode",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "ETF",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "DividendIntervalPeriod",
+                "metadataPermission": "none"
+              }
+            ]
+          },
+          {
+            "name": "DimManager",
+            "columnPermissions": [
+              {
+                "name": "ManagerId",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Manager",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "ShortName",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "ManagerEnName",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "ENShortName",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FinancialGroupName",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FinancialGroupNameEN",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "IsBanking",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "PrivateSector",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "ColorCode",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "FoundDate",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "IsCompetitor",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Column",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Competitors Only",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "IsCompetitor1",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Manager Group",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Manager Short Name",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Manager Shorter Name",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Non Bank Affiliated",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Private",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "AUM",
+                "metadataPermission": "none"
+              }
+            ]
+          },
+          {
+            "name": "DimPortfolio",
+            "filterExpression": "'DimPortfolio'[IsCompany]"
+          }
         ]
       },
       {
@@ -9819,10 +10165,6 @@
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1710"
           },
           {
-            "memberName": "IIDIC\\10045",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1414"
-          },
-          {
             "memberName": "IIDIC\\140201",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2052"
           },
@@ -9837,10 +10179,6 @@
           {
             "memberName": "IIDIC\\402MG040",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2644"
-          },
-          {
-            "memberName": "IIDIC\\402sa051",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2660"
           },
           {
             "memberName": "IIDIC\\410036",
@@ -10072,6 +10410,10 @@
           {
             "memberName": "IIDIC\\410036",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1756"
+          },
+          {
+            "memberName": "IIDIC\\10045",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1414"
           }
         ],
         "tablePermissions": [
@@ -10096,6 +10438,32 @@
           {
             "name": "DimPortfolio",
             "filterExpression": "'DimPortfolio'[IsCompany] = FALSE()"
+          }
+        ]
+      },
+      {
+        "name": "CompaniesTopManagement",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "IIDIC\\497095",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1615"
+          }
+        ]
+      },
+      {
+        "name": "Market",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "IIDIC\\507415",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1629"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "DimPortfolio",
+            "filterExpression": "isblank('DimPortfolio'[PRX])"
           }
         ]
       }

@@ -23,6 +23,24 @@
           "Username": "reportuser",
           "EncryptConnection": false
         }
+      },
+      {
+        "type": "structured",
+        "name": "SQL/192 168 220 10;StageArea",
+        "connectionDetails": {
+          "protocol": "tds",
+          "address": {
+            "server": "192.168.220.10",
+            "database": "StageArea"
+          },
+          "authentication": null,
+          "query": null
+        },
+        "credential": {
+          "AuthenticationKind": "UsernamePassword",
+          "Username": "reportuser",
+          "EncryptConnection": false
+        }
       }
     ],
     "tables": [
@@ -961,9 +979,11 @@
               "expression": [
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_DimCompany = Source{[Schema=\"dbo\",Item=\"DimCompany\"]}[Data]",
+                "    dbo_DimCompany = Source{[Schema=\"dbo\",Item=\"DimCompany\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimCompany,{\"FactShareHolders\"}),",
+                "    #\"Filtered Rows\" = Table.SelectRows(#\"Removed Columns\", each [InstrumentId] <> null)",
                 "in",
-                "    dbo_DimCompany"
+                "    #\"Filtered Rows\""
               ]
             }
           }
@@ -5691,12 +5711,22 @@
             "name": "Portfolio Value",
             "expression": [
               "",
-              "VAR LastDay = MAX('DimTimeTable'[Date])",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    MAX('FactPortfolio'[Date]),",
+              "    ALLEXCEPT('FactPortfolio', 'FactPortfolio'[Date])",
+              ")",
               "RETURN",
               "CALCULATE(SUM('FactPortfolio'[ValueInDate]), 'DimTimeTable'[Date] = LastDay)",
               ""
             ],
-            "formatString": "#,0"
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
+            ]
           },
           {
             "name": "Portfolio Value % AllSelected DimInstruments",
@@ -5734,6 +5764,77 @@
               "    'DimPortfolio'[StatusEn] <> \"Rescinded\" ",
               ")"
             ]
+          },
+          {
+            "name": "ShareHolder %",
+            "expression": [
+              "",
+              "//DIVIDE(",
+              "//    'FactPortfolio'[Portfolio Value],",
+              "//    'FactTradeDetails'[Exchange Market Cap FactTradeDetails (Currency)]",
+              "//)",
+              "DIVIDE(",
+              "    'FactPortfolio'[Portfolio Quantity],",
+              "    'FactTradeDetails'[Instrument Count of Shares]",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Portfolio Cost",
+            "expression": [
+              "",
+              " ",
+              "VAR LastDay = MAX('DimTimeTable'[Date])",
+              "",
+              "//VAR LastDay = ",
+              "//CALCULATE(",
+              "//    LASTNONBLANK(",
+              "//        DATESBETWEEN(",
+              "//            'DimTimeTable'[Date],",
+              "//            BLANK(),",
+              "//            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "//        ),",
+              "//        CALCULATE(COUNT('FactPortfolio'[TotalInvest]))",
+              "//    )",
+              "//)",
+              "//",
+              "RETURN",
+              "CALCULATE(SUM('FactPortfolio'[TotalInvest]), 'DimTimeTable'[Date] = LastDay)",
+              ""
+            ],
+            "formatString": "\"IRR\" #,0.00;-\"IRR\" #,0.00;\"IRR\" #,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Portfolio Quantity",
+            "expression": [
+              "",
+              " VAR LastDay = MAX('DimTimeTable'[Date])",
+              "VAR Instrument = SELECTEDVALUE('DimInstrument'[InstrumentId])",
+              "//VAR LastDay = ",
+              "//CALCULATE(",
+              "//    LASTNONBLANK(",
+              "//        DATESBETWEEN(",
+              "//            'DimTimeTable'[Date],",
+              "//            BLANK(),",
+              "//            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "//        ),",
+              "//        CALCULATE(COUNT('FactPortfolio'[ShareNo]))",
+              "//    )",
+              "//)",
+              "//",
+              "RETURN",
+              "CALCULATE(SUM('FactPortfolio'[ShareNo]), 'DimTimeTable'[Date] = LastDay)",
+              "",
+              ""
+            ],
+            "formatString": "#,0"
           }
         ]
       },
@@ -5951,12 +6052,43 @@
               "    , 'DimInstrument'[MarketId] = 6",
               ") "
             ],
-            "formatString": "\\$#,0;(\\$#,0);\\$#,0",
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
             "annotations": [
               {
                 "name": "Format",
-                "value": "<Format Format=\"Currency\"><Currency LCID=\"1033\" DisplayName=\"$ English (United States)\" Symbol=\"$\" PositivePattern=\"0\" NegativePattern=\"0\" /></Format>"
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
               }
+            ]
+          },
+          {
+            "name": "Instrument Count of Shares",
+            "description": [
+              "چون تعداد بین نمادهای مختلف جمع پذیر نیست، نماد باید در فیلتر آورده شود . ",
+              "از طرفی چون یک دارایی ممکن است نمادهای مختلف داشته باشد باید از Asset استفاده شود.",
+              "در فرمول ارزش و قیمت تمام شده جمع می شود روی فیلتر "
+            ],
+            "expression": [
+              " ",
+              "VAR Asset = SELECTEDVALUE('DimInstrument'[AssetId])",
+              "VAR T = CALCULATETABLE(VALUES('DimInstrument'[InstrumentId]), 'DimInstrument'[AssetId] = Asset)",
+              "VAR MaxDate = --SELECTEDVALUE('DimTimeTable'[Date])",
+              "calculate(",
+              "    lastnonblank(",
+              "        datesbetween(",
+              "            'dimtimetable'[date],",
+              "            blank(),",
+              "            calculate(lastdate('dimtimetable'[date]))",
+              "        ),",
+              "        calculate(count('FactTradeDetails'[ShareNo])) ",
+              "        )",
+              ")",
+              "RETURN",
+              "CALCULATE(",
+              "    SUM('FactTradeDetails'[ShareNo]),",
+              "    'DimTimeTable'[Date] = MaxDate",
+              "    , 'DimInstrument'[MarketId] = 6",
+              "    , T",
+              ") "
             ]
           }
         ]
@@ -6399,6 +6531,18 @@
               "    \"Affiliated\",",
               "    \"Non-Affiliated\"",
               ")"
+            ]
+          },
+          {
+            "type": "calculated",
+            "name": "Asset",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              " ",
+              "VAR AssetID = 'DimInstrument'[AssetId]",
+              "RETURN",
+              "LOOKUPVALUE('DimAsset'[Asset], 'DimAsset'[AssetId], AssetID)"
             ]
           }
         ],
@@ -8066,9 +8210,9 @@
             "sourceColumn": "MoreInfo"
           },
           {
-            "name": "IsCompany",
-            "dataType": "boolean",
-            "sourceColumn": "IsCompany"
+            "name": "PortfolioTypeId",
+            "dataType": "int64",
+            "sourceColumn": "PortfolioTypeId"
           },
           {
             "type": "calculated",
@@ -8076,11 +8220,13 @@
             "dataType": "string",
             "isDataTypeInferred": true,
             "expression": [
-              " ",
-              "IF(",
-              "'DimPortfolio'[IsCompany],",
-              "\"Company\",",
-              "\"PRX\"",
+              "",
+              "SWITCH(",
+              "    'DimPortfolio'[PortfolioTypeId],",
+              "    1, \"شرکت\",",
+              "    2, \"سبد\",  ",
+              "    3, \"صندوق\",",
+              "    \"سایر\"",
               ")"
             ]
           }
@@ -8400,6 +8546,99 @@
             "formatString": "0.0%;-0.0%;0.0%"
           }
         ]
+      },
+      {
+        "name": "tbl1",
+        "columns": [
+          {
+            "name": "Id",
+            "dataType": "int64",
+            "sourceColumn": "Id"
+          },
+          {
+            "name": "Name",
+            "dataType": "string",
+            "sourceColumn": "Name"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;StageArea\",",
+                "    dbo_tbl1 = Source{[Schema=\"dbo\",Item=\"tbl1\"]}[Data]",
+                "in",
+                "    dbo_tbl1"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "tbl2",
+        "columns": [
+          {
+            "name": "Id",
+            "dataType": "int64",
+            "sourceColumn": "Id"
+          },
+          {
+            "name": "Name",
+            "dataType": "string",
+            "sourceColumn": "Name"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;StageArea\",",
+                "    dbo_tbl2 = Source{[Schema=\"dbo\",Item=\"tbl2\"]}[Data]",
+                "in",
+                "    dbo_tbl2"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "tbl3",
+        "columns": [
+          {
+            "name": "Id",
+            "dataType": "int64",
+            "sourceColumn": "Id"
+          },
+          {
+            "name": "Name",
+            "dataType": "string",
+            "sourceColumn": "Name"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;StageArea\",",
+                "    dbo_tbl3 = Source{[Schema=\"dbo\",Item=\"tbl3\"]}[Data]",
+                "in",
+                "    dbo_tbl3"
+              ]
+            }
+          }
+        ]
       }
     ],
     "relationships": [
@@ -8659,19 +8898,32 @@
         "toColumn": "InstrumentId"
       },
       {
-        "name": "b8abea3f-289b-4b85-a4d1-e7d7216fd046",
-        "fromTable": "FactPortfolioTrade",
-        "fromColumn": "PortfolioId",
-        "toTable": "DimPortfolio",
-        "toColumn": "PortfolioId",
-        "crossFilteringBehavior": "bothDirections"
-      },
-      {
         "name": "ef61b498-e648-43cb-8400-086aee8faf16",
         "fromTable": "FactMarketCap",
         "fromColumn": "Date",
         "toTable": "DimTimeTable",
         "toColumn": "Date"
+      },
+      {
+        "name": "7192d83b-f67a-4b09-803b-643c5dbd5bde",
+        "fromTable": "FactPortfolioTrade",
+        "fromColumn": "PortfolioId",
+        "toTable": "DimPortfolio",
+        "toColumn": "PortfolioId"
+      },
+      {
+        "name": "f64a0488-227c-4b45-a15a-f27136298809",
+        "fromTable": "tbl3",
+        "fromColumn": "Id",
+        "toTable": "tbl2",
+        "toColumn": "Id"
+      },
+      {
+        "name": "3994a734-79bb-4d1e-b774-827f1a74f2b7",
+        "fromTable": "tbl3",
+        "fromColumn": "Id",
+        "toTable": "tbl1",
+        "toColumn": "Id"
       }
     ],
     "perspectives": [
@@ -9449,12 +9701,6 @@
               },
               {
                 "name": "TypeEn"
-              },
-              {
-                "name": "IsCompany"
-              },
-              {
-                "name": "PortfolioType"
               }
             ]
           },
@@ -9615,9 +9861,6 @@
                 "name": "IntroducerEn"
               },
               {
-                "name": "IsCompany"
-              },
-              {
                 "name": "IsOnline"
               },
               {
@@ -9640,9 +9883,6 @@
               },
               {
                 "name": "PortfolioNameEn"
-              },
-              {
-                "name": "PortfolioType"
               },
               {
                 "name": "PRX"
@@ -9899,6 +10139,44 @@
             ]
           }
         ]
+      },
+      {
+        "name": "tbl",
+        "tables": [
+          {
+            "name": "tbl1",
+            "columns": [
+              {
+                "name": "Id"
+              },
+              {
+                "name": "Name"
+              }
+            ]
+          },
+          {
+            "name": "tbl2",
+            "columns": [
+              {
+                "name": "Id"
+              },
+              {
+                "name": "Name"
+              }
+            ]
+          },
+          {
+            "name": "tbl3",
+            "columns": [
+              {
+                "name": "Id"
+              },
+              {
+                "name": "Name"
+              }
+            ]
+          }
+        ]
       }
     ],
     "roles": [
@@ -10137,10 +10415,6 @@
                 "metadataPermission": "none"
               }
             ]
-          },
-          {
-            "name": "DimPortfolio",
-            "filterExpression": "'DimPortfolio'[IsCompany]"
           }
         ]
       },
@@ -10419,7 +10693,7 @@
         "tablePermissions": [
           {
             "name": "DimPortfolio",
-            "filterExpression": "'DimPortfolio'[IsCompany] = FALSE()"
+            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {2,3}"
           },
           {
             "name": "FactPortfolioTrade",
@@ -10437,7 +10711,7 @@
         "tablePermissions": [
           {
             "name": "DimPortfolio",
-            "filterExpression": "'DimPortfolio'[IsCompany] = FALSE()"
+            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {2,3}"
           }
         ]
       },
@@ -10448,6 +10722,12 @@
           {
             "memberName": "IIDIC\\497095",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1615"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "DimPortfolio",
+            "filterExpression": " 'DimPortfolio'[PortfolioTypeId] = 1"
           }
         ]
       },
@@ -10463,7 +10743,7 @@
         "tablePermissions": [
           {
             "name": "DimPortfolio",
-            "filterExpression": "isblank('DimPortfolio'[PRX])"
+            "filterExpression": "'DimPortfolio'[PortfolioTypeId] = 1"
           }
         ]
       }

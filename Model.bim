@@ -38,8 +38,25 @@
         },
         "credential": {
           "AuthenticationKind": "UsernamePassword",
+          "kind": "SQL",
+          "path": "192.168.220.10;StageArea",
           "Username": "reportuser",
           "EncryptConnection": false
+        }
+      },
+      {
+        "type": "structured",
+        "name": "ActiveDirectory/iidic com",
+        "connectionDetails": {
+          "protocol": "active-directory",
+          "address": {
+            "domain": "iidic.com"
+          },
+          "authentication": null,
+          "query": null
+        },
+        "credential": {
+          "AuthenticationKind": "ServiceAccount"
         }
       }
     ],
@@ -5602,243 +5619,6 @@
         ]
       },
       {
-        "name": "FactPortfolio",
-        "columns": [
-          {
-            "name": "InstrumentId",
-            "dataType": "int64",
-            "sourceColumn": "InstrumentId"
-          },
-          {
-            "name": "Date",
-            "dataType": "dateTime",
-            "sourceColumn": "Date"
-          },
-          {
-            "name": "AssetId",
-            "dataType": "int64",
-            "sourceColumn": "AssetId"
-          },
-          {
-            "name": "ShareNo",
-            "dataType": "int64",
-            "sourceColumn": "ShareNo"
-          },
-          {
-            "name": "Price",
-            "dataType": "int64",
-            "sourceColumn": "Price"
-          },
-          {
-            "name": "AVGBuyPrice",
-            "dataType": "double",
-            "sourceColumn": "AVGBuyPrice"
-          },
-          {
-            "name": "BreakEvenPrice",
-            "dataType": "double",
-            "sourceColumn": "BreakEvenPrice"
-          },
-          {
-            "name": "TotalInvest",
-            "dataType": "int64",
-            "sourceColumn": "TotalInvest"
-          },
-          {
-            "name": "ValueInDate",
-            "dataType": "int64",
-            "sourceColumn": "ValueInDate"
-          },
-          {
-            "name": "PureValueInDate",
-            "dataType": "int64",
-            "sourceColumn": "PureValueInDate"
-          },
-          {
-            "name": "PureDiffPrice",
-            "dataType": "int64",
-            "sourceColumn": "PureDiffPrice"
-          },
-          {
-            "name": "PureDiffPercent",
-            "dataType": "double",
-            "sourceColumn": "PureDiffPercent"
-          },
-          {
-            "name": "OwnershipPercent",
-            "dataType": "double",
-            "sourceColumn": "OwnershipPercent"
-          },
-          {
-            "name": "LastDPS",
-            "dataType": "int64",
-            "sourceColumn": "LastDPS"
-          },
-          {
-            "name": "InsertTime",
-            "dataType": "dateTime",
-            "sourceColumn": "InsertTime"
-          },
-          {
-            "name": "PortfolioId",
-            "dataType": "int64",
-            "sourceColumn": "PortfolioId"
-          },
-          {
-            "name": "SourceId",
-            "dataType": "int64",
-            "sourceColumn": "SourceId"
-          }
-        ],
-        "partitions": [
-          {
-            "name": "Partition",
-            "dataView": "full",
-            "source": {
-              "type": "m",
-              "expression": [
-                "let",
-                "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_FactPortfolio = Source{[Schema=\"dbo\",Item=\"FactPortfolio\"]}[Data]",
-                "in",
-                "    dbo_FactPortfolio"
-              ]
-            }
-          }
-        ],
-        "measures": [
-          {
-            "name": "Portfolio Value",
-            "expression": [
-              "",
-              "VAR LastDay = ",
-              "CALCULATE(",
-              "    MAX('FactPortfolio'[Date]),",
-              "    ALLEXCEPT('FactPortfolio', 'FactPortfolio'[Date])",
-              ")",
-              "RETURN",
-              "CALCULATE(SUM('FactPortfolio'[ValueInDate]), 'DimTimeTable'[Date] = LastDay)",
-              ""
-            ],
-            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
-            "annotations": [
-              {
-                "name": "Format",
-                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
-              }
-            ]
-          },
-          {
-            "name": "Portfolio Value % AllSelected DimInstruments",
-            "expression": [
-              "",
-              "DIVIDE(",
-              "    [Portfolio Value],",
-              "    CALCULATE(",
-              "        [Portfolio Value] ,",
-              "        ALLSELECTED('DimInstrument')",
-              "    )",
-              ")"
-            ],
-            "formatString": "0.0%;-0.0%;0.0%"
-          },
-          {
-            "name": "Portfolio Count",
-            "expression": [
-              "",
-              "VAR LastDay = ",
-              "CALCULATE(",
-              "    LASTNONBLANK(",
-              "        DATESBETWEEN(",
-              "            'DimTimeTable'[Date],",
-              "            BLANK(),",
-              "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "        ),",
-              "        CALCULATE(COUNT('FactPortfolio'[TotalInvest]))",
-              "    )",
-              ") ",
-              "RETURN",
-              "CALCULATE(",
-              "    DISTINCTCOUNT('FactPortfolio'[PortfolioId]), ",
-              "    'DimTimeTable'[Date] = LastDay, ",
-              "    'DimPortfolio'[StatusEn] <> \"Rescinded\" ",
-              ")"
-            ]
-          },
-          {
-            "name": "ShareHolder %",
-            "expression": [
-              "",
-              "//DIVIDE(",
-              "//    'FactPortfolio'[Portfolio Value],",
-              "//    'FactTradeDetails'[Exchange Market Cap FactTradeDetails (Currency)]",
-              "//)",
-              "DIVIDE(",
-              "    'FactPortfolio'[Portfolio Quantity],",
-              "    'FactTradeDetails'[Instrument Count of Shares]",
-              ")"
-            ],
-            "formatString": "0.0%;-0.0%;0.0%"
-          },
-          {
-            "name": "Portfolio Cost",
-            "expression": [
-              "",
-              " ",
-              "VAR LastDay = MAX('DimTimeTable'[Date])",
-              "",
-              "//VAR LastDay = ",
-              "//CALCULATE(",
-              "//    LASTNONBLANK(",
-              "//        DATESBETWEEN(",
-              "//            'DimTimeTable'[Date],",
-              "//            BLANK(),",
-              "//            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "//        ),",
-              "//        CALCULATE(COUNT('FactPortfolio'[TotalInvest]))",
-              "//    )",
-              "//)",
-              "//",
-              "RETURN",
-              "CALCULATE(SUM('FactPortfolio'[TotalInvest]), 'DimTimeTable'[Date] = LastDay)",
-              ""
-            ],
-            "formatString": "\"IRR\" #,0.00;-\"IRR\" #,0.00;\"IRR\" #,0.00",
-            "annotations": [
-              {
-                "name": "Format",
-                "value": "<Format Format=\"Currency\" Accuracy=\"2\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
-              }
-            ]
-          },
-          {
-            "name": "Portfolio Quantity",
-            "expression": [
-              "",
-              " VAR LastDay = MAX('DimTimeTable'[Date])",
-              "VAR Instrument = SELECTEDVALUE('DimInstrument'[InstrumentId])",
-              "//VAR LastDay = ",
-              "//CALCULATE(",
-              "//    LASTNONBLANK(",
-              "//        DATESBETWEEN(",
-              "//            'DimTimeTable'[Date],",
-              "//            BLANK(),",
-              "//            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "//        ),",
-              "//        CALCULATE(COUNT('FactPortfolio'[ShareNo]))",
-              "//    )",
-              "//)",
-              "//",
-              "RETURN",
-              "CALCULATE(SUM('FactPortfolio'[ShareNo]), 'DimTimeTable'[Date] = LastDay)",
-              "",
-              ""
-            ],
-            "formatString": "#,0"
-          }
-        ]
-      },
-      {
         "name": "FactTrade",
         "columns": [
           {
@@ -8210,11 +7990,6 @@
             "sourceColumn": "MoreInfo"
           },
           {
-            "name": "PortfolioTypeId",
-            "dataType": "int64",
-            "sourceColumn": "PortfolioTypeId"
-          },
-          {
             "type": "calculated",
             "name": "PortfolioType",
             "dataType": "string",
@@ -8229,6 +8004,11 @@
               "    \"سایر\"",
               ")"
             ]
+          },
+          {
+            "name": "PortfolioTypeId",
+            "dataType": "int64",
+            "sourceColumn": "PortfolioTypeId"
           }
         ],
         "partitions": [
@@ -8351,6 +8131,34 @@
         ]
       },
       {
+        "name": "@Days",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Value",
+            "dataType": "int64",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Value]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 2",
+            "source": {
+              "type": "calculated",
+              "expression": "GENERATESERIES(1, 90, 1)"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "@Days",
+            "expression": "SELECTEDVALUE('@Days'[Value])"
+          }
+        ]
+      },
+      {
         "name": "FactPortfolioTrade",
         "columns": [
           {
@@ -8432,30 +8240,239 @@
         ]
       },
       {
-        "name": "@Days",
+        "name": "FactPortfolio",
         "columns": [
           {
-            "type": "calculatedTableColumn",
-            "name": "Value",
+            "name": "InstrumentId",
             "dataType": "int64",
-            "isNameInferred": true,
-            "isDataTypeInferred": true,
-            "sourceColumn": "[Value]"
+            "sourceColumn": "InstrumentId"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Date"
+          },
+          {
+            "name": "AssetId",
+            "dataType": "int64",
+            "sourceColumn": "AssetId"
+          },
+          {
+            "name": "ShareNo",
+            "dataType": "int64",
+            "sourceColumn": "ShareNo"
+          },
+          {
+            "name": "Price",
+            "dataType": "int64",
+            "sourceColumn": "Price"
+          },
+          {
+            "name": "AVGBuyPrice",
+            "dataType": "double",
+            "sourceColumn": "AVGBuyPrice"
+          },
+          {
+            "name": "BreakEvenPrice",
+            "dataType": "double",
+            "sourceColumn": "BreakEvenPrice"
+          },
+          {
+            "name": "TotalInvest",
+            "dataType": "int64",
+            "sourceColumn": "TotalInvest"
+          },
+          {
+            "name": "ValueInDate",
+            "dataType": "int64",
+            "sourceColumn": "ValueInDate"
+          },
+          {
+            "name": "PureValueInDate",
+            "dataType": "int64",
+            "sourceColumn": "PureValueInDate"
+          },
+          {
+            "name": "PureDiffPrice",
+            "dataType": "int64",
+            "sourceColumn": "PureDiffPrice"
+          },
+          {
+            "name": "PureDiffPercent",
+            "dataType": "double",
+            "sourceColumn": "PureDiffPercent"
+          },
+          {
+            "name": "OwnershipPercent",
+            "dataType": "double",
+            "sourceColumn": "OwnershipPercent"
+          },
+          {
+            "name": "LastDPS",
+            "dataType": "int64",
+            "sourceColumn": "LastDPS"
+          },
+          {
+            "name": "InsertTime",
+            "dataType": "dateTime",
+            "sourceColumn": "InsertTime"
+          },
+          {
+            "name": "PortfolioId",
+            "dataType": "int64",
+            "sourceColumn": "PortfolioId"
+          },
+          {
+            "name": "SourceId",
+            "dataType": "int64",
+            "sourceColumn": "SourceId"
           }
         ],
         "partitions": [
           {
-            "name": "CalculatedTable 2",
+            "name": "Partition",
+            "dataView": "full",
             "source": {
-              "type": "calculated",
-              "expression": "GENERATESERIES(1, 90, 1)"
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_FactPortfolio = Source{[Schema=\"dbo\",Item=\"FactPortfolio\"]}[Data]",
+                "in",
+                "    dbo_FactPortfolio"
+              ]
             }
           }
         ],
         "measures": [
           {
-            "name": "@Days",
-            "expression": "SELECTEDVALUE('@Days'[Value])"
+            "name": "Portfolio Value",
+            "expression": [
+              "",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    MAX('FactPortfolio'[Date]),",
+              "    ALLEXCEPT('FactPortfolio', 'FactPortfolio'[Date])",
+              ")",
+              "RETURN",
+              "CALCULATE(SUM('FactPortfolio'[ValueInDate]), 'DimTimeTable'[Date] = LastDay)",
+              ""
+            ],
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Portfolio Value % AllSelected DimInstruments",
+            "expression": [
+              "",
+              "DIVIDE(",
+              "    [Portfolio Value],",
+              "    CALCULATE(",
+              "        [Portfolio Value] ,",
+              "        ALLSELECTED('DimInstrument')",
+              "    )",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Portfolio Count",
+            "expression": [
+              "",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "        ),",
+              "        CALCULATE(COUNT('FactPortfolio'[TotalInvest]))",
+              "    )",
+              ") ",
+              "RETURN",
+              "CALCULATE(",
+              "    DISTINCTCOUNT('FactPortfolio'[PortfolioId]), ",
+              "    'DimTimeTable'[Date] = LastDay, ",
+              "    'DimPortfolio'[StatusEn] <> \"Rescinded\" ",
+              ")"
+            ]
+          },
+          {
+            "name": "ShareHolder %",
+            "expression": [
+              "",
+              "//DIVIDE(",
+              "//    'FactPortfolio'[Portfolio Value],",
+              "//    'FactTradeDetails'[Exchange Market Cap FactTradeDetails (Currency)]",
+              "//)",
+              "DIVIDE(",
+              "    'FactPortfolio'[Portfolio Quantity],",
+              "    'FactTradeDetails'[Instrument Count of Shares]",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Portfolio Cost",
+            "expression": [
+              "",
+              " ",
+              "VAR LastDay = MAX('DimTimeTable'[Date])",
+              "",
+              "//VAR LastDay = ",
+              "//CALCULATE(",
+              "//    LASTNONBLANK(",
+              "//        DATESBETWEEN(",
+              "//            'DimTimeTable'[Date],",
+              "//            BLANK(),",
+              "//            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "//        ),",
+              "//        CALCULATE(COUNT('FactPortfolio'[TotalInvest]))",
+              "//    )",
+              "//)",
+              "//",
+              "RETURN",
+              "CALCULATE(SUM('FactPortfolio'[TotalInvest]), 'DimTimeTable'[Date] = LastDay)",
+              ""
+            ],
+            "formatString": "\"IRR\" #,0.00;-\"IRR\" #,0.00;\"IRR\" #,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Portfolio Quantity",
+            "expression": [
+              "",
+              " VAR LastDay = MAX('DimTimeTable'[Date])",
+              "VAR Instrument = SELECTEDVALUE('DimInstrument'[InstrumentId])",
+              "//VAR LastDay = ",
+              "//CALCULATE(",
+              "//    LASTNONBLANK(",
+              "//        DATESBETWEEN(",
+              "//            'DimTimeTable'[Date],",
+              "//            BLANK(),",
+              "//            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "//        ),",
+              "//        CALCULATE(COUNT('FactPortfolio'[ShareNo]))",
+              "//    )",
+              "//)",
+              "//",
+              "RETURN",
+              "CALCULATE(SUM('FactPortfolio'[ShareNo]), 'DimTimeTable'[Date] = LastDay)",
+              "",
+              ""
+            ],
+            "formatString": "#,0"
           }
         ]
       },
@@ -8635,6 +8652,51 @@
                 "    dbo_tbl3 = Source{[Schema=\"dbo\",Item=\"tbl3\"]}[Data]",
                 "in",
                 "    dbo_tbl3"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "user",
+        "columns": [
+          {
+            "name": "displayName",
+            "dataType": "string",
+            "sourceColumn": "displayName"
+          },
+          {
+            "name": "mail",
+            "dataType": "string",
+            "sourceColumn": "mail"
+          },
+          {
+            "name": "mobile",
+            "dataType": "string",
+            "sourceColumn": "mobile"
+          },
+          {
+            "name": "userPrincipalName",
+            "dataType": "string",
+            "sourceColumn": "userPrincipalName"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"ActiveDirectory/iidic com\",",
+                "    iidic.com = Source{[Domain=\"iidic.com\"]}[#\"Object Categories\"],",
+                "    user1 = iidic.com{[Category=\"user\"]}[Objects],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(user1,{\"organizationalPerson\", \"person\", \"top\", \"msExchOmaUser\", \"msExchBaseClass\", \"msExchIMRecipient\", \"msExchCertificateInformation\", \"msExchMultiMediaUser\", \"msExchMailStorage\", \"msExchCustomAttributes\", \"shadowAccount\", \"posixAccount\", \"msDS-CloudExtensions\", \"securityPrincipal\", \"mailRecipient\", \"distinguishedName\"}),",
+                "    #\"Expanded user\" = Table.ExpandRecordColumn(#\"Removed Columns\", \"user\", {\"mail\", \"manager\", \"mobile\", \"userPrincipalName\"}, {\"mail\", \"manager\", \"mobile\", \"userPrincipalName\"}),",
+                "    #\"Removed Columns1\" = Table.RemoveColumns(#\"Expanded user\",{\"manager\"})",
+                "in",
+                "    #\"Removed Columns1\""
               ]
             }
           }
@@ -9016,62 +9078,6 @@
             ]
           },
           {
-            "name": "FactPortfolio",
-            "columns": [
-              {
-                "name": "AssetId"
-              },
-              {
-                "name": "AVGBuyPrice"
-              },
-              {
-                "name": "BreakEvenPrice"
-              },
-              {
-                "name": "Date"
-              },
-              {
-                "name": "InsertTime"
-              },
-              {
-                "name": "InstrumentId"
-              },
-              {
-                "name": "LastDPS"
-              },
-              {
-                "name": "OwnershipPercent"
-              },
-              {
-                "name": "Price"
-              },
-              {
-                "name": "PureDiffPercent"
-              },
-              {
-                "name": "PureDiffPrice"
-              },
-              {
-                "name": "PureValueInDate"
-              },
-              {
-                "name": "ShareNo"
-              },
-              {
-                "name": "TotalInvest"
-              },
-              {
-                "name": "ValueInDate"
-              },
-              {
-                "name": "PortfolioId"
-              },
-              {
-                "name": "SourceId"
-              }
-            ]
-          },
-          {
             "name": "DimCompany",
             "columns": [
               {
@@ -9361,6 +9367,62 @@
                 "name": "MarketLevel"
               }
             ]
+          },
+          {
+            "name": "FactPortfolio",
+            "columns": [
+              {
+                "name": "AssetId"
+              },
+              {
+                "name": "AVGBuyPrice"
+              },
+              {
+                "name": "BreakEvenPrice"
+              },
+              {
+                "name": "Date"
+              },
+              {
+                "name": "InsertTime"
+              },
+              {
+                "name": "InstrumentId"
+              },
+              {
+                "name": "LastDPS"
+              },
+              {
+                "name": "OwnershipPercent"
+              },
+              {
+                "name": "Price"
+              },
+              {
+                "name": "PureDiffPercent"
+              },
+              {
+                "name": "PureDiffPrice"
+              },
+              {
+                "name": "PureValueInDate"
+              },
+              {
+                "name": "ShareNo"
+              },
+              {
+                "name": "TotalInvest"
+              },
+              {
+                "name": "ValueInDate"
+              },
+              {
+                "name": "PortfolioId"
+              },
+              {
+                "name": "SourceId"
+              }
+            ]
           }
         ]
       },
@@ -9561,70 +9623,6 @@
             ]
           },
           {
-            "name": "FactPortfolio",
-            "columns": [
-              {
-                "name": "AssetId"
-              },
-              {
-                "name": "AVGBuyPrice"
-              },
-              {
-                "name": "BreakEvenPrice"
-              },
-              {
-                "name": "Date"
-              },
-              {
-                "name": "InsertTime"
-              },
-              {
-                "name": "InstrumentId"
-              },
-              {
-                "name": "LastDPS"
-              },
-              {
-                "name": "OwnershipPercent"
-              },
-              {
-                "name": "PortfolioId"
-              },
-              {
-                "name": "Price"
-              },
-              {
-                "name": "PureDiffPercent"
-              },
-              {
-                "name": "PureDiffPrice"
-              },
-              {
-                "name": "PureValueInDate"
-              },
-              {
-                "name": "ShareNo"
-              },
-              {
-                "name": "SourceId"
-              },
-              {
-                "name": "TotalInvest"
-              },
-              {
-                "name": "ValueInDate"
-              }
-            ],
-            "measures": [
-              {
-                "name": "Portfolio Value"
-              },
-              {
-                "name": "Portfolio Value % AllSelected DimInstruments"
-              }
-            ]
-          },
-          {
             "name": "DimPortfolio",
             "columns": [
               {
@@ -9721,6 +9719,70 @@
               },
               {
                 "name": "ShortName"
+              }
+            ]
+          },
+          {
+            "name": "FactPortfolio",
+            "columns": [
+              {
+                "name": "AssetId"
+              },
+              {
+                "name": "AVGBuyPrice"
+              },
+              {
+                "name": "BreakEvenPrice"
+              },
+              {
+                "name": "Date"
+              },
+              {
+                "name": "InsertTime"
+              },
+              {
+                "name": "InstrumentId"
+              },
+              {
+                "name": "LastDPS"
+              },
+              {
+                "name": "OwnershipPercent"
+              },
+              {
+                "name": "PortfolioId"
+              },
+              {
+                "name": "Price"
+              },
+              {
+                "name": "PureDiffPercent"
+              },
+              {
+                "name": "PureDiffPrice"
+              },
+              {
+                "name": "PureValueInDate"
+              },
+              {
+                "name": "ShareNo"
+              },
+              {
+                "name": "SourceId"
+              },
+              {
+                "name": "TotalInvest"
+              },
+              {
+                "name": "ValueInDate"
+              }
+            ],
+            "measures": [
+              {
+                "name": "Portfolio Value"
+              },
+              {
+                "name": "Portfolio Value % AllSelected DimInstruments"
               }
             ]
           }
@@ -10443,7 +10505,7 @@
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2052"
           },
           {
-            "memberName": "IIDIC\\402bi038",
+            "memberName": "IIDIC\\402BI038",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2647"
           },
           {
@@ -10498,10 +10560,6 @@
             ]
           },
           {
-            "name": "FactPortfolio",
-            "metadataPermission": "none"
-          },
-          {
             "name": "FactShareHolders",
             "metadataPermission": "none"
           },
@@ -10511,10 +10569,6 @@
           },
           {
             "name": "Clients Measures",
-            "metadataPermission": "none"
-          },
-          {
-            "name": "FactPortfolioTrade",
             "metadataPermission": "none"
           },
           {
@@ -10626,6 +10680,14 @@
                 "metadataPermission": "none"
               }
             ]
+          },
+          {
+            "name": "FactPortfolioTrade",
+            "metadataPermission": "none"
+          },
+          {
+            "name": "FactPortfolio",
+            "metadataPermission": "none"
           }
         ]
       },

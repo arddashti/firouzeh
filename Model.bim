@@ -26,26 +26,6 @@
       },
       {
         "type": "structured",
-        "name": "SQL/192 168 220 10;StageArea",
-        "connectionDetails": {
-          "protocol": "tds",
-          "address": {
-            "server": "192.168.220.10",
-            "database": "StageArea"
-          },
-          "authentication": null,
-          "query": null
-        },
-        "credential": {
-          "AuthenticationKind": "UsernamePassword",
-          "kind": "SQL",
-          "path": "192.168.220.10;StageArea",
-          "Username": "reportuser",
-          "EncryptConnection": false
-        }
-      },
-      {
-        "type": "structured",
         "name": "ActiveDirectory/iidic com",
         "connectionDetails": {
           "protocol": "active-directory",
@@ -985,6 +965,11 @@
             "name": "InstrumentId",
             "dataType": "int64",
             "sourceColumn": "InstrumentId"
+          },
+          {
+            "name": "CompanyNameEn",
+            "dataType": "string",
+            "sourceColumn": "CompanyNameEn"
           }
         ],
         "partitions": [
@@ -997,8 +982,7 @@
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
                 "    dbo_DimCompany = Source{[Schema=\"dbo\",Item=\"DimCompany\"]}[Data],",
-                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimCompany,{\"FactShareHolders\"}),",
-                "    #\"Filtered Rows\" = Table.SelectRows(#\"Removed Columns\", each [InstrumentId] <> null)",
+                "    #\"Filtered Rows\" = Table.SelectRows(dbo_DimCompany, each [InstrumentId] <> null)",
                 "in",
                 "    #\"Filtered Rows\""
               ]
@@ -7861,7 +7845,7 @@
         ]
       },
       {
-        "name": "DimPortfolio",
+        "name": "DimPRX",
         "columns": [
           {
             "name": "PortfolioId",
@@ -7997,7 +7981,7 @@
             "expression": [
               "",
               "SWITCH(",
-              "    'DimPortfolio'[PortfolioTypeId],",
+              "    'DimPRX'[PortfolioTypeId],",
               "    1, \"شرکت\",",
               "    2, \"سبد\",  ",
               "    3, \"صندوق\",",
@@ -8399,7 +8383,7 @@
               "CALCULATE(",
               "    DISTINCTCOUNT('FactPortfolio'[PortfolioId]), ",
               "    'DimTimeTable'[Date] = LastDay, ",
-              "    'DimPortfolio'[StatusEn] <> \"Rescinded\" ",
+              "    'DimPRX'[StatusEn] <> \"Rescinded\" ",
               ")"
             ]
           },
@@ -8561,99 +8545,6 @@
               ")"
             ],
             "formatString": "0.0%;-0.0%;0.0%"
-          }
-        ]
-      },
-      {
-        "name": "tbl1",
-        "columns": [
-          {
-            "name": "Id",
-            "dataType": "int64",
-            "sourceColumn": "Id"
-          },
-          {
-            "name": "Name",
-            "dataType": "string",
-            "sourceColumn": "Name"
-          }
-        ],
-        "partitions": [
-          {
-            "name": "Partition",
-            "dataView": "full",
-            "source": {
-              "type": "m",
-              "expression": [
-                "let",
-                "    Source = #\"SQL/192 168 220 10;StageArea\",",
-                "    dbo_tbl1 = Source{[Schema=\"dbo\",Item=\"tbl1\"]}[Data]",
-                "in",
-                "    dbo_tbl1"
-              ]
-            }
-          }
-        ]
-      },
-      {
-        "name": "tbl2",
-        "columns": [
-          {
-            "name": "Id",
-            "dataType": "int64",
-            "sourceColumn": "Id"
-          },
-          {
-            "name": "Name",
-            "dataType": "string",
-            "sourceColumn": "Name"
-          }
-        ],
-        "partitions": [
-          {
-            "name": "Partition",
-            "dataView": "full",
-            "source": {
-              "type": "m",
-              "expression": [
-                "let",
-                "    Source = #\"SQL/192 168 220 10;StageArea\",",
-                "    dbo_tbl2 = Source{[Schema=\"dbo\",Item=\"tbl2\"]}[Data]",
-                "in",
-                "    dbo_tbl2"
-              ]
-            }
-          }
-        ]
-      },
-      {
-        "name": "tbl3",
-        "columns": [
-          {
-            "name": "Id",
-            "dataType": "int64",
-            "sourceColumn": "Id"
-          },
-          {
-            "name": "Name",
-            "dataType": "string",
-            "sourceColumn": "Name"
-          }
-        ],
-        "partitions": [
-          {
-            "name": "Partition",
-            "dataView": "full",
-            "source": {
-              "type": "m",
-              "expression": [
-                "let",
-                "    Source = #\"SQL/192 168 220 10;StageArea\",",
-                "    dbo_tbl3 = Source{[Schema=\"dbo\",Item=\"tbl3\"]}[Data]",
-                "in",
-                "    dbo_tbl3"
-              ]
-            }
           }
         ]
       },
@@ -8935,7 +8826,7 @@
         "name": "cefa7ce0-0904-454e-ab6f-cd7a5636403d",
         "fromTable": "FactPortfolio",
         "fromColumn": "PortfolioId",
-        "toTable": "DimPortfolio",
+        "toTable": "DimPRX",
         "toColumn": "PortfolioId"
       },
       {
@@ -8970,22 +8861,8 @@
         "name": "7192d83b-f67a-4b09-803b-643c5dbd5bde",
         "fromTable": "FactPortfolioTrade",
         "fromColumn": "PortfolioId",
-        "toTable": "DimPortfolio",
+        "toTable": "DimPRX",
         "toColumn": "PortfolioId"
-      },
-      {
-        "name": "f64a0488-227c-4b45-a15a-f27136298809",
-        "fromTable": "tbl3",
-        "fromColumn": "Id",
-        "toTable": "tbl2",
-        "toColumn": "Id"
-      },
-      {
-        "name": "3994a734-79bb-4d1e-b774-827f1a74f2b7",
-        "fromTable": "tbl3",
-        "fromColumn": "Id",
-        "toTable": "tbl1",
-        "toColumn": "Id"
       }
     ],
     "perspectives": [
@@ -9094,6 +8971,9 @@
               },
               {
                 "name": "ShortName"
+              },
+              {
+                "name": "CompanyNameEn"
               }
             ]
           },
@@ -9623,7 +9503,7 @@
             ]
           },
           {
-            "name": "DimPortfolio",
+            "name": "DimPRX",
             "columns": [
               {
                 "name": "BroadcastList"
@@ -9719,6 +9599,9 @@
               },
               {
                 "name": "ShortName"
+              },
+              {
+                "name": "CompanyNameEn"
               }
             ]
           },
@@ -9833,6 +9716,9 @@
               },
               {
                 "name": "ShortName"
+              },
+              {
+                "name": "CompanyNameEn"
               }
             ]
           },
@@ -9899,7 +9785,7 @@
             ]
           },
           {
-            "name": "DimPortfolio",
+            "name": "DimPRX",
             "columns": [
               {
                 "name": "BroadcastList"
@@ -10203,42 +10089,7 @@
         ]
       },
       {
-        "name": "tbl",
-        "tables": [
-          {
-            "name": "tbl1",
-            "columns": [
-              {
-                "name": "Id"
-              },
-              {
-                "name": "Name"
-              }
-            ]
-          },
-          {
-            "name": "tbl2",
-            "columns": [
-              {
-                "name": "Id"
-              },
-              {
-                "name": "Name"
-              }
-            ]
-          },
-          {
-            "name": "tbl3",
-            "columns": [
-              {
-                "name": "Id"
-              },
-              {
-                "name": "Name"
-              }
-            ]
-          }
-        ]
+        "name": "tbl"
       }
     ],
     "roles": [
@@ -10505,7 +10356,7 @@
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2052"
           },
           {
-            "memberName": "IIDIC\\402BI038",
+            "memberName": "IIDIC\\402bi038",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2647"
           },
           {
@@ -10597,7 +10448,7 @@
             ]
           },
           {
-            "name": "DimPortfolio",
+            "name": "DimPRX",
             "metadataPermission": "none"
           },
           {
@@ -10754,8 +10605,8 @@
         ],
         "tablePermissions": [
           {
-            "name": "DimPortfolio",
-            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {2,3}"
+            "name": "DimPRX",
+            "filterExpression": "'DimPRX'[PortfolioTypeId] in {2,3}"
           },
           {
             "name": "FactPortfolioTrade",
@@ -10772,8 +10623,8 @@
         "modelPermission": "read",
         "tablePermissions": [
           {
-            "name": "DimPortfolio",
-            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {2,3}"
+            "name": "DimPRX",
+            "filterExpression": "'DimPRX'[PortfolioTypeId] in {2,3}"
           }
         ]
       },
@@ -10788,8 +10639,8 @@
         ],
         "tablePermissions": [
           {
-            "name": "DimPortfolio",
-            "filterExpression": " 'DimPortfolio'[PortfolioTypeId] = 1"
+            "name": "DimPRX",
+            "filterExpression": " 'DimPRX'[PortfolioTypeId] = 1"
           }
         ]
       },
@@ -10804,8 +10655,8 @@
         ],
         "tablePermissions": [
           {
-            "name": "DimPortfolio",
-            "filterExpression": "'DimPortfolio'[PortfolioTypeId] = 1"
+            "name": "DimPRX",
+            "filterExpression": "'DimPRX'[PortfolioTypeId] = 1"
           }
         ]
       }

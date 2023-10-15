@@ -5006,44 +5006,24 @@
             "name": "Client Balance",
             "expression": [
               "",
-              "--VAR Fund = SELECTEDVALUE('DimFunds'[FundId])",
-              "--VAR Instrument = CALCULATETABLE(VALUES('DimFunds'[InstrumentId]), 'DimFunds'[FundId] = Fund, USERELATIONSHIP('DimInstrument'[InstrumentId], 'DimFunds'[InstrumentId]))",
-              "--VAR Company = CALCULATE(SELECTEDVALUE('DimCompany'[CompanyId]), 'DimCompany'[InstrumentId] = Instrument)",
-              "--VAR PortfolioID = CALCULATE(SELECTEDVALUE('DimPortfolio'[PortfolioId]), 'DimCompany'[InstrumentId] = Instrument)",
+              "",
               "VAR PortfolioID = SELECTEDVALUE('DimPortfolio'[PortfolioId])",
-              "",
-              "",
-              "--VAR PortfolioID = CALCULATE(SELECTEDVALUE('DimPortfolio'[PortfolioId]), 'DimCompany'[InstrumentId] = Instrument)",
               "",
               "VAR MaxDate =",
               "CALCULATE (",
               "    MAX ( 'FactShareHolders'[Date] ),",
-              "    --'DimCompany'[CompanyId] = Company",
-              "    'DimPortfolio'[PortfolioId] = PortfolioID,",
+              "     'DimPortfolio'[PortfolioId] = PortfolioID,",
               "    ALLEXCEPT('DimTimeTable', DimTimeTable[Date])",
-              ") --VAR MaxDate = CALCULATE(MAX('DimTimeTable'[Date]), NOT('DimTimeTable'[IsNonWorking]))",
+              ")",
               "    ",
               "RETURN",
               "    CALCULATE (",
               "        SUM ( 'FactShareHolders'[VolumeBalance] ),",
-              "       -- 'DimFunds'[FundId] = Fund,",
-              "        'DimPortfolio'[PortfolioId] = PortfolioID,",
+              "         'DimPortfolio'[PortfolioId] = PortfolioID,",
               "        KEEPFILTERS('DimShareHoldersProfile'[ShareHolderId] <> 59113),",
               "        'DimTimeTable'[Date] = MaxDate",
               "    )",
-              "    ",
-              "    ",
-              "// CALCULATE(",
-              "//     LASTNONBLANK(",
-              "//         DATESBETWEEN(",
-              "//             'DimTimeTable'[Date],",
-              "//             BLANK(),",
-              "//             CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "//         ),",
-              "//         CALCULATE(COUNT('FactShareHolders'[VolumeBalance])) ",
-              "//         )",
-              "// )",
-              ""
+              " "
             ]
           },
           {
@@ -6080,12 +6060,14 @@
           {
             "name": "VolumeBalance",
             "dataType": "double",
-            "sourceColumn": "VolumeBalance"
+            "sourceColumn": "VolumeBalance",
+            "formatString": "0"
           },
           {
             "name": "VolumeDelta",
             "dataType": "double",
-            "sourceColumn": "VolumeDelta"
+            "sourceColumn": "VolumeDelta",
+            "formatString": "0"
           },
           {
             "name": "IsNew",
@@ -6100,7 +6082,98 @@
         ],
         "partitions": [
           {
-            "name": "Partition",
+            "name": "Partition Year to Day",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"with ",
+                "cte1 as ",
+                "(SELECT a.[CompanyId]",
+                "      ,a.[ShareHolderId]",
+                "      ,a.[Date]",
+                "      ,a.[VolumeBalance]",
+                "    , a.[VolumeBalance] - isnull(b.[VolumeBalance],0) as VolumeDelta",
+                "    ",
+                "    from [FactShareHolders] A left join [FactShareHolders] B",
+                "    on B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MAX([Date]) from [FactShareHolders] WHERE CompanyId = A.CompanyId AND ShareHolderId = A.ShareHolderId AND [Date] < A.Date)",
+                "),",
+                "",
+                "cte2 as ",
+                "(SELECT a.[CompanyId]",
+                "      ,a.[ShareHolderId]",
+                "      ,a.[Date]",
+                "      ,a.[VolumeBalance]",
+                "      , isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MIN([Date]) from [FactShareHolders] WHERE CompanyId = A.CompanyId AND ShareHolderId = A.ShareHolderId AND [Date] > A.Date)), 0) as NextDayBalance",
+                "      --, isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MIN([Date]) from [DimTimeTable] WHERE [IsNonWorking] = 0 AND [Date] > A.Date)), 0) as NextDayBalance",
+                "    from [FactShareHolders] A ",
+                ")",
+                "",
+                "select cte1.*",
+                ", case",
+                "    when cte1.[VolumeBalance] = cte1.[VolumeDelta] then 1",
+                "    else 0",
+                "end as IsNew",
+                ", case",
+                "    when cte2.[NextDayBalance] = 0 then 1",
+                "    else 0",
+                "end as IsLastDay",
+                "",
+                "from cte1 left join cte2 on cte1.CompanyId = cte2.CompanyId and cte1.ShareHolderId = cte2.ShareHolderId and cte1.[Date] = cte2.[Date]\"]),",
+                "    #\"Changed Type\" = Table.TransformColumnTypes(Source,{{\"IsNew\", type logical}, {\"IsLastDay\", type logical}}),",
+                "    #\"Filtered Rows\" = Table.SelectRows(#\"Changed Type\", each Date.IsInYearToDate([Date]))",
+                "in",
+                "    #\"Filtered Rows\""
+              ]
+            },
+            "annotations": [
+              {
+                "name": "QueryEditorSerialization",
+                "value": [
+                  "<?xml version=\"1.0\" encoding=\"UTF-16\"?><Gemini xmlns=\"QueryEditorSerialization\"><AnnotationContent><![CDATA[<RSQueryCommandText>let",
+                  "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"with ",
+                  "cte1 as ",
+                  "(SELECT a.[CompanyId]",
+                  "      ,a.[ShareHolderId]",
+                  "      ,a.[Date]",
+                  "      ,a.[VolumeBalance]",
+                  "    , a.[VolumeBalance] - isnull(b.[VolumeBalance],0) as VolumeDelta",
+                  "    ",
+                  "    from [FactShareHolders] A left join [FactShareHolders] B",
+                  "    on B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MAX([Date]) from [FactShareHolders] WHERE CompanyId = A.CompanyId AND ShareHolderId = A.ShareHolderId AND [Date] < A.Date)",
+                  "),",
+                  "",
+                  "cte2 as ",
+                  "(SELECT a.[CompanyId]",
+                  "      ,a.[ShareHolderId]",
+                  "      ,a.[Date]",
+                  "      ,a.[VolumeBalance]",
+                  "      , isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MIN([Date]) from [FactShareHolders] WHERE CompanyId = A.CompanyId AND ShareHolderId = A.ShareHolderId AND [Date] > A.Date)), 0) as NextDayBalance",
+                  "      --, isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MIN([Date]) from [DimTimeTable] WHERE [IsNonWorking] = 0 AND [Date] > A.Date)), 0) as NextDayBalance",
+                  "    from [FactShareHolders] A ",
+                  ")",
+                  "",
+                  "select cte1.*",
+                  ", case",
+                  "    when cte1.[VolumeBalance] = cte1.[VolumeDelta] then 1",
+                  "    else 0",
+                  "end as IsNew",
+                  ", case",
+                  "    when cte2.[NextDayBalance] = 0 then 1",
+                  "    else 0",
+                  "end as IsLastDay",
+                  "",
+                  "from cte1 left join cte2 on cte1.CompanyId = cte2.CompanyId and cte1.ShareHolderId = cte2.ShareHolderId and cte1.[Date] = cte2.[Date]\"]),",
+                  "    #\"Changed Type\" = Table.TransformColumnTypes(Source,{{\"IsNew\", type logical}, {\"IsLastDay\", type logical}}),",
+                  "    #\"Filtered Rows\" = Table.SelectRows(#\"Changed Type\", each Date.IsInYearToDate([Date]))",
+                  "in",
+                  "    #\"Filtered Rows\"</RSQueryCommandText><RSQueryCommandType>Text</RSQueryCommandType><RSQueryDesignState></RSQueryDesignState>]]></AnnotationContent></Gemini>"
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Partition Last Year",
             "dataView": "full",
             "source": {
               "type": "m",
@@ -6139,11 +6212,103 @@
                 "end as IsLastDay",
                 "",
                 "from cte1 left join cte2 on cte1.CompanyId = cte2.CompanyId and cte1.ShareHolderId = cte2.ShareHolderId and cte1.[Date] = cte2.[Date]\"]),",
-                "    #\"Changed Type\" = Table.TransformColumnTypes(Source,{{\"IsNew\", type logical}, {\"IsLastDay\", type logical}})",
+                "    #\"Changed Type\" = Table.TransformColumnTypes(Source,{{\"IsNew\", type logical}, {\"IsLastDay\", type logical}}),",
+                "    #\"Filtered Rows\" = Table.SelectRows(#\"Changed Type\", each Date.IsInPreviousYear([Date]))",
                 "in",
-                "    #\"Changed Type\""
+                "    #\"Filtered Rows\""
               ]
             }
+          },
+          {
+            "name": "FactShareHolders before 2022",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"with ",
+                "cte1 as ",
+                "(SELECT a.[CompanyId]",
+                "      ,a.[ShareHolderId]",
+                "      ,a.[Date]",
+                "      ,a.[VolumeBalance]",
+                "    , a.[VolumeBalance] - isnull(b.[VolumeBalance],0) as VolumeDelta",
+                "    ",
+                "    from [FactShareHolders] A left join [FactShareHolders] B",
+                "    on B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MAX([Date]) from [FactShareHolders] WHERE CompanyId = A.CompanyId AND ShareHolderId = A.ShareHolderId AND [Date] < A.Date)",
+                "),",
+                "",
+                "cte2 as ",
+                "(SELECT a.[CompanyId]",
+                "      ,a.[ShareHolderId]",
+                "      ,a.[Date]",
+                "      ,a.[VolumeBalance]",
+                "      , isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MIN([Date]) from [FactShareHolders] WHERE CompanyId = A.CompanyId AND ShareHolderId = A.ShareHolderId AND [Date] > A.Date)), 0) as NextDayBalance",
+                "      --, isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MIN([Date]) from [DimTimeTable] WHERE [IsNonWorking] = 0 AND [Date] > A.Date)), 0) as NextDayBalance",
+                "    from [FactShareHolders] A ",
+                ")",
+                "",
+                "select cte1.*",
+                ", case",
+                "    when cte1.[VolumeBalance] = cte1.[VolumeDelta] then 1",
+                "    else 0",
+                "end as IsNew",
+                ", case",
+                "    when cte2.[NextDayBalance] = 0 then 1",
+                "    else 0",
+                "end as IsLastDay",
+                "",
+                "from cte1 left join cte2 on cte1.CompanyId = cte2.CompanyId and cte1.ShareHolderId = cte2.ShareHolderId and cte1.[Date] = cte2.[Date]\"]),",
+                "    #\"Changed Type\" = Table.TransformColumnTypes(Source,{{\"IsNew\", type logical}, {\"IsLastDay\", type logical}}),",
+                "    #\"Filtered Rows\" = Table.SelectRows(#\"Changed Type\", each [Date] < #datetime(2022, 1, 1, 0, 0, 0))",
+                "in",
+                "    #\"Filtered Rows\""
+              ]
+            },
+            "annotations": [
+              {
+                "name": "QueryEditorSerialization",
+                "value": [
+                  "<?xml version=\"1.0\" encoding=\"UTF-16\"?><Gemini xmlns=\"QueryEditorSerialization\"><AnnotationContent><![CDATA[<RSQueryCommandText>let",
+                  "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"with ",
+                  "cte1 as ",
+                  "(SELECT a.[CompanyId]",
+                  "      ,a.[ShareHolderId]",
+                  "      ,a.[Date]",
+                  "      ,a.[VolumeBalance]",
+                  "    , a.[VolumeBalance] - isnull(b.[VolumeBalance],0) as VolumeDelta",
+                  "    ",
+                  "    from [FactShareHolders] A left join [FactShareHolders] B",
+                  "    on B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MAX([Date]) from [FactShareHolders] WHERE CompanyId = A.CompanyId AND ShareHolderId = A.ShareHolderId AND [Date] < A.Date)",
+                  "),",
+                  "",
+                  "cte2 as ",
+                  "(SELECT a.[CompanyId]",
+                  "      ,a.[ShareHolderId]",
+                  "      ,a.[Date]",
+                  "      ,a.[VolumeBalance]",
+                  "      , isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MIN([Date]) from [FactShareHolders] WHERE CompanyId = A.CompanyId AND ShareHolderId = A.ShareHolderId AND [Date] > A.Date)), 0) as NextDayBalance",
+                  "      --, isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MIN([Date]) from [DimTimeTable] WHERE [IsNonWorking] = 0 AND [Date] > A.Date)), 0) as NextDayBalance",
+                  "    from [FactShareHolders] A ",
+                  ")",
+                  "",
+                  "select cte1.*",
+                  ", case",
+                  "    when cte1.[VolumeBalance] = cte1.[VolumeDelta] then 1",
+                  "    else 0",
+                  "end as IsNew",
+                  ", case",
+                  "    when cte2.[NextDayBalance] = 0 then 1",
+                  "    else 0",
+                  "end as IsLastDay",
+                  "",
+                  "from cte1 left join cte2 on cte1.CompanyId = cte2.CompanyId and cte1.ShareHolderId = cte2.ShareHolderId and cte1.[Date] = cte2.[Date]\"]),",
+                  "    #\"Changed Type\" = Table.TransformColumnTypes(Source,{{\"IsNew\", type logical}, {\"IsLastDay\", type logical}}),",
+                  "    #\"Filtered Rows\" = Table.SelectRows(#\"Changed Type\", each [Date] < #datetime(2022, 1, 1, 0, 0, 0))",
+                  "in",
+                  "    #\"Filtered Rows\"</RSQueryCommandText><RSQueryCommandType>Text</RSQueryCommandType><RSQueryDesignState></RSQueryDesignState>]]></AnnotationContent></Gemini>"
+                ]
+              }
+            ]
           }
         ]
       },
@@ -7924,39 +8089,9 @@
         "name": "DimPRX",
         "columns": [
           {
-            "name": "PortfolioId",
-            "dataType": "int64",
-            "sourceColumn": "PortfolioId"
-          },
-          {
-            "name": "PortfolioName",
-            "dataType": "string",
-            "sourceColumn": "PortfolioName"
-          },
-          {
-            "name": "PortfolioNameEn",
-            "dataType": "string",
-            "sourceColumn": "PortfolioNameEn"
-          },
-          {
             "name": "PRX",
             "dataType": "string",
             "sourceColumn": "PRX"
-          },
-          {
-            "name": "PortfolioManagerId",
-            "dataType": "int64",
-            "sourceColumn": "PortfolioManagerId"
-          },
-          {
-            "name": "PortfolioManager",
-            "dataType": "string",
-            "sourceColumn": "PortfolioManager"
-          },
-          {
-            "name": "PortfolioManagerEn",
-            "dataType": "string",
-            "sourceColumn": "PortfolioManagerEn"
           },
           {
             "name": "Status",
@@ -8050,25 +8185,24 @@
             "sourceColumn": "MoreInfo"
           },
           {
-            "type": "calculated",
-            "name": "PortfolioType",
-            "dataType": "string",
-            "isDataTypeInferred": true,
-            "expression": [
-              "",
-              "SWITCH(",
-              "    'DimPRX'[PortfolioTypeId],",
-              "    1, \"شرکت\",",
-              "    2, \"سبد\",  ",
-              "    3, \"صندوق\",",
-              "    \"سایر\"",
-              ")"
-            ]
+            "name": "PRXId",
+            "dataType": "int64",
+            "sourceColumn": "PRXId"
           },
           {
-            "name": "PortfolioTypeId",
+            "name": "PRXName",
+            "dataType": "string",
+            "sourceColumn": "PRXName"
+          },
+          {
+            "name": "PRXNameEn",
+            "dataType": "string",
+            "sourceColumn": "PRXNameEn"
+          },
+          {
+            "name": "PRXManagerId",
             "dataType": "int64",
-            "sourceColumn": "PortfolioTypeId"
+            "sourceColumn": "PRXManagerId"
           }
         ],
         "partitions": [
@@ -8080,7 +8214,7 @@
               "expression": [
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_DimPortfolio = Source{[Schema=\"dbo\",Item=\"DimPortfolio\"]}[Data]",
+                "    dbo_DimPortfolio = Source{[Schema=\"dbo\",Item=\"DimPRX\"]}[Data]",
                 "in",
                 "    dbo_DimPortfolio"
               ]
@@ -8270,6 +8404,21 @@
             "name": "NetProfitLoss",
             "dataType": "double",
             "sourceColumn": "NetProfitLoss"
+          },
+          {
+            "type": "calculated",
+            "name": "BuySell",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              "",
+              "SWITCH(",
+              "    'FactPortfolioTrade'[BuySellTypeId],",
+              "    1, \"خرید\",",
+              "    2, \"فروش\",",
+              "    BLANK()",
+              ")"
+            ]
           }
         ],
         "partitions": [
@@ -8295,6 +8444,21 @@
             "expression": [
               " ",
               " SUM('FactPortfolioTrade'[NetAmount])"
+            ]
+          },
+          {
+            "name": "Portfolio Trade Quantity (+/-)",
+            "expression": [
+              "",
+              "SUMX(",
+              "    'FactPortfolioTrade',",
+              "    IF(",
+              "        'FactPortfolioTrade'[BuySellTypeId] = 1,",
+              "        'FactPortfolioTrade'[ShareNo],",
+              "        -'FactPortfolioTrade'[ShareNo]",
+              "    )",
+              ")",
+              ""
             ]
           }
         ]
@@ -8412,7 +8576,7 @@
               "VAR LastDay = ",
               "CALCULATE(",
               "    MAX('FactPortfolio'[Date]),",
-              "    ALLEXCEPT('FactPortfolio', 'FactPortfolio'[Date])",
+              "    ALLEXCEPT('FactPortfolio', 'DimTimeTable'[Date])",
               ")",
               "RETURN",
               "CALCULATE(SUM('FactPortfolio'[ValueInDate]), 'DimTimeTable'[Date] = LastDay)",
@@ -8714,6 +8878,43 @@
             }
           }
         ]
+      },
+      {
+        "name": "DimPRXManager",
+        "columns": [
+          {
+            "name": "PortfolioManagerId",
+            "dataType": "int64",
+            "sourceColumn": "PortfolioManagerId"
+          },
+          {
+            "name": "PortfolioManager",
+            "dataType": "string",
+            "sourceColumn": "PortfolioManager"
+          },
+          {
+            "name": "PortfolioManagerEn",
+            "dataType": "string",
+            "sourceColumn": "PortfolioManagerEn"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_DimPRXManager = Source{[Schema=\"dbo\",Item=\"DimPortfolioManager\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimPRXManager,{\"DimPortfolio\"})",
+                "in",
+                "    #\"Removed Columns\""
+              ]
+            }
+          }
+        ]
       }
     ],
     "relationships": [
@@ -8942,13 +9143,6 @@
         "toColumn": "Date"
       },
       {
-        "name": "fcdab5cf-fa3f-456e-93aa-62cc0a996665",
-        "fromTable": "DimPortfolio",
-        "fromColumn": "PortfolioId",
-        "toTable": "DimPRX",
-        "toColumn": "PortfolioId"
-      },
-      {
         "name": "c1cac9d5-e070-4fac-9c6b-9cb3da39be31",
         "fromTable": "FactPortfolioTrade",
         "fromColumn": "PortfolioId",
@@ -9024,6 +9218,20 @@
         "fromColumn": "CompanyId",
         "toTable": "DimPortfolio",
         "toColumn": "PortfolioId"
+      },
+      {
+        "name": "1590070a-e1b8-46ee-bc39-a95387790b99",
+        "fromTable": "DimPortfolio",
+        "fromColumn": "PortfolioId",
+        "toTable": "DimPRX",
+        "toColumn": "PRXId"
+      },
+      {
+        "name": "7e20e906-ff5d-4ca9-b96e-ce7ed4e8572d",
+        "fromTable": "DimPRX",
+        "fromColumn": "PRXManagerId",
+        "toTable": "DimPRXManager",
+        "toColumn": "PortfolioManagerId"
       }
     ],
     "perspectives": [
@@ -9689,6 +9897,9 @@
             "hierarchies": [
               {
                 "name": "Date Hierarchy"
+              },
+              {
+                "name": "PDate Hierarchy"
               }
             ]
           },
@@ -9721,24 +9932,6 @@
               },
               {
                 "name": "MoreInfo"
-              },
-              {
-                "name": "PortfolioId"
-              },
-              {
-                "name": "PortfolioManager"
-              },
-              {
-                "name": "PortfolioManagerEn"
-              },
-              {
-                "name": "PortfolioManagerId"
-              },
-              {
-                "name": "PortfolioName"
-              },
-              {
-                "name": "PortfolioNameEn"
               },
               {
                 "name": "PRX"
@@ -9856,6 +10049,18 @@
               },
               {
                 "name": "Portfolio Value % AllSelected DimInstruments"
+              },
+              {
+                "name": "Portfolio Cost"
+              },
+              {
+                "name": "Portfolio Count"
+              },
+              {
+                "name": "Portfolio Quantity"
+              },
+              {
+                "name": "ShareHolder %"
               }
             ]
           }
@@ -9971,6 +10176,15 @@
               },
               {
                 "name": "TypeId"
+              },
+              {
+                "name": "Affiliated"
+              },
+              {
+                "name": "Asset"
+              },
+              {
+                "name": "MarketLevel"
               }
             ]
           },
@@ -10005,24 +10219,6 @@
                 "name": "MoreInfo"
               },
               {
-                "name": "PortfolioId"
-              },
-              {
-                "name": "PortfolioManager"
-              },
-              {
-                "name": "PortfolioManagerEn"
-              },
-              {
-                "name": "PortfolioManagerId"
-              },
-              {
-                "name": "PortfolioName"
-              },
-              {
-                "name": "PortfolioNameEn"
-              },
-              {
                 "name": "PRX"
               },
               {
@@ -10053,10 +10249,16 @@
                 "name": "TypeEn"
               },
               {
-                "name": "PortfolioType"
+                "name": "PRXId"
               },
               {
-                "name": "PortfolioTypeId"
+                "name": "PRXManagerId"
+              },
+              {
+                "name": "PRXName"
+              },
+              {
+                "name": "PRXNameEn"
               }
             ]
           },
@@ -10282,6 +10484,15 @@
               },
               {
                 "name": "Portfolio Value % AllSelected DimInstruments"
+              },
+              {
+                "name": "Portfolio Cost"
+              },
+              {
+                "name": "Portfolio Quantity"
+              },
+              {
+                "name": "ShareHolder %"
               }
             ]
           },
@@ -10379,6 +10590,20 @@
               },
               {
                 "name": "TypeOfInvest"
+              }
+            ]
+          },
+          {
+            "name": "DimPRXManager",
+            "columns": [
+              {
+                "name": "PortfolioManager"
+              },
+              {
+                "name": "PortfolioManagerEn"
+              },
+              {
+                "name": "PortfolioManagerId"
               }
             ]
           }
@@ -10742,7 +10967,100 @@
           },
           {
             "name": "DimPRX",
-            "metadataPermission": "none"
+            "columnPermissions": [
+              {
+                "name": "PRX",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Status",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "StatusEn",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Type",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "TypeEn",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "RiskProfile",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "RiskProfileEn",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Category",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "CategoryEn",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "BroadcastList",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "BroadcastListEn",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Introducer",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "IntroducerEn",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "IsOnline",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Region",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "RegionEn",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "TEL",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "Email",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "MoreInfo",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "PRXId",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "PRXName",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "PRXNameEn",
+                "metadataPermission": "none"
+              },
+              {
+                "name": "PRXManagerId",
+                "metadataPermission": "none"
+              }
+            ]
           },
           {
             "name": "FactTradeDetails",
@@ -10898,16 +11216,16 @@
         ],
         "tablePermissions": [
           {
-            "name": "DimPRX",
-            "filterExpression": "'DimPRX'[PortfolioTypeId] in {2,3}"
-          },
-          {
             "name": "FactPortfolioTrade",
             "metadataPermission": "none"
           },
           {
             "name": "FactPortfolio",
             "metadataPermission": "none"
+          },
+          {
+            "name": "DimPortfolio",
+            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {2,3}"
           }
         ]
       },
@@ -10916,8 +11234,8 @@
         "modelPermission": "read",
         "tablePermissions": [
           {
-            "name": "DimPRX",
-            "filterExpression": "'DimPRX'[PortfolioTypeId] in {2,3}"
+            "name": "DimPortfolio",
+            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {2,3}"
           }
         ]
       },
@@ -10932,8 +11250,8 @@
         ],
         "tablePermissions": [
           {
-            "name": "DimPRX",
-            "filterExpression": " 'DimPRX'[PortfolioTypeId] = 1"
+            "name": "DimPortfolio",
+            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {1}"
           }
         ]
       },
@@ -10944,12 +11262,6 @@
           {
             "memberName": "IIDIC\\507415",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1629"
-          }
-        ],
-        "tablePermissions": [
-          {
-            "name": "DimPRX",
-            "filterExpression": "'DimPRX'[PortfolioTypeId] = 1"
           }
         ]
       }

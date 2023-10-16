@@ -4642,6 +4642,69 @@
               "",
               ""
             ]
+          },
+          {
+            "name": "% Fund Return on Price",
+            "expression": [
+              "",
+              "",
+              "VAR Fund = SELECTEDVALUE('DimFunds'[FundName])",
+              "VAR Instrument = SELECTEDVALUE('DimFunds'[InstrumentId])",
+              "",
+              "VAR BaseDate = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(PREVIOUSDAY(FIRSTDATE('DimTimeTable'[Date])))",
+              "        ),",
+              "        CALCULATE(COUNT('FactTradeDetails'[AdjPrice]), 'DimInstrument'[InstrumentId] = Instrument)",
+              "    )",
+              ") ",
+              "",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            LASTDATE('DimTimeTable'[Date])",
+              "        ),",
+              "        CALCULATE(COUNT('FactTradeDetails'[AdjPrice]), 'DimInstrument'[InstrumentId] = Instrument)",
+              "        )",
+              ")",
+              "",
+              "VAR BaseFinal = ",
+              "CALCULATE(",
+              "    SELECTEDVALUE('FactTradeDetails'[AdjPrice]), 'DimTimeTable'[Date] = BaseDate, 'DimInstrument'[InstrumentId] = Instrument)",
+              "",
+              "",
+              "VAR EndFinal = ",
+              "CALCULATE(SELECTEDVALUE('FactTradeDetails'[AdjPrice]), 'DimTimeTable'[Date] = MaxDate, 'DimInstrument'[InstrumentId] = Instrument)",
+              "",
+              "VAR R = IF(OR(ISBLANK(EndFinal), ISBLANK(BaseFinal)), BLANK(), DIVIDE(EndFinal-BaseFinal, BaseFinal))",
+              "",
+              "RETURN R"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Net Subscriptions Value (Non-Affiliated)",
+            "expression": [
+              "",
+              "[Net Subscription Value] - [Portfolio Trade Value (+/-) Affiliated]"
+            ]
+          },
+          {
+            "name": "Net Subscriptions Value Cum(Non-Affiliated)",
+            "expression": [
+              "",
+              "CALCULATE(",
+              "    [Net Subscriptions Value Cum],",
+              "    NOT 'DimShareHoldersProfile'[Affiliated]",
+              ")"
+            ]
           }
         ]
       },
@@ -5041,28 +5104,6 @@
             "expression": [
               " ",
               "",
-              "//VAR Fund = SELECTEDVALUE('DimFunds'[FundId])",
-              "",
-              "//VAR Instrument = ",
-              "//CALCULATETABLE(",
-              "//    VALUES('DimFunds'[InstrumentId]), ",
-              "//    'DimFunds'[FundId] = Fund,",
-              "//    USERELATIONSHIP('DimInstrument'[InstrumentId], 'DimFunds'[InstrumentId])",
-              "//)",
-              "",
-              "//VAR Company = ",
-              "//CALCULATE(",
-              "//    SELECTEDVALUE('DimCompany'[CompanyId]), ",
-              "//    'DimCompany'[InstrumentId] = Instrument",
-              "//)",
-              "",
-              "//VAR PortfolioID = ",
-              "//CALCULATE(",
-              "//    SELECTEDVALUE('DimPortfolio'[PortfolioId]), ",
-              "//    'DimCompany'[InstrumentId] = Instrument",
-              "//)",
-              "",
-              "",
               "VAR PortfolioID = SELECTEDVALUE('DimPortfolio'[PortfolioId])",
               "",
               "VAR MaxDate = ",
@@ -5197,22 +5238,28 @@
             "name": "Client Value Delta",
             "expression": [
               " ",
-              "VAR Fund = SELECTEDVALUE('DimFunds'[FundId])",
-              "VAR Instrument = CALCULATETABLE(VALUES('DimFunds'[InstrumentId]), 'DimFunds'[FundId] = Fund, USERELATIONSHIP('DimInstrument'[InstrumentId], 'DimFunds'[InstrumentId]))",
-              "VAR Company = CALCULATE(SELECTEDVALUE('DimCompany'[CompanyId]), 'DimCompany'[InstrumentId] = Instrument)",
               "",
-              "VAR MaxDate = ",
-              "CALCULATE(",
-              "    MAX('DimTimeTable'[Date]),",
-              "    FILTER('DimTimeTable', COUNTROWS(RELATEDTABLE(FactTrade)) > 0 )",
+              "VAR PortfolioID = SELECTEDVALUE('DimPortfolio'[PortfolioId])",
+              "",
+              "VAR MaxDate =",
+              "CALCULATE (",
+              "    MAX ( 'FactShareHolders'[Date] ),",
+              "     'DimPortfolio'[PortfolioId] = PortfolioID,",
+              "    ALLEXCEPT('DimTimeTable', DimTimeTable[Date])",
               ")",
-              "",
+              "    ",
               "VAR Price = ",
               "CALCULATE(",
-              "    SELECTEDVALUE('FactTrade'[ClosePrice]), ",
+              "    SELECTEDVALUE('FactTradeDetails'[ClosePrice]), ",
               "    'DimTimeTable'[Date] = MaxDate, ",
-              "    'DimCompany'[CompanyId] = Company",
+              "    'DimPortfolio'[PortfolioId] = PortfolioID,",
+              "    CROSSFILTER('DimPortfolio'[PortfolioId], 'DimCompany'[CompanyId], Both), ",
+              "    CROSSFILTER('DimPortfolio'[PortfolioId], 'DimFunds'[FundId], Both),",
+              "    USERELATIONSHIP('DimFunds'[InstrumentId], 'DimInstrument'[InstrumentId]),",
+              "    USERELATIONSHIP('DimCompany'[InstrumentId], 'DimInstrument'[InstrumentId])",
               ")",
+              "",
+              "",
               "RETURN  Price * [Client Volume Delta] "
             ]
           },
@@ -6313,7 +6360,7 @@
         ]
       },
       {
-        "name": "Sold Out Clients",
+        "name": "Sold Out Clients 1",
         "columns": [
           {
             "type": "calculatedTableColumn",
@@ -8460,6 +8507,46 @@
               ")",
               ""
             ]
+          },
+          {
+            "name": "Portfolio Trade Value (+/-)",
+            "expression": [
+              "",
+              "SUMX(",
+              "    'FactPortfolioTrade',",
+              "    IF(",
+              "        'FactPortfolioTrade'[BuySellTypeId] = 1,",
+              "        'FactPortfolioTrade'[NetAmount],",
+              "        -'FactPortfolioTrade'[NetAmount]",
+              "    )",
+              ")",
+              ""
+            ]
+          },
+          {
+            "name": "Portfolio Trade Value (+/-) Affiliated",
+            "expression": [
+              "",
+              "    calculate( ",
+              "        [portfolio trade value (+/-)],",
+              "        'factportfoliotrade'[assetid] in {1424, 3017, 14350} // فیروزه، فیروزا و دریا",
+              "    )",
+              "//VAR SelectedFunds =",
+              "//VALUES('DimFunds'[FundId])",
+              "",
+              "//VAR _intersect =",
+              "//INTERSECT(SelectedFunds,  {14004588579, 14006847069, 14011588546}) // فیروزه، فیروزا و دریا",
+              "",
+              "//RETURN ",
+              "//IF(",
+              "//    COUNTROWS(_intersect) > 0,",
+              "//    calculate( ",
+              "//        [portfolio trade value (+/-)],",
+              "//        'factportfoliotrade'[assetid] in {1424, 3017, 14350} // فیروزه، فیروزا و دریا",
+              "//    ),",
+              "//    Blank()",
+              "//)"
+            ]
           }
         ]
       },
@@ -9025,7 +9112,7 @@
       },
       {
         "name": "500aec78-4201-426b-bc40-ea79561b051d",
-        "fromTable": "Sold Out Clients",
+        "fromTable": "Sold Out Clients 1",
         "fromColumn": "Date",
         "toTable": "DimTimeTable",
         "toColumn": "Date"
@@ -9039,14 +9126,14 @@
       },
       {
         "name": "a3c32d52-90b8-44db-aa55-1d2ef139b73a",
-        "fromTable": "Sold Out Clients",
+        "fromTable": "Sold Out Clients 1",
         "fromColumn": "ShareHolderId",
         "toTable": "DimShareHoldersProfile",
         "toColumn": "ShareHolderId"
       },
       {
         "name": "d4f20adc-c69e-46f0-99fe-08c1176c4b74",
-        "fromTable": "Sold Out Clients",
+        "fromTable": "Sold Out Clients 1",
         "fromColumn": "CompanyId",
         "toTable": "DimCompany",
         "toColumn": "CompanyId"
@@ -9506,7 +9593,7 @@
             ]
           },
           {
-            "name": "Sold Out Clients",
+            "name": "Sold Out Clients 1",
             "columns": [
               {
                 "name": "CompanyId"
@@ -10933,7 +11020,7 @@
             "metadataPermission": "none"
           },
           {
-            "name": "Sold Out Clients",
+            "name": "Sold Out Clients 1",
             "metadataPermission": "none"
           },
           {

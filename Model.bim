@@ -214,7 +214,7 @@
           {
             "type": "calculated",
             "name": "AUM",
-            "dataType": "int64",
+            "dataType": "double",
             "isDataTypeInferred": true,
             "expression": [
               " ",
@@ -1240,19 +1240,9 @@
             "sourceColumn": "Date"
           },
           {
-            "name": "FundDataTypeId",
-            "dataType": "int64",
-            "sourceColumn": "FundDataTypeId"
-          },
-          {
             "name": "1YearRank",
             "dataType": "double",
             "sourceColumn": "1YearRank"
-          },
-          {
-            "name": "3 YearRank",
-            "dataType": "double",
-            "sourceColumn": "3 YearRank"
           },
           {
             "name": "5YearRank",
@@ -1271,28 +1261,13 @@
           },
           {
             "name": "AUM2",
-            "dataType": "int64",
-            "sourceColumn": "AUM"
-          },
-          {
-            "name": "BankDeposite",
             "dataType": "double",
-            "sourceColumn": "BankDeposite"
+            "sourceColumn": "AUM"
           },
           {
             "name": "Beta",
             "dataType": "double",
             "sourceColumn": "Beta"
-          },
-          {
-            "name": "Bonds",
-            "dataType": "double",
-            "sourceColumn": "Bonds"
-          },
-          {
-            "name": "CommodityCD",
-            "dataType": "double",
-            "sourceColumn": "CommodityCD"
           },
           {
             "name": "DayReturn",
@@ -1325,16 +1300,6 @@
             "sourceColumn": "MonthReturn"
           },
           {
-            "name": "OtherAssets",
-            "dataType": "double",
-            "sourceColumn": "OtherAssets"
-          },
-          {
-            "name": "OtherShares",
-            "dataType": "double",
-            "sourceColumn": "OtherShares"
-          },
-          {
             "name": "QuarterReturn",
             "dataType": "double",
             "sourceColumn": "QuarterReturn"
@@ -1353,16 +1318,6 @@
             "name": "SubscriptionPrice",
             "dataType": "double",
             "sourceColumn": "SubscriptionPrice"
-          },
-          {
-            "name": "Top5shares",
-            "dataType": "double",
-            "sourceColumn": "Top5shares"
-          },
-          {
-            "name": "Units",
-            "dataType": "double",
-            "sourceColumn": "Units"
           },
           {
             "name": "UnitsRedDay",
@@ -1393,6 +1348,39 @@
             "name": "YearReturn",
             "dataType": "double",
             "sourceColumn": "YearReturn"
+          },
+          {
+            "type": "calculated",
+            "name": "Add Column2",
+            "dataType": "double",
+            "isDataTypeInferred": true,
+            "expression": [
+              "",
+              "VAR d = 'FactFunds'[Date]",
+              "VAR i = ",
+              "CALCULATE(",
+              "    SELECTEDVALUE('DimFunds'[InstrumentId]),",
+              "    CROSSFILTER(",
+              "        'DimFunds'[FundId],",
+              "        'FactFunds'[FundId],",
+              "        Both",
+              "    )",
+              ")",
+              "VAR MarketCap =",
+              "CALCULATE(",
+              "    SELECTEDVALUE('FactTradeDetails'[MarketCap]),",
+              "    'FactTradeDetails'[InstrumentId] = i,",
+              "    'FactTradeDetails'[Date] = d",
+              ")",
+              "",
+              "RETURN MarketCap",
+              "    "
+            ]
+          },
+          {
+            "name": "3YearRank",
+            "dataType": "double",
+            "sourceColumn": "3YearRank"
           }
         ],
         "partitions": [
@@ -1403,9 +1391,10 @@
               "type": "m",
               "expression": [
                 "let",
-                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"-- Create a temporary table with dynamic SQL#(lf)DECLARE @columns NVARCHAR(MAX), @query NVARCHAR(MAX);#(lf)#(lf)-- Get the distinct values of EnName to use as columns in PIVOT#(lf)SELECT @columns = STRING_AGG(QUOTENAME(EnName), ',')#(lf)FROM (SELECT DISTINCT EnName FROM [DW].[dbo].[DimFundAssets]) AS DistinctEnNames;#(lf)#(lf)-- Build the dynamic SQL query for PIVOT#(lf)SET @query = N'#(lf)SELECT *#(lf)FROM (#(lf)    SELECT#(lf)        A.[FundId],#(lf)        A.[Date],#(lf)        A.[FundDataTypeId],#(lf)        B.[EnName],#(lf)        A.[Value]#(lf)    FROM#(lf)        [DW].[dbo].[FactFunds] A#(lf)    INNER JOIN#(lf)        [DW].[dbo].[DimFundAssets] B ON A.FundAssetId = B.FundAssetId#(lf)    WHERE#(lf)        A.[FundDataTypeId] = 4#(lf)) AS SourceTable#(lf)PIVOT (#(lf)    MAX(Value) FOR EnName IN (' + @columns + ')#(lf)) AS PivotTable;';#(lf)#(lf)-- Execute the dynamic SQL query#(lf)EXEC sp_executesql @query;#(lf)\"])",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_FactDPS = Source{[Schema=\"dbo\",Item=\"ViwFundsPivot\"]}[Data]",
                 "in",
-                "    Source"
+                "    dbo_FactDPS"
               ]
             }
           }
@@ -1423,7 +1412,7 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[1YearRank]), 'FactFunds'[FundDataTypeId] = 4) ",
+              "        CALCULATE(COUNT('FactFunds'[1YearRank])) ",
               "        )",
               ")",
               "RETURN",
@@ -1442,11 +1431,11 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[3 YearRank]), 'FactFunds'[FundDataTypeId] = 4) ",
+              "        CALCULATE(COUNT('FactFunds'[3YearRank])) ",
               "        )",
               ")",
               "RETURN",
-              "CALCULATE(AVERAGE('FactFunds'[3 YearRank]), 'DimTimeTable'[Date] = MaxDate)"
+              "CALCULATE(AVERAGE('FactFunds'[3YearRank]), 'DimTimeTable'[Date] = MaxDate)"
             ]
           },
           {
@@ -1461,7 +1450,7 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[5YearRank]), 'FactFunds'[FundDataTypeId] = 4) ",
+              "        CALCULATE(COUNT('FactFunds'[5YearRank])) ",
               "        )",
               ")",
               "RETURN",
@@ -1631,7 +1620,12 @@
               "// )",
               "",
               "VAR r = ",
-              "CALCULATE(AVERAGE('FactFunds'[YearReturn]), 'DimTimeTable'[Date] = MaxDate,  NOT(ISBLANK('FactFunds'[YearReturn])), 'FactFunds'[YearReturn] <> 0)",
+              "CALCULATE(",
+              "    AVERAGE('FactFunds'[YearReturn]), ",
+              "    'DimTimeTable'[Date] = MaxDate, ",
+              "    NOT(ISBLANK('FactFunds'[YearReturn])), ",
+              "    'FactFunds'[YearReturn] <> 0",
+              ")",
               "RETURN r "
             ],
             "displayFolder": "Returns"
@@ -1989,12 +1983,12 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[DayReturn]), 'FactFunds'[FundDataTypeId] = 4) ",
+              "        CALCULATE(COUNT('FactFunds'[DayReturn])) ",
               "        )",
               ")",
               "",
               "VAR r = ",
-              "CALCULATE(SELECTEDVALUE('FactFunds'[DayReturn]), 'FactFunds'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4)",
+              "CALCULATE(SELECTEDVALUE('FactFunds'[DayReturn]), 'FactFunds'[Date] = MaxDate)",
               "RETURN r"
             ]
           },
@@ -2044,7 +2038,12 @@
               "// )",
               "",
               "VAR r = ",
-              "CALCULATE(AVERAGE('FactFunds'[MonthReturn]), 'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4, NOT(ISBLANK('FactFunds'[MonthReturn])), 'FactFunds'[MonthReturn] <> 0)",
+              "CALCULATE(",
+              "    AVERAGE('FactFunds'[MonthReturn]), ",
+              "    'DimTimeTable'[Date] = MaxDate, ",
+              "    NOT(ISBLANK('FactFunds'[MonthReturn])), ",
+              "    'FactFunds'[MonthReturn] <> 0",
+              ")",
               "RETURN r"
             ]
           },
@@ -2112,7 +2111,11 @@
               "// )",
               "",
               "VAR r = ",
-              "CALCULATE(AVERAGE('FactFunds'[QuarterReturn]), 'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4, NOT(ISBLANK('FactFunds'[QuarterReturn])), 'FactFunds'[QuarterReturn] <> 0)",
+              "CALCULATE(",
+              "    AVERAGE('FactFunds'[QuarterReturn]), ",
+              "    'DimTimeTable'[Date] = MaxDate, ",
+              "    NOT(ISBLANK('FactFunds'[QuarterReturn])), ",
+              "    'FactFunds'[QuarterReturn] <> 0)",
               "RETURN r"
             ]
           },
@@ -4919,7 +4922,7 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[YearReturn]), 'FactFunds'[FundDataTypeId] = 4) ",
+              "        CALCULATE(COUNT('FactFunds'[YearReturn])) ",
               "        )",
               ")",
               "",
@@ -5686,7 +5689,7 @@
           {
             "type": "calculatedTableColumn",
             "name": "AUM",
-            "dataType": "int64",
+            "dataType": "double",
             "isNameInferred": true,
             "isDataTypeInferred": true,
             "sourceColumn": "[AUM]"

@@ -252,6 +252,19 @@
             "name": "DividendIntervalPeriod",
             "dataType": "int64",
             "sourceColumn": "DividendIntervalPeriod"
+          },
+          {
+            "type": "calculated",
+            "name": "AssetId",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "expression": [
+              "",
+              "CALCULATE(",
+              "    MAX('DimInstrument'[AssetId]),",
+              "    USERELATIONSHIP('DimFunds'[InstrumentId], 'DimInstrument'[InstrumentId])",
+              ")"
+            ]
           }
         ],
         "partitions": [
@@ -787,26 +800,26 @@
           },
           {
             "type": "calculated",
-            "name": "AUM",
+            "name": "AUM1111",
             "dataType": "int64",
             "isDataTypeInferred": true,
             "expression": [
-              " ",
-              "VAR m = 'DimManager'[FinancialGroupName]",
-              "VAR T = ",
-              "FILTER(",
-              "    ALL('DimManager'),",
-              "    DimManager[FinancialGroupName] = m",
-              ")",
-              "RETURN ",
-              "CALCULATE(",
-              "    SUMX(",
-              "        T",
-              "        , CALCULATE([AUM]",
-              "        )",
-              "    )",
-              "    , 'DimTimeTable'[IsBeforeTheDayBeforeYesterday], NOT DimFunds[FundType] in {\"اختصاصی بازارگردانی\", \"جسورانه\", \"خصوصی\", \"پروژه‌ای\", \"املاک و مستغلات\"}",
-              ")"
+              " 1",
+              "//VAR m = 'DimManager'[FinancialGroupName]",
+              "//VAR T = ",
+              "//FILTER(",
+              "//    ALL('DimManager'),",
+              "//    DimManager[FinancialGroupName] = m",
+              "//)",
+              "//RETURN ",
+              "//CALCULATE(",
+              "//    SUMX(",
+              "//        T",
+              "//        , CALCULATE([AUM]",
+              "//        )",
+              "//    )",
+              "//    , 'DimTimeTable'[IsBeforeTheDayBeforeYesterday], NOT DimFunds[FundType] in {\"اختصاصی بازارگردانی\", \"جسورانه\", \"خصوصی\", \"پروژه‌ای\", \"املاک و مستغلات\"}",
+              "//)"
             ]
           }
         ],
@@ -1664,7 +1677,7 @@
               "        )",
               "    )",
               "    RETURN",
-              "    CALCULATE (SELECTEDVALUE( 'FactFunds'[AUM2] ), 'DimTimeTable'[Date] = LastDay )",
+              "    CALCULATE (SELECTEDVALUE( 'FactFunds'[AUM2] ), 'DimTimeTable'[Date] = LastDay, USERELATIONSHIP('DimFunds'[InstrumentId], 'DimInstrument'[InstrumentId]) )",
               ")",
               ""
             ],
@@ -3013,7 +3026,8 @@
               " ",
               "CALCULATE(",
               "    SUMX('FactFunds', 'FactFunds'[UnitsRedDay] * 'FactFunds'[RedemptionPrice])",
-              ")"
+              ")",
+              ""
             ],
             "formatString": "#,0",
             "displayFolder": "Subscriptions"
@@ -3057,7 +3071,8 @@
               " ",
               "CALCULATE(",
               "    SUMX('FactFunds', 'FactFunds'[UnitsSubDay] * 'FactFunds'[SubscriptionPrice])",
-              ")"
+              ")",
+              ""
             ],
             "formatString": "#,0",
             "displayFolder": "Subscriptions"
@@ -9139,13 +9154,6 @@
         "toColumn": "ManagerId"
       },
       {
-        "name": "9db6f0fb-61ef-4069-9a4d-4b44680f1a8d",
-        "fromTable": "FactPortfolio",
-        "fromColumn": "AssetId",
-        "toTable": "DimAsset",
-        "toColumn": "AssetId"
-      },
-      {
         "name": "3aa30891-d6b1-4fb6-8ea3-72f94a7e772d",
         "fromTable": "FactTrade",
         "fromColumn": "AssetId",
@@ -9293,15 +9301,6 @@
         "toColumn": "PortfolioId"
       },
       {
-        "name": "16ed062b-5bcf-4cc4-abb9-134573bd4bda",
-        "fromTable": "DimFunds",
-        "fromColumn": "InstrumentId",
-        "toTable": "DimInstrument",
-        "toColumn": "InstrumentId",
-        "isActive": false,
-        "crossFilteringBehavior": "bothDirections"
-      },
-      {
         "name": "56c2370f-77dc-47d5-97fe-677dd642ca0c",
         "fromCardinality": "one",
         "fromTable": "DimInstrument",
@@ -9368,6 +9367,23 @@
         "fromColumn": "PRXManagerId",
         "toTable": "DimPRXManager",
         "toColumn": "PortfolioManagerId"
+      },
+      {
+        "name": "9fbdcfde-8453-4e95-8471-6d8e46ea8051",
+        "toCardinality": "many",
+        "fromTable": "DimFunds",
+        "fromColumn": "InstrumentId",
+        "toTable": "DimInstrument",
+        "toColumn": "InstrumentId",
+        "isActive": false,
+        "crossFilteringBehavior": "bothDirections"
+      },
+      {
+        "name": "87fca31d-f695-4cde-96be-4fbe9f4116c6",
+        "fromTable": "FactPortfolio",
+        "fromColumn": "AssetId",
+        "toTable": "DimAsset",
+        "toColumn": "AssetId"
       }
     ],
     "perspectives": [
@@ -10978,7 +10994,7 @@
                 "metadataPermission": "none"
               },
               {
-                "name": "AUM",
+                "name": "AUM1111",
                 "metadataPermission": "none"
               }
             ]

@@ -2756,7 +2756,7 @@
             "displayFolder": "Subscriptions"
           },
           {
-            "name": "Net Subscriptions Value Cum",
+            "name": "Net Subscription Value Cum",
             "expression": [
               " ",
               "VAR BaseDate = ",
@@ -4690,21 +4690,70 @@
             "formatString": "0.0%;-0.0%;0.0%"
           },
           {
-            "name": "Net Subscriptions Value (Non-Affiliated)",
+            "name": "Net Subscription Value (Non-Affiliated)",
             "expression": [
               "",
-              "[Net Subscription Value] - [Portfolio Trade Value (+/-) Affiliated]"
-            ]
+              "[Net Subscription Value] - [Portfolio Trade Value (+/-) Affiliated]",
+              "//VAR SelectedFunds =",
+              "//VALUES('DimFunds'[FundId])",
+              "",
+              "//VAR _intersect =",
+              "//INTERSECT(SelectedFunds,  {14004588579, 14006847069, 14011588546}) // فیروزه، فیروزا و دریا",
+              "",
+              "//RETURN ",
+              "//IF(",
+              "//    COUNTROWS(_intersect) > 0,",
+              "//    [Net Subscription Value] - [Portfolio Trade Value (+/-) Affiliated],",
+              "//    Blank()",
+              "//)",
+              "",
+              ""
+            ],
+            "formatString": "#,0"
           },
           {
-            "name": "Net Subscriptions Value Cum(Non-Affiliated)",
+            "name": "% Net Subscription Value (non-Affiliated)",
             "expression": [
-              "",
+              " ",
+              "VAR BaseDate = ",
               "CALCULATE(",
-              "    [Net Subscriptions Value Cum],",
-              "    NOT 'DimShareHoldersProfile'[Affiliated]",
-              ")"
-            ]
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(PREVIOUSDAY(FIRSTDATE('DimTimeTable'[Date])))",
+              "        ),",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
+              "    )",
+              ")",
+              "RETURN",
+              "DIVIDE(",
+              "    [Net Subscription Value (Non-Affiliated)], ",
+              "    CALCULATE([AUM], 'DimTimeTable'[Date] = BaseDate)",
+              ")",
+              "",
+              "//VAR SelectedFunds =",
+              "//VALUES('DimFunds'[FundId])",
+              "",
+              "//VAR _intersect =",
+              "//INTERSECT(SelectedFunds,  {14004588579, 14006847069, 14011588546}) // فیروزه، فیروزا و دریا",
+              "",
+              "//RETURN ",
+              "//IF(",
+              "//    COUNTROWS(_intersect) > 0,",
+              "//    DIVIDE(",
+              "//        [Net Subscription Value (Non-Affiliated)], ",
+              "//        CALCULATE([AUM], 'DimTimeTable'[Date] = BaseDate)",
+              "//    ), ",
+              "//    DIVIDE(",
+              "//        [Net Subscription Value], ",
+              "//        CALCULATE([AUM], 'DimTimeTable'[Date] = BaseDate)",
+              "//    )",
+              "//)",
+              "",
+              ""
+            ],
+            "formatString": "#,0.00%;-#,0.00%;#,0.00%"
           }
         ]
       },
@@ -8527,25 +8576,25 @@
             "name": "Portfolio Trade Value (+/-) Affiliated",
             "expression": [
               "",
-              "    calculate( ",
-              "        [portfolio trade value (+/-)],",
-              "        'factportfoliotrade'[assetid] in {1424, 3017, 14350} // فیروزه، فیروزا و دریا",
-              "    )",
-              "//VAR SelectedFunds =",
-              "//VALUES('DimFunds'[FundId])",
+              "VAR v =",
+              "CALCULATE(",
+              "    [portfolio trade value (+/-)],",
+              "    'factportfoliotrade'[assetid] in {1424, 3017, 14350}, // فیروزه، فیروزا و دریا",
+              "    ALL('DimPortfolio')",
+              ")",
               "",
-              "//VAR _intersect =",
-              "//INTERSECT(SelectedFunds,  {14004588579, 14006847069, 14011588546}) // فیروزه، فیروزا و دریا",
+              "VAR SelectedFunds =",
+              "VALUES('DimFunds'[FundId])",
               "",
-              "//RETURN ",
-              "//IF(",
-              "//    COUNTROWS(_intersect) > 0,",
-              "//    calculate( ",
-              "//        [portfolio trade value (+/-)],",
-              "//        'factportfoliotrade'[assetid] in {1424, 3017, 14350} // فیروزه، فیروزا و دریا",
-              "//    ),",
-              "//    Blank()",
-              "//)"
+              "VAR _intersect =",
+              "INTERSECT(SelectedFunds,  {14004588579, 14006847069, 14011588546}) // فیروزه، فیروزا و دریا",
+              "",
+              "RETURN ",
+              "IF(",
+              "    COUNTROWS(_intersect) > 0,",
+              "    v,",
+              "    Blank()",
+              ")"
             ]
           }
         ]
@@ -11257,10 +11306,6 @@
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1393"
           },
           {
-            "memberName": "IIDIC\\507275",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1462"
-          },
-          {
             "memberName": "IIDIC\\507382",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1734"
           },
@@ -11319,10 +11364,10 @@
       {
         "name": "AssetManagementTopManagement",
         "modelPermission": "read",
-        "tablePermissions": [
+        "members": [
           {
-            "name": "DimPortfolio",
-            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {2,3}"
+            "memberName": "IIDIC\\507275",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1462"
           }
         ]
       },

@@ -7093,10 +7093,10 @@
               "    , ALLSELECTED('DimTimeTable')",
               ")",
               "",
-              "VAR BaseClose = CALCULATE(SELECTEDVALUE('FactReturns'[RedemptionPrice]), 'DimTimeTable'[Date] = BaseDate)",
+              "VAR BaseClose = CALCULATE(SELECTEDVALUE('FactReturns'[StatisticalPrice]), 'DimTimeTable'[Date] = BaseDate)",
               "VAR CurrentDate = CALCULATE(SELECTEDVALUE('DimTimeTable'[Date]))",
               "-- VAR Rebased = DIVIDE(SUM('TurquoiseStocks'[Adj NAVPU]), BaseClose)*100",
-              "VAR FinalClose = CALCULATE(SELECTEDVALUE('FactReturns'[RedemptionPrice]))",
+              "VAR FinalClose = CALCULATE(SELECTEDVALUE('FactReturns'[StatisticalPrice]))",
               "VAR Rebased = DIVIDE(FinalClose, BaseClose) * 100",
               "",
               "RETURN IF(CurrentDate = CALCULATE(FIRSTDATE('DimTimeTable'[Date]), ALLSELECTED('DimTimeTable')), 100, Rebased)"

@@ -1469,12 +1469,12 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM2]), 'FactFunds'[FundDataTypeId] = 4) ",
+              "        CALCULATE(COUNT('FactFunds'[AUM2])) ",
               "        )",
               ")",
               "",
               "VAR NAV = ",
-              "CALCULATE(SUM('FactFunds'[AUM2]),'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4)",
+              "CALCULATE(SUM('FactFunds'[AUM2]),'DimTimeTable'[Date] = MaxDate)",
               "RETURN NAV"
             ],
             "displayFolder": "AUM"
@@ -1690,7 +1690,7 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[YearReturn]), 'FactFunds'[FundDataTypeId] = 4) ",
+              "        CALCULATE(COUNT('FactFunds'[YearReturn])) ",
               "        )",
               ")",
               "",
@@ -1699,11 +1699,9 @@
               "    SUMX(",
               "        'DimFunds',",
               "        [AUM] * [% Annual Return]), ",
-              "    'DimTimeTable'[Date] = MaxDate, ",
-              "    'FactFunds'[FundDataTypeId] = 4",
+              "    'DimTimeTable'[Date] = MaxDate",
               ") / ",
-              "CALCULATE([AUM], 'DimTimeTable'[Date] = MaxDate, ",
-              "    'FactFunds'[FundDataTypeId] = 4)",
+              "CALCULATE([AUM], 'DimTimeTable'[Date] = MaxDate)",
               "RETURN r "
             ],
             "displayFolder": "Returns"
@@ -2215,11 +2213,11 @@
               ")",
               "",
               "VAR BaseFinal = ",
-              "CALCULATE(SELECTEDVALUE('FactFunds'[StatisticalPrice]), 'DimTimeTable'[Date] = BaseDate, 'FactFunds'[FundDataTypeId] = 4)",
+              "CALCULATE(SELECTEDVALUE('FactFunds'[StatisticalPrice]), 'DimTimeTable'[Date] = BaseDate)",
               "",
               "",
               "VAR EndFinal = ",
-              "CALCULATE(SELECTEDVALUE('FactFunds'[StatisticalPrice]), 'DimTimeTable'[Date] = MaxDate, 'FactFunds'[FundDataTypeId] = 4)",
+              "CALCULATE(SELECTEDVALUE('FactFunds'[StatisticalPrice]), 'DimTimeTable'[Date] = MaxDate)",
               "",
               "VAR R = IF(OR(ISBLANK(EndFinal), ISBLANK(BaseFinal)), BLANK(),DIVIDE(EndFinal-BaseFinal, BaseFinal))",
               "",
@@ -2656,7 +2654,7 @@
               "            BLANK(),",
               "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
               "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM2]), 'FactFunds'[FundDataTypeId] = 4) ",
+              "        CALCULATE(COUNT('FactFunds'[AUM2])) ",
               "        )",
               ")",
               "RETURN ",
@@ -2841,11 +2839,10 @@
               "                                        MAX ( 'FactFunds'[Date] ),",
               "                                        'FactFunds'[Date] < EARLIEST ( 'FactFunds'[Date] ),",
               "                                        'FactFunds'[FundId] = EARLIEST ( FactFunds[FundId] ),",
-              "                                        ALL ( 'FactFunds' ),",
-              "                                        'FactFunds'[FundDataTypeId] = 4",
+              "                                        ALL ( 'FactFunds' )",
               "                                    )",
               "                                    && 'FactFunds'[FundId] = EARLIEST ( FactFunds[FundId] )",
-              "                                    && 'FactFunds'[FundDataTypeId] = 4",
+              "                                    ",
               "                            )",
               "                        ) --)",
               "                        --  )",
@@ -2858,8 +2855,7 @@
               "        'FactFunds',",
               "        'FactFunds'[AUM2] * 'FactFunds'[SubscriptionPrice]),",
               "        'FactFunds'[Date] = PeriodStartDate,",
-              "        ALLSELECTED('DimTimeTable'),",
-              "        'FactFunds'[FundDataTypeId] = 4",
+              "        ALLSELECTED('DimTimeTable')",
               ")",
               "RETURN DIVIDE(IF(ISBLANK(NewUnits), 0, NewUnits) , BaseUnits, 0)"
             ]
@@ -5113,7 +5109,7 @@
             "name": "Averarge Client Balance Value",
             "expression": [
               " ",
-              "DIVIDE([Client Balance Value], [Client Count])"
+              "DIVIDE([Client Balance Value Old], [Client Count])"
             ],
             "formatString": "#,0"
           },
@@ -5122,7 +5118,7 @@
             "expression": [
               "",
               "CALCULATE (",
-              "    [Client Balance Value] / [Client Count],",
+              "    [Client Balance Value Old] / [Client Count],",
               "    ALL (",
               "        'DimShareHoldersProfile'[ShareHolderId],",
               "        'DimShareHoldersProfile'[BourseCode],",
@@ -5153,7 +5149,7 @@
               "        KEEPFILTERS('DimShareHoldersProfile'[ShareHolderId] <> 59113),",
               "        'DimTimeTable'[Date] = MaxDate",
               "    )",
-              " "
+              ""
             ]
           },
           {
@@ -5167,65 +5163,43 @@
             ]
           },
           {
-            "name": "Client Balance Value",
+            "name": "Client Balance Value Old",
             "expression": [
               " ",
-              "",
-              "VAR PortfolioID = SELECTEDVALUE('DimPortfolio'[PortfolioId])",
               "",
               "VAR MaxDate = ",
               "CALCULATE(",
               "    MAX('FactShareHolders'[Date]), ",
-              "    'DimPortfolio'[PortfolioId] = PortfolioID,",
               "    ALLEXCEPT('DimTimeTable', DimTimeTable[Date])",
               ")",
-              "// CALCULATE(",
-              "//     LASTNONBLANK(",
-              "//         DATESBETWEEN(",
-              "//             'DimTimeTable'[Date],",
-              "//             BLANK(),",
-              "//             CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "//         ),",
-              "//         CALCULATE(COUNT('FactShareHolders'[VolumeBalance])) ",
-              "//         )",
-              "// )",
               "",
               "RETURN ",
-              "//calculate(",
-              "//    sumx(",
-              "//        calculatetable(dimshareholdersprofile, keepfilters('dimshareholdersprofile'[shareholderid] <> 59113)), //  etfکدرزروصندوقهای‌سرمایه‌گذاری‌قابل‌معامله  ",
-              "//        var balance = calculate(selectedvalue('factshareholders'[volumebalance]), 'dimtimetable'[date] = maxdate, 'DimPortfolio'[PortfolioId] = PortfolioID)",
-              "//        var price = calculate(selectedvalue('facttrade'[closeprice]), 'dimtimetable'[date] = maxdate, 'DimPortfolio'[PortfolioId] = PortfolioID)",
-              "//        return",
-              "//        price * balance",
-              "//    )",
-              "//)",
-              "",
               "SUMX(",
               "    VALUES('FactShareHolders'[CompanyId]), //iterartes over all Companies in the filter context",
+              "    VAR Company = 'FactShareHolders'[CompanyId]",
+              "    VAR Instrument = ",
+              "    CALCULATE(",
+              "        SELECTEDVALUE('DimPortfolio'[InstrumentId]),",
+              "        'DimPortfolio'[PortfolioId] = Company",
+              "    )",
+              "   ",
               "    VAR Price = // calculates price for the current company at MaxDate",
               "    CALCULATE(",
               "        SELECTEDVALUE('FactTradeDetails'[ClosePrice]), ",
               "        'DimTimeTable'[Date] = MaxDate, ",
-              "        'DimPortfolio'[PortfolioId] = PortfolioID,",
-              "        CROSSFILTER('DimPortfolio'[PortfolioId], 'DimCompany'[CompanyId], Both), ",
-              "        CROSSFILTER('DimPortfolio'[PortfolioId], 'DimFunds'[FundId], Both),",
-              "        USERELATIONSHIP('DimFunds'[InstrumentId], 'DimInstrument'[InstrumentId]),",
-              "        USERELATIONSHIP('DimCompany'[InstrumentId], 'DimInstrument'[InstrumentId])",
-              "",
+              "        'DimInstrument'[InstrumentId] = Instrument",
               "    )",
               "    RETURN",
               "    SUMX(",
               "        CALCULATETABLE( // iterartes over ShareHolderProfiles table removing all filters on that table and imposing a filter to exclude ETFکدرزروصندوقهای‌سرمایه‌گذاری‌قابل‌معامله ",
               "            DimShareHoldersProfile, ",
               "            KEEPFILTERS('DimShareHoldersProfile'[ShareHolderId] <> 59113) //  ETFکدرزروصندوقهای‌سرمایه‌گذاری‌قابل‌معامله  ",
-              "            // 'FactShareHolders'[CompanyId] = EARLIER('FactShareHolders'[CompanyId]) // به نظرم این خط باید حذف شود چون فیلتر روی فکت به دایمنش منتقل نمی شود",
               "        ),",
               "        VAR Balance = // برای هر مشتری بالانس او را در شرکت فعلی (با توجه به ایتریتور قبلی) محاسبه می کند",
               "        CALCULATE(",
               "            SELECTEDVALUE('FactShareHolders'[VolumeBalance]), ",
               "            'DimTimeTable'[Date] = MaxDate, ",
-              "            'DimPortfolio'[PortfolioId] = EARLIER('FactShareHolders'[CompanyId])",
+              "            'DimPortfolio'[PortfolioId] = Company",
               "        )",
               "        RETURN",
               "        Price *  Balance // نهایتا حاصلضرب قیمت سهم هر شرکت در بالانس مشتری حساب می شود که در سامیکس اول اینها با هم جمع می شود ",
@@ -5239,11 +5213,25 @@
             "name": "Client Balance Value %",
             "expression": [
               " ",
-              "DIVIDE(",
-              "    [Client Balance Value],",
-              "    CALCULATE([Client Balance Value], ALL('DimShareHoldersProfile'))",
+              "VAR T =",
+              "CALCULATETABLE(",
+              "    VALUES('FactShareHolders'[ShareHolderId]),",
+              "    ALLEXCEPT('FactShareHolders', 'FactShareHolders'[Date]),",
+              "    ALL('DimShareHoldersProfile')",
               ")",
-              "// [Client Balance Value] / CALCULATE([Client Balance Value], ALL('DimShareHoldersProfile'[KindCategory], 'DimShareHoldersProfile'[KindDesc], DimShareHoldersProfile[KindId], 'DimShareHoldersProfile'[FullName], 'DimShareHoldersProfile'[ShareHolderId], 'DimShareHoldersProfile'[BourseCode]))"
+              "    ",
+              "//DIVIDE(",
+              "//    [Client Balance Value],",
+              "//    CALCULATE([Client Balance Value], ALL('DimShareHoldersProfile'))",
+              "//)",
+              "// [Client Balance Value] / CALCULATE([Client Balance Value], ALL('DimShareHoldersProfile'[KindCategory], 'DimShareHoldersProfile'[KindDesc], DimShareHoldersProfile[KindId], 'DimShareHoldersProfile'[FullName], 'DimShareHoldersProfile'[ShareHolderId], 'DimShareHoldersProfile'[BourseCode]))",
+              "RETURN",
+              "DIVIDE(",
+              "    [Client Balance Value Old],",
+              "    CALCULATE([Client Balance Value Old],     ALLEXCEPT('FactShareHolders', 'FactShareHolders'[Date]),",
+              "    ALL('DimShareHoldersProfile')",
+              ")",
+              ")"
             ]
           },
           {
@@ -5314,17 +5302,29 @@
               "     'DimPortfolio'[PortfolioId] = PortfolioID,",
               "    ALLEXCEPT('DimTimeTable', DimTimeTable[Date])",
               ")",
-              "    ",
-              "VAR Price = ",
+              "",
+              "VAR Instrument = ",
+              "CALCULATE(",
+              "    SELECTEDVALUE('DimPortfolio'[InstrumentId]),",
+              "    'DimPortfolio'[PortfolioId] = PortfolioID",
+              ")",
+              "   ",
+              "VAR Price = // calculates price for the current company at MaxDate",
               "CALCULATE(",
               "    SELECTEDVALUE('FactTradeDetails'[ClosePrice]), ",
               "    'DimTimeTable'[Date] = MaxDate, ",
-              "    'DimPortfolio'[PortfolioId] = PortfolioID,",
-              "    CROSSFILTER('DimPortfolio'[PortfolioId], 'DimCompany'[CompanyId], Both), ",
-              "    CROSSFILTER('DimPortfolio'[PortfolioId], 'DimFunds'[FundId], Both),",
-              "    USERELATIONSHIP('DimFunds'[InstrumentId], 'DimInstrument'[InstrumentId]),",
-              "    USERELATIONSHIP('DimCompany'[InstrumentId], 'DimInstrument'[InstrumentId])",
-              ")",
+              "    'DimInstrument'[InstrumentId] = Instrument",
+              ")    ",
+              "//VAR Price = ",
+              "//CALCULATE(",
+              "//    SELECTEDVALUE('FactTradeDetails'[ClosePrice]), ",
+              "//    'DimTimeTable'[Date] = MaxDate, ",
+              "//    'DimPortfolio'[PortfolioId] = PortfolioID,",
+              "//    CROSSFILTER('DimPortfolio'[PortfolioId], 'DimCompany'[CompanyId], Both), ",
+              "//    CROSSFILTER('DimPortfolio'[PortfolioId], 'DimFunds'[FundId], Both),",
+              "//    USERELATIONSHIP('DimFunds'[InstrumentId], 'DimInstrument'[InstrumentId]),",
+              "//    USERELATIONSHIP('DimCompany'[InstrumentId], 'DimInstrument'[InstrumentId])",
+              "//)",
               "",
               "",
               "RETURN  Price * [Client Volume Delta] "
@@ -5602,6 +5602,48 @@
               "",
               "RETURN Delta"
             ]
+          },
+          {
+            "name": "Client Balance Value",
+            "expression": [
+              " ",
+              "",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    MAX('FactShareHolders'[Date]), ",
+              "    ALLEXCEPT('DimTimeTable', DimTimeTable[Date])",
+              ")",
+              "",
+              "RETURN ",
+              "SUMX(",
+              "    VALUES('FactShareHolders'[CompanyId]), //iterartes over all Companies in the filter context",
+              "    VAR Company = 'FactShareHolders'[CompanyId]",
+              "    VAR Instrument = ",
+              "    CALCULATE(",
+              "        SELECTEDVALUE('DimPortfolio'[InstrumentId]),",
+              "        'DimPortfolio'[PortfolioId] = Company",
+              "    )",
+              "   ",
+              "    VAR Price = // calculates price for the current company at MaxDate",
+              "    CALCULATE(",
+              "        SELECTEDVALUE('FactTradeDetails'[ClosePrice]), ",
+              "        'DimTimeTable'[Date] = MaxDate, ",
+              "        'DimInstrument'[InstrumentId] = Instrument",
+              "    )",
+              "    VAR Balance = ",
+              "    CALCULATE(  ",
+              "        SUM('FactShareHolders'[VolumeBalance]),",
+              "        'DimTimeTable'[Date] = MaxDate, ",
+              "        'DimPortfolio'[PortfolioId] = Company,",
+              "        'DimShareHoldersProfile'[ShareHolderId] <> 59113",
+              "    )",
+              "    RETURN",
+              "    Price *  Balance // نهایتا حاصلضرب قیمت سهم هر شرکت در بالانس مشتری حساب می شود که در سامیکس اول اینها با هم جمع می شود ",
+              "  ",
+              ")",
+              ""
+            ],
+            "formatString": "#,0"
           }
         ]
       },
@@ -7461,7 +7503,7 @@
         ],
         "measures": [
           {
-            "name": "% Individual Trade Turnover",
+            "name": "% Individual Trade Turnover (AUM)",
             "expression": [
               " ",
               "DIVIDE(",
@@ -7472,7 +7514,7 @@
             "formatString": "0.0%;-0.0%;0.0%"
           },
           {
-            "name": "% Trade Turnover",
+            "name": "% Trade Turnover (AUM)",
             "expression": [
               " ",
               "DIVIDE([Trade Value], CALCULATE([AUM], NOT ISBLANK('DimFunds'[InstrumentId]))",
@@ -7481,11 +7523,11 @@
             "formatString": "0.0%;-0.0%;0.0%"
           },
           {
-            "name": "% Trade Turnover Competitors",
+            "name": "% Trade Turnover Competitors (AUM)",
             "expression": [
               " ",
               "CALCULATE(",
-              "    [% Trade Turnover], ",
+              "    [% Trade Turnover (AUM)], ",
               "    ALL('DimFunds'), ",
               "    'DimManager'[IsCompetitor]",
               ")"
@@ -7666,7 +7708,8 @@
             "expression": [
               " ",
               "[Individual Buyers Value] / [Individual Buyers Count]"
-            ]
+            ],
+            "formatString": "#,0"
           },
           {
             "name": "Individual Buyers Value",
@@ -7791,7 +7834,8 @@
               "    'FactTradeDetails',",
               "    'FactTradeDetails'[Value]",
               ")"
-            ]
+            ],
+            "formatString": "#,0"
           },
           {
             "name": "Trade Value DoD %",
@@ -7942,6 +7986,48 @@
               ")"
             ],
             "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "% Trade Turnover",
+            "expression": [
+              " ",
+              "DIVIDE(",
+              "    [Trade Value], ",
+              "    CALCULATE([Market Cap (Currency)], NOT ISBLANK('DimFunds'[InstrumentId]))",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "% Individual Trade Turnover",
+            "expression": [
+              " ",
+              "DIVIDE(",
+              "    [Individual Buyers Value] + [Individual Seller Value], ",
+              "    CALCULATE([Market Cap (Currency)], NOT ISBLANK('DimFunds'[InstrumentId])) ",
+              ") / 2"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "% Trade Turnover Competitors",
+            "expression": [
+              " ",
+              "CALCULATE(",
+              "    [% Trade Turnover], ",
+              "    ALL('DimFunds'), ",
+              "    'DimManager'[IsCompetitor]",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Market Cap",
+            "expression": [
+              "",
+              "[Market Cap (Currency)]"
+            ],
+            "formatString": "#,0"
           }
         ]
       },
@@ -9014,6 +9100,28 @@
             "name": "PortfolioType",
             "dataType": "string",
             "sourceColumn": "PortfolioType"
+          },
+          {
+            "type": "calculated",
+            "name": "InstrumentId",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "expression": [
+              "",
+              "SWITCH(",
+              "    'DimPortfolio'[PortfolioTypeId],",
+              "    2, CALCULATE(",
+              "        SELECTEDVALUE('DimCompany'[InstrumentId]),",
+              "        CROSSFILTER('DimCompany'[CompanyId], 'DimPortfolio'[PortfolioId], Both)",
+              "        ),",
+              "    3, CALCULATE(",
+              "        SELECTEDVALUE('DimFirouzehFund'[InstrumentId]),",
+              "        CROSSFILTER('DimFirouzehFund'[FundId], 'DimPortfolio'[PortfolioId], Both)",
+              "    ),",
+              "    BLANK()",
+              ")",
+              "    "
+            ]
           }
         ],
         "partitions": [
@@ -9065,6 +9173,133 @@
                 "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimPRXManager,{\"DimPortfolio\"})",
                 "in",
                 "    #\"Removed Columns\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "DimFirouzehFund",
+        "columns": [
+          {
+            "name": "FundId",
+            "dataType": "int64",
+            "sourceColumn": "FundId"
+          },
+          {
+            "name": "InstrumentId",
+            "dataType": "int64",
+            "sourceColumn": "InstrumentId"
+          },
+          {
+            "name": "FundName",
+            "dataType": "string",
+            "sourceColumn": "FundName"
+          },
+          {
+            "name": "BourseCode",
+            "dataType": "string",
+            "sourceColumn": "BourseCode"
+          },
+          {
+            "name": "FundEnName",
+            "dataType": "string",
+            "sourceColumn": "FundEnName"
+          },
+          {
+            "name": "FundShortName",
+            "dataType": "string",
+            "sourceColumn": "FundShortName"
+          },
+          {
+            "name": "FundEnShortName",
+            "dataType": "string",
+            "sourceColumn": "FundEnShortName"
+          },
+          {
+            "name": "FundType",
+            "dataType": "string",
+            "sourceColumn": "FundType"
+          },
+          {
+            "name": "FundTypeEn",
+            "dataType": "string",
+            "sourceColumn": "FundTypeEn"
+          },
+          {
+            "name": "FundLink",
+            "dataType": "string",
+            "sourceColumn": "FundLink"
+          },
+          {
+            "name": "TypeOfInvest",
+            "dataType": "boolean",
+            "sourceColumn": "TypeOfInvest"
+          },
+          {
+            "name": "ManagerId",
+            "dataType": "int64",
+            "sourceColumn": "ManagerId"
+          },
+          {
+            "name": "Guarantor",
+            "dataType": "string",
+            "sourceColumn": "Guarantor"
+          },
+          {
+            "name": "InitiationDate",
+            "dataType": "string",
+            "sourceColumn": "InitiationDate"
+          },
+          {
+            "name": "MarketMaker",
+            "dataType": "string",
+            "sourceColumn": "MarketMaker"
+          },
+          {
+            "name": "Custodian",
+            "dataType": "string",
+            "sourceColumn": "Custodian"
+          },
+          {
+            "name": "InvestmentManager",
+            "dataType": "string",
+            "sourceColumn": "InvestmentManager"
+          },
+          {
+            "name": "FiscalYear",
+            "dataType": "string",
+            "sourceColumn": "FiscalYear"
+          },
+          {
+            "name": "FundSubType",
+            "dataType": "string",
+            "sourceColumn": "FundSubType"
+          },
+          {
+            "name": "FundSubTypeEn",
+            "dataType": "string",
+            "sourceColumn": "FundSubTypeEn"
+          },
+          {
+            "name": "DividendIntervalPeriod",
+            "dataType": "int64",
+            "sourceColumn": "DividendIntervalPeriod"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_DimFunds = Source{[Schema=\"dbo\",Item=\"DimFunds\"]}[Data],",
+                "    #\"Filtered Rows\" = Table.SelectRows(dbo_DimFunds, each ([ManagerId] = 38 or [ManagerId] = 113 or [ManagerId] = 117))",
+                "in",
+                "    #\"Filtered Rows\""
               ]
             }
           }
@@ -9314,13 +9549,6 @@
         "crossFilteringBehavior": "bothDirections"
       },
       {
-        "name": "62dab5e6-e726-4e6c-90c2-96157c406582",
-        "fromTable": "DimPortfolio",
-        "fromColumn": "PortfolioId",
-        "toTable": "DimFunds",
-        "toColumn": "FundId"
-      },
-      {
         "name": "4e1f23a3-78f9-4a95-a43d-5e86f1de650e",
         "fromTable": "DimPortfolio",
         "fromColumn": "PortfolioId",
@@ -9372,21 +9600,35 @@
         "toColumn": "PortfolioManagerId"
       },
       {
-        "name": "9fbdcfde-8453-4e95-8471-6d8e46ea8051",
-        "toCardinality": "many",
-        "fromTable": "DimFunds",
-        "fromColumn": "InstrumentId",
-        "toTable": "DimInstrument",
-        "toColumn": "InstrumentId",
-        "isActive": false,
-        "crossFilteringBehavior": "bothDirections"
-      },
-      {
         "name": "87fca31d-f695-4cde-96be-4fbe9f4116c6",
         "fromTable": "FactPortfolio",
         "fromColumn": "AssetId",
         "toTable": "DimAsset",
         "toColumn": "AssetId"
+      },
+      {
+        "name": "11beaa60-4676-482f-8f2b-92a3e595a5b1",
+        "fromTable": "DimPortfolio",
+        "fromColumn": "PortfolioId",
+        "toTable": "DimFirouzehFund",
+        "toColumn": "FundId"
+      },
+      {
+        "name": "f50dc2a7-5f12-4ed4-a179-691a01d39836",
+        "fromTable": "DimFirouzehFund",
+        "fromColumn": "InstrumentId",
+        "toTable": "DimInstrument",
+        "toColumn": "InstrumentId",
+        "isActive": false
+      },
+      {
+        "name": "2b66655f-cfab-4e1d-88b1-23022e590e39",
+        "toCardinality": "many",
+        "fromTable": "DimFunds",
+        "fromColumn": "InstrumentId",
+        "toTable": "DimInstrument",
+        "toColumn": "InstrumentId",
+        "crossFilteringBehavior": "bothDirections"
       }
     ],
     "perspectives": [

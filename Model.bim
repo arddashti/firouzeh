@@ -9037,16 +9037,6 @@
             "sourceColumn": "displayName"
           },
           {
-            "name": "mail",
-            "dataType": "string",
-            "sourceColumn": "mail"
-          },
-          {
-            "name": "mobile",
-            "dataType": "string",
-            "sourceColumn": "mobile"
-          },
-          {
             "name": "userPrincipalName",
             "dataType": "string",
             "sourceColumn": "userPrincipalName"
@@ -9064,10 +9054,9 @@
                 "    iidic.com = Source{[Domain=\"iidic.com\"]}[#\"Object Categories\"],",
                 "    user1 = iidic.com{[Category=\"user\"]}[Objects],",
                 "    #\"Removed Columns\" = Table.RemoveColumns(user1,{\"organizationalPerson\", \"person\", \"top\", \"msExchOmaUser\", \"msExchBaseClass\", \"msExchIMRecipient\", \"msExchCertificateInformation\", \"msExchMultiMediaUser\", \"msExchMailStorage\", \"msExchCustomAttributes\", \"shadowAccount\", \"posixAccount\", \"msDS-CloudExtensions\", \"securityPrincipal\", \"mailRecipient\", \"distinguishedName\"}),",
-                "    #\"Expanded user\" = Table.ExpandRecordColumn(#\"Removed Columns\", \"user\", {\"mail\", \"manager\", \"mobile\", \"userPrincipalName\"}, {\"mail\", \"manager\", \"mobile\", \"userPrincipalName\"}),",
-                "    #\"Removed Columns1\" = Table.RemoveColumns(#\"Expanded user\",{\"manager\"})",
+                "    #\"Expanded user\" = Table.ExpandRecordColumn(#\"Removed Columns\", \"user\", {\"servicePrincipalName\", \"userPrincipalName\"}, {\"servicePrincipalName\", \"userPrincipalName\"})",
                 "in",
-                "    #\"Removed Columns1\""
+                "    #\"Expanded user\""
               ]
             }
           }

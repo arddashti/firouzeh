@@ -8028,6 +8028,30 @@
               "[Market Cap (Currency)]"
             ],
             "formatString": "#,0"
+          },
+          {
+            "name": "Firouzeh Individual Seller Count",
+            "expression": [
+              " ",
+              "CALCULATE(",
+              "    [Individual Sellers Count],",
+              "    'DimManager'[FinancialGroupName] = \"فیروزه\"",
+              ")"
+            ]
+          },
+          {
+            "name": "Firouzeh Individual Trades Count",
+            "expression": [
+              " ",
+              "[Firouzeh Individual Buyers Count]+[Firouzeh Individual Seller Count]"
+            ]
+          },
+          {
+            "name": "Individual Trades Count",
+            "expression": [
+              " ",
+              "[Individual Buyers Count]+[Individual Sellers Count]"
+            ]
           }
         ]
       },

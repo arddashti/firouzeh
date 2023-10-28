@@ -8643,6 +8643,11 @@
               "    BLANK()",
               ")"
             ]
+          },
+          {
+            "name": "InsertTime",
+            "dataType": "dateTime",
+            "sourceColumn": "InsertTime"
           }
         ],
         "partitions": [
@@ -8655,7 +8660,7 @@
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
                 "    dbo_FactPortfolioTrade = Source{[Schema=\"dbo\",Item=\"FactPortfolioTrade\"]}[Data],",
-                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_FactPortfolioTrade,{\"DimAsset\", \"DimInstrument\", \"DimPortfolio\", \"DimTimeTable\", \"InsertTime\"})",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_FactPortfolioTrade,{\"DimAsset\", \"DimInstrument\", \"DimPortfolio_Delete\", \"DimTimeTable\"})",
                 "in",
                 "    #\"Removed Columns\""
               ]
@@ -10821,6 +10826,9 @@
               },
               {
                 "name": "SourceId"
+              },
+              {
+                "name": "InsertTime"
               }
             ],
             "measures": [
@@ -11034,10 +11042,6 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\507485",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1521"
-          },
-          {
             "memberName": "IIDIC\\507481",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1390"
           },
@@ -11060,10 +11064,6 @@
           {
             "memberName": "IIDIC\\507275",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1462"
-          },
-          {
-            "memberName": "IIDIC\\507382",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1734"
           },
           {
             "memberName": "IIDIC\\507484",
@@ -11264,10 +11264,6 @@
                 "metadataPermission": "none"
               }
             ]
-          },
-          {
-            "name": "DimPortfolio",
-            "filterExpression": "USERNAME()=CONVERT(RELATED('DimPortfolioManager'[UserId]),STRING)"
           }
         ]
       },
@@ -11310,10 +11306,6 @@
           {
             "memberName": "IIDIC\\410036",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1756"
-          },
-          {
-            "memberName": "IIDIC\\507333",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1737"
           }
         ],
         "tablePermissions": [
@@ -11669,7 +11661,7 @@
         "tablePermissions": [
           {
             "name": "DimPortfolio",
-            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {1}"
+            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {2}"
           }
         ]
       },
@@ -11685,7 +11677,59 @@
       },
       {
         "name": "PortfolioManager",
-        "modelPermission": "read"
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "IIDIC\\10045",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1414"
+          },
+          {
+            "memberName": "IIDIC\\507258",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1732"
+          },
+          {
+            "memberName": "IIDIC\\507476",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1470"
+          },
+          {
+            "memberName": "IIDIC\\410026",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1762"
+          },
+          {
+            "memberName": "IIDIC\\507349",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1729"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "DimPortfolio",
+            "filterExpression": "USERNAME()=CONVERT(RELATED('DimPortfolioManager'[UserId]),STRING)"
+          }
+        ]
+      },
+      {
+        "name": "BD & Marketing",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "IIDIC\\507485",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1521"
+          },
+          {
+            "memberName": "IIDIC\\507382",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1734"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "FactPortfolio",
+            "metadataPermission": "none"
+          },
+          {
+            "name": "FactPortfolioTrade",
+            "metadataPermission": "none"
+          }
+        ]
       }
     ],
     "annotations": [

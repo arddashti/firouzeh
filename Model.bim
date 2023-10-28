@@ -38,24 +38,6 @@
         "credential": {
           "AuthenticationKind": "ServiceAccount"
         }
-      },
-      {
-        "type": "structured",
-        "name": "SQL/192 168 220 10;StageArea",
-        "connectionDetails": {
-          "protocol": "tds",
-          "address": {
-            "server": "192.168.220.10",
-            "database": "StageArea"
-          },
-          "authentication": null,
-          "query": null
-        },
-        "credential": {
-          "AuthenticationKind": "UsernamePassword",
-          "Username": "reportuser",
-          "EncryptConnection": false
-        }
       }
     ],
     "tables": [

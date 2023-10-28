@@ -38,6 +38,24 @@
         "credential": {
           "AuthenticationKind": "ServiceAccount"
         }
+      },
+      {
+        "type": "structured",
+        "name": "SQL/192 168 220 10;StageArea",
+        "connectionDetails": {
+          "protocol": "tds",
+          "address": {
+            "server": "192.168.220.10",
+            "database": "StageArea"
+          },
+          "authentication": null,
+          "query": null
+        },
+        "credential": {
+          "AuthenticationKind": "UsernamePassword",
+          "Username": "reportuser",
+          "EncryptConnection": false
+        }
       }
     ],
     "tables": [
@@ -9091,26 +9109,14 @@
             "sourceColumn": "PortfolioType"
           },
           {
-            "type": "calculated",
             "name": "InstrumentId",
             "dataType": "int64",
-            "isDataTypeInferred": true,
-            "expression": [
-              "",
-              "SWITCH(",
-              "    'DimPortfolio'[PortfolioTypeId],",
-              "    2, CALCULATE(",
-              "        SELECTEDVALUE('DimCompany'[InstrumentId]),",
-              "        CROSSFILTER('DimCompany'[CompanyId], 'DimPortfolio'[PortfolioId], Both)",
-              "        ),",
-              "    3, CALCULATE(",
-              "        SELECTEDVALUE('DimFirouzehFund'[InstrumentId]),",
-              "        CROSSFILTER('DimFirouzehFund'[FundId], 'DimPortfolio'[PortfolioId], Both)",
-              "    ),",
-              "    BLANK()",
-              ")",
-              "    "
-            ]
+            "sourceColumn": "InstrumentId"
+          },
+          {
+            "name": "PortfolioManagerId",
+            "dataType": "int64",
+            "sourceColumn": "PortfolioManagerId"
           }
         ],
         "partitions": [
@@ -9125,43 +9131,6 @@
                 "    dbo_ViwDimPortfolio = Source{[Schema=\"dbo\",Item=\"ViwDimPortfolio\"]}[Data]",
                 "in",
                 "    dbo_ViwDimPortfolio"
-              ]
-            }
-          }
-        ]
-      },
-      {
-        "name": "DimPRXManager",
-        "columns": [
-          {
-            "name": "PortfolioManagerId",
-            "dataType": "int64",
-            "sourceColumn": "PortfolioManagerId"
-          },
-          {
-            "name": "PortfolioManager",
-            "dataType": "string",
-            "sourceColumn": "PortfolioManager"
-          },
-          {
-            "name": "PortfolioManagerEn",
-            "dataType": "string",
-            "sourceColumn": "PortfolioManagerEn"
-          }
-        ],
-        "partitions": [
-          {
-            "name": "Partition",
-            "dataView": "full",
-            "source": {
-              "type": "m",
-              "expression": [
-                "let",
-                "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_DimPRXManager = Source{[Schema=\"dbo\",Item=\"DimPortfolioManager\"]}[Data],",
-                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimPRXManager,{\"DimPortfolio\"})",
-                "in",
-                "    #\"Removed Columns\""
               ]
             }
           }
@@ -9289,6 +9258,48 @@
                 "    #\"Filtered Rows\" = Table.SelectRows(dbo_DimFunds, each ([ManagerId] = 38 or [ManagerId] = 113 or [ManagerId] = 117))",
                 "in",
                 "    #\"Filtered Rows\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "DimPortfolioManager",
+        "columns": [
+          {
+            "name": "PortfolioManagerId",
+            "dataType": "int64",
+            "sourceColumn": "PortfolioManagerId"
+          },
+          {
+            "name": "PortfolioManager",
+            "dataType": "string",
+            "sourceColumn": "PortfolioManager"
+          },
+          {
+            "name": "PortfolioManagerEn",
+            "dataType": "string",
+            "sourceColumn": "PortfolioManagerEn"
+          },
+          {
+            "name": "UserId",
+            "dataType": "int64",
+            "sourceColumn": "UserId"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    dbo_DimPRXManager = Source{[Schema=\"dbo\",Item=\"DimPortfolioManager\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimPRXManager,{\"DimPortfolio_Delete\"})",
+                "in",
+                "    #\"Removed Columns\""
               ]
             }
           }
@@ -9582,13 +9593,6 @@
         "toColumn": "PRXId"
       },
       {
-        "name": "7e20e906-ff5d-4ca9-b96e-ce7ed4e8572d",
-        "fromTable": "DimPRX",
-        "fromColumn": "PRXManagerId",
-        "toTable": "DimPRXManager",
-        "toColumn": "PortfolioManagerId"
-      },
-      {
         "name": "87fca31d-f695-4cde-96be-4fbe9f4116c6",
         "fromTable": "FactPortfolio",
         "fromColumn": "AssetId",
@@ -9618,6 +9622,13 @@
         "toTable": "DimInstrument",
         "toColumn": "InstrumentId",
         "crossFilteringBehavior": "bothDirections"
+      },
+      {
+        "name": "aab49cb6-954e-41d6-9116-62b191fe716f",
+        "fromTable": "DimPortfolio",
+        "fromColumn": "PortfolioManagerId",
+        "toTable": "DimPortfolioManager",
+        "toColumn": "PortfolioManagerId"
       }
     ],
     "perspectives": [
@@ -10085,6 +10096,12 @@
               },
               {
                 "name": "PortfolioTypeId"
+              },
+              {
+                "name": "InstrumentId"
+              },
+              {
+                "name": "PortfolioManagerId"
               }
             ]
           }
@@ -10899,6 +10916,12 @@
               },
               {
                 "name": "PortfolioType"
+              },
+              {
+                "name": "InstrumentId"
+              },
+              {
+                "name": "PortfolioManagerId"
               }
             ]
           },
@@ -10980,7 +11003,7 @@
             ]
           },
           {
-            "name": "DimPRXManager",
+            "name": "DimPortfolioManager",
             "columns": [
               {
                 "name": "PortfolioManager"
@@ -10990,6 +11013,9 @@
               },
               {
                 "name": "PortfolioManagerId"
+              },
+              {
+                "name": "UserId"
               }
             ]
           }
@@ -11232,6 +11258,10 @@
                 "metadataPermission": "none"
               }
             ]
+          },
+          {
+            "name": "DimPortfolio",
+            "filterExpression": "USERNAME()=CONVERT(RELATED('DimPortfolioManager'[UserId]),STRING)"
           }
         ]
       },
@@ -11646,6 +11676,10 @@
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1629"
           }
         ]
+      },
+      {
+        "name": "PortfolioManager",
+        "modelPermission": "read"
       }
     ],
     "annotations": [

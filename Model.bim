@@ -6832,7 +6832,7 @@
               "type": "m",
               "expression": [
                 "let",
-                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"#(lf)SELECT#(lf)    'Funds' AS Source,#(lf)    ViwFundsPivot.[Date],#(lf)    ViwFundsPivot.FundId,#(lf)    DimFunds.InstrumentId AS InstrumentId,#(lf)    NULL AS IndexId,#(lf)    DimFunds.FundShortName AS Description,#(lf)    DimFunds.FundEnName AS DescriptionEn,#(lf)    Efficiency AS FundEfficiency,#(lf)    MonthReturn AS FundMonthReturn,#(lf)    DayReturn AS FundDayReturn,#(lf)    WeekReturn AS FundWeekReturn,#(lf)    YearReturn AS FundYearReturn,#(lf)    QuarterReturn AS FundQuarterReturn,#(lf)    FactFundsSplit.SubscriptionPrice,#(lf)    FactFundsSplit.RedemptionPrice,#(lf)    FactFundsSplit.StatisticalPrice,#(lf)    Null as TickerClosePrice,#(lf)    Null as TickerAdjPrice, #(lf)    Null as IndexValue #(lf)FROM ViwFundsPivot#(lf)JOIN DimFunds ON ViwFundsPivot.FundId = DimFunds.FundId inner join FactFundsSplit on FactFundsSplit.[Date] = ViwFundsPivot.[Date] and FactFundsSplit.FundId = ViwFundsPivot.FundId#(lf)UNION ALL#(lf)#(lf)    SELECT#(lf)        'Tickers' AS Source,#(lf)        FactTradeDetails.[Date],#(lf)        NULL AS FundId,#(lf)        FactTradeDetails.InstrumentId,#(lf)        NULL AS IndexId,#(lf)        DimInstrument.Instrument AS Description,#(lf)        DimInstrument.Instrument AS DescriptionEn,#(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        FactTradeDetails.ClosePrice,#(lf)        FactTradeDetails.AdjPrice,#(lf)        Null#(lf)    FROM FactTradeDetails#(lf)    JOIN DimInstrument ON FactTradeDetails.InstrumentId = DimInstrument.InstrumentId#(lf)#(lf)    UNION ALL#(lf)#(lf)    SELECT#(lf)        'Indexes' AS Source,#(lf)        FactIndexValue.[Date],#(lf)        NULL AS FundId,#(lf)        NULL AS InstrumentId,#(lf)        FactIndexValue.IndexId,#(lf)        DimIndex.IndexName AS Description,#(lf)        DimIndex.NameEn AS DescriptionEn,#(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue    #(lf)    FROM FactIndexValue#(lf)    JOIN DimIndex ON FactIndexValue.IndexId = DimIndex.IndexId#(lf)\", CreateNavigationProperties=false])",
+                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"SELECT#(lf)    'Funds' AS Source,#(lf)    ViwFundsPivot.[Date],#(lf)    ViwFundsPivot.FundId,#(lf)    DimFunds.InstrumentId AS InstrumentId,#(lf)    NULL AS IndexId,#(lf)    DimFunds.FundShortName AS Description,#(lf)    DimFunds.FundEnName AS DescriptionEn,#(lf)    Efficiency AS FundEfficiency,#(lf)    MonthReturn AS FundMonthReturn,#(lf)    DayReturn AS FundDayReturn,#(lf)    WeekReturn AS FundWeekReturn,#(lf)    YearReturn AS FundYearReturn,#(lf)    QuarterReturn AS FundQuarterReturn,#(lf)    FactFundsSplit.SubscriptionPrice,#(lf)    FactFundsSplit.RedemptionPrice,#(lf)    FactFundsSplit.StatisticalPrice,#(lf)    FactTradeDetails.ClosePrice as TickerClosePrice,#(lf)    FactTradeDetails.AdjPrice as TickerAdjPrice,#(lf)    Null as IndexValue #(lf)FROM ViwFundsPivot#(lf)JOIN DimFunds ON ViwFundsPivot.FundId = DimFunds.FundId inner join FactFundsSplit on FactFundsSplit.[Date] = ViwFundsPivot.[Date] and FactFundsSplit.FundId = ViwFundsPivot.FundId left join FactTradeDetails on DimFunds.InstrumentId = FactTradeDetails.InstrumentId and ViwFundsPivot.[Date] = FactTradeDetails.[Date] and DimFunds.DividendIntervalPeriod=0#(lf)#(lf)UNION ALL#(lf)#(lf)    SELECT#(lf)        'Tickers' AS Source,#(lf)        FactTradeDetails.[Date],#(lf)        NULL AS FundId,#(lf)        FactTradeDetails.InstrumentId,#(lf)        NULL AS IndexId,#(lf)        DimInstrument.Instrument AS Description,#(lf)        DimInstrument.Instrument AS DescriptionEn,#(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        FactTradeDetails.ClosePrice,#(lf)        FactTradeDetails.AdjPrice,#(lf)        Null#(lf)    FROM FactTradeDetails#(lf)    JOIN DimInstrument ON FactTradeDetails.InstrumentId = DimInstrument.InstrumentId#(lf)#(lf)    UNION ALL#(lf)#(lf)    SELECT#(lf)        'Indexes' AS Source,#(lf)        FactIndexValue.[Date],#(lf)        NULL AS FundId,#(lf)        NULL AS InstrumentId,#(lf)        FactIndexValue.IndexId,#(lf)        DimIndex.IndexName AS Description,#(lf)        DimIndex.NameEn AS DescriptionEn,#(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue    #(lf)    FROM FactIndexValue#(lf)    JOIN DimIndex ON FactIndexValue.IndexId = DimIndex.IndexId\", CreateNavigationProperties=false])",
                 "in",
                 "    Source"
               ]
@@ -7416,6 +7416,34 @@
               "RETURN Label",
               "",
               "",
+              ""
+            ]
+          },
+          {
+            "name": "Fund Rank on NAV",
+            "expression": [
+              "",
+              "RANKX(",
+              "    All('FactReturns'[Description]),",
+              "    [% Fund Return on NAV],",
+              "    ,",
+              "    DESC,",
+              "    Dense",
+              ")",
+              ""
+            ]
+          },
+          {
+            "name": "Fund Rank on Price",
+            "expression": [
+              "",
+              "RANKX(",
+              "    All('FactReturns'[Description]),",
+              "    [% Return on Price],",
+              "    ,",
+              "    DESC,",
+              "    Dense",
+              ")",
               ""
             ]
           }
@@ -8051,6 +8079,29 @@
             "expression": [
               " ",
               "[Individual Buyers Count]+[Individual Sellers Count]"
+            ]
+          },
+          {
+            "name": "Market Cap Label",
+            "expression": [
+              "",
+              "VAR MaxDate = ",
+              "CALCULATE(",
+              "    MAX('DimTimeTable'[Date]), ",
+              "    ALLSELECTED('DimTimeTable'[Date])",
+              ")",
+              "",
+              "VAR Label =",
+              "IF(",
+              "    SELECTEDVALUE('DimTimeTable'[Date]) = MaxDate,",
+              "    [Market Cap], ",
+              "    --[% Fund Return on NAV Cum],",
+              "    \" \"",
+              ")",
+              "RETURN Label",
+              "",
+              "",
+              ""
             ]
           }
         ]
@@ -11646,6 +11697,16 @@
           {
             "memberName": "IIDIC\\507275",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1462"
+          },
+          {
+            "memberName": "IIDIC\\10052",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1494"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "DimPortfolio",
+            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {1,3}"
           }
         ]
       },
@@ -11708,7 +11769,7 @@
         ]
       },
       {
-        "name": "BD & Marketing",
+        "name": "BD and Marketing",
         "modelPermission": "read",
         "members": [
           {

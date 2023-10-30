@@ -2043,7 +2043,8 @@
               "    'FactFunds'[MonthReturn] <> 0",
               ")",
               "RETURN r"
-            ]
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           },
           {
             "name": "% Month Return (Average)",
@@ -4768,6 +4769,24 @@
               ""
             ],
             "formatString": "#,0.00%;-#,0.00%;#,0.00%"
+          },
+          {
+            "name": "% Funds AUM to Market Cap",
+            "expression": [
+              "",
+              "VAR AUM = ",
+              "CALCULATE(  ",
+              "    [AUM],",
+              "    'DimFirouzehFund'[FundTypeEn] <> \"MarketMaking\"",
+              ")",
+              "VAR Ratio = ",
+              "DIVIDE(",
+              "    AUM,",
+              "    [Exchange Market Cap FactMarketCap (Currency)]",
+              ")",
+              "",
+              "RETURN Ratio"
+            ]
           }
         ]
       },
@@ -5789,6 +5808,11 @@
             "name": "AssetCompany",
             "dataType": "string",
             "sourceColumn": "AssetCompany"
+          },
+          {
+            "name": "Ticker",
+            "dataType": "string",
+            "sourceColumn": "Ticker"
           }
         ],
         "partitions": [
@@ -5800,9 +5824,10 @@
               "expression": [
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_DimAsset = Source{[Schema=\"dbo\",Item=\"DimAsset\"]}[Data]",
+                "    dbo_DimAsset = Source{[Schema=\"dbo\",Item=\"DimAsset\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimAsset,{\"DimInstrumentType\", \"FactPortfolio\", \"FactPortfolioTrade\", \"FactTrade\"})",
                 "in",
-                "    dbo_DimAsset"
+                "    #\"Removed Columns\""
               ]
             }
           }
@@ -6008,6 +6033,7 @@
           },
           {
             "name": "Exchange Market Cap FactTradeDetails (Currency)",
+            "description": "Source: Sum of All Trades",
             "expression": [
               " ",
               "VAR MaxDate = --SELECTEDVALUE('DimTimeTable'[Date])",
@@ -6045,8 +6071,10 @@
             ],
             "expression": [
               " ",
-              "VAR Asset = SELECTEDVALUE('DimInstrument'[AssetId])",
+              "VAR Asset = SELECTEDVALUE('DimAsset'[AssetId])",
               "VAR T = CALCULATETABLE(VALUES('DimInstrument'[InstrumentId]), 'DimInstrument'[AssetId] = Asset)",
+              "",
+              "",
               "VAR MaxDate = --SELECTEDVALUE('DimTimeTable'[Date])",
               "calculate(",
               "    lastnonblank(",
@@ -6058,13 +6086,15 @@
               "        calculate(count('FactTradeDetails'[ShareNo])) ",
               "        )",
               ")",
-              "RETURN",
+              "VAR CountShares =",
               "CALCULATE(",
               "    SUM('FactTradeDetails'[ShareNo]),",
               "    'DimTimeTable'[Date] = MaxDate",
               "    , 'DimInstrument'[MarketId] = 6",
               "    , T",
-              ") "
+              ") ",
+              "",
+              "RETURN CountShares"
             ]
           }
         ]
@@ -7912,6 +7942,7 @@
           },
           {
             "name": "Market Cap (Currency)",
+            "description": "برای ارزش بازار یک نماد استفاده شود",
             "expression": [
               " ",
               "VAR T = ",
@@ -8051,6 +8082,7 @@
           },
           {
             "name": "Market Cap",
+            "description": "برای ارزش بازار یک نماد استفاده شود",
             "expression": [
               "",
               "[Market Cap (Currency)]"
@@ -8724,22 +8756,42 @@
             "expression": [
               " ",
               " SUM('FactPortfolioTrade'[NetAmount])"
+            ],
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
             ]
           },
           {
             "name": "Portfolio Trade Quantity (+/-)",
             "expression": [
               "",
-              "SUMX(",
-              "    'FactPortfolioTrade',",
-              "    IF(",
-              "        'FactPortfolioTrade'[BuySellTypeId] = 1,",
-              "        'FactPortfolioTrade'[ShareNo],",
-              "        -'FactPortfolioTrade'[ShareNo]",
-              "    )",
+              "VAR Instrument = SELECTEDVALUE('DimInstrument'[InstrumentId])",
+              "VAR B1 =",
+              "COUNTROWS('DimInstrument') = 1",
+              "VAR B2 = ",
+              "COUNTROWS('DimAsset') = 1",
+              "VAR B = OR(B1, B2)",
+              "VAR Qty =",
+              "CALCULATE(",
+              "    SUMX(",
+              "        'FactPortfolioTrade',",
+              "        IF(",
+              "            'FactPortfolioTrade'[BuySellTypeId] = 1,",
+              "            'FactPortfolioTrade'[ShareNo],",
+              "            -'FactPortfolioTrade'[ShareNo]",
+              "        )",
+              "    ),",
+              "//    'DimInstrument'[InstrumentId] = Instrument",
+              "    FILTER('FactPortfolioTrade', B)",
               ")",
-              ""
-            ]
+              "",
+              "RETURN Qty"
+            ],
+            "formatString": "#,0"
           },
           {
             "name": "Portfolio Trade Value (+/-)",
@@ -8754,6 +8806,13 @@
               "    )",
               ")",
               ""
+            ],
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
             ]
           },
           {
@@ -8779,6 +8838,13 @@
               "    v,",
               "    Blank()",
               ")"
+            ],
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
             ]
           }
         ]
@@ -8895,9 +8961,17 @@
               "",
               "VAR LastDay = ",
               "CALCULATE(",
-              "    MAX('FactPortfolio'[Date]),",
-              "    ALLEXCEPT('FactPortfolio', 'DimTimeTable'[Date])",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        COUNTROWS(RELATEDTABLE('FactPortfolio'))",
+              "    ),",
+              "    ALL('FactPortfolio'[AssetId]),",
+              "    All('FactPortfolio'[InstrumentId]),",
+              "    All('DimAsset'),",
+              "    All('DimInstrument')",
               ")",
+              "//MAX('FactPortfolio'[Date])",
+              "",
               "RETURN",
               "CALCULATE(SUM('FactPortfolio'[ValueInDate]), 'DimTimeTable'[Date] = LastDay)",
               ""
@@ -8918,7 +8992,9 @@
               "    [Portfolio Value],",
               "    CALCULATE(",
               "        [Portfolio Value] ,",
-              "        ALLSELECTED('DimInstrument')",
+              "        --ALLSELECTED('DimInstrument')",
+              "        ALL('DimInstrument'),",
+              "        ALL('DimAsset')",
               "    )",
               ")"
             ],
@@ -8945,7 +9021,8 @@
               "    'DimTimeTable'[Date] = LastDay, ",
               "    'DimPRX'[StatusEn] <> \"Rescinded\" ",
               ")"
-            ]
+            ],
+            "formatString": "#,0"
           },
           {
             "name": "ShareHolder %",
@@ -8963,41 +9040,26 @@
             "formatString": "0.0%;-0.0%;0.0%"
           },
           {
-            "name": "Portfolio Cost",
-            "expression": [
-              "",
-              " ",
-              "VAR LastDay = MAX('DimTimeTable'[Date])",
-              "",
-              "//VAR LastDay = ",
-              "//CALCULATE(",
-              "//    LASTNONBLANK(",
-              "//        DATESBETWEEN(",
-              "//            'DimTimeTable'[Date],",
-              "//            BLANK(),",
-              "//            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "//        ),",
-              "//        CALCULATE(COUNT('FactPortfolio'[TotalInvest]))",
-              "//    )",
-              "//)",
-              "//",
-              "RETURN",
-              "CALCULATE(SUM('FactPortfolio'[TotalInvest]), 'DimTimeTable'[Date] = LastDay)",
-              ""
-            ],
-            "formatString": "\"IRR\" #,0.00;-\"IRR\" #,0.00;\"IRR\" #,0.00",
-            "annotations": [
-              {
-                "name": "Format",
-                "value": "<Format Format=\"Currency\" Accuracy=\"2\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
-              }
-            ]
-          },
-          {
             "name": "Portfolio Quantity",
             "expression": [
               "",
-              " VAR LastDay = MAX('DimTimeTable'[Date])",
+              " VAR LastDay = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        COUNTROWS(RELATEDTABLE('FactPortfolio'))",
+              "    ),",
+              "    ALL('FactPortfolio'[AssetId]),",
+              "    All('FactPortfolio'[InstrumentId]),",
+              "    All('DimAsset'),",
+              "    All('DimInstrument')",
+              ")",
+              "VAR B1 =",
+              "COUNTROWS('DimInstrument') = 1",
+              "VAR B2 = ",
+              "COUNTROWS('DimAsset') = 1",
+              "VAR B = OR(B1, B2)",
+              "//MAX('DimTimeTable'[Date])",
               "VAR Instrument = SELECTEDVALUE('DimInstrument'[InstrumentId])",
               "//VAR LastDay = ",
               "//CALCULATE(",
@@ -9012,11 +9074,48 @@
               "//)",
               "//",
               "RETURN",
-              "CALCULATE(SUM('FactPortfolio'[ShareNo]), 'DimTimeTable'[Date] = LastDay)",
+              "CALCULATE(",
+              "    SUM('FactPortfolio'[ShareNo]), ",
+              "    'DimTimeTable'[Date] = LastDay,",
+              "    --'DimInstrument'[InstrumentId] = Instrument",
+              "    FILTER('FactPortfolio', B)",
+              ")",
               "",
               ""
             ],
             "formatString": "#,0"
+          },
+          {
+            "name": "Portfolio Avg Cost",
+            "expression": [
+              "",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        COUNTROWS(RELATEDTABLE('FactPortfolio'))",
+              "    ),",
+              "    ALL('FactPortfolio'[AssetId]),",
+              "    All('FactPortfolio'[InstrumentId]),",
+              "    All('DimAsset'),",
+              "    All('DimInstrument')",
+              ")",
+              "",
+              "RETURN",
+              "CALCULATE(",
+              "    SUMX(",
+              "        'FactPortfolio',",
+              "        'FactPortfolio'[AVGBuyPrice] * 'FactPortfolio'[ShareNo]",
+              "    ), 'DimTimeTable'[Date] = LastDay)",
+              ""
+            ],
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
+            ]
           }
         ]
       },
@@ -9062,8 +9161,8 @@
         ],
         "measures": [
           {
-            "name": "Exchange Market Cap FactMArketCap (Currency)",
-            "description": "Source: TSETMC Market Cap",
+            "name": "Exchange Market Cap FactMarketCap (Currency)",
+            "description": "Source: TSETMC Market Cap + FaraBourse",
             "expression": [
               "",
               "VAR MaxDate = ",
@@ -9091,20 +9190,6 @@
                 "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
               }
             ]
-          },
-          {
-            "name": "Funds Market to Market Cap %",
-            "expression": [
-              "",
-              "DIVIDE(",
-              "    CALCULATE(",
-              "        [AUM],",
-              "        'DimFunds'[FundTypeEn] <> \"MarketMaking\"",
-              "    ),",
-              "    [Exchange Market Cap FactMArketCap (Currency)]",
-              ")"
-            ],
-            "formatString": "0.0%;-0.0%;0.0%"
           }
         ]
       },
@@ -9655,13 +9740,6 @@
         "toColumn": "PRXId"
       },
       {
-        "name": "87fca31d-f695-4cde-96be-4fbe9f4116c6",
-        "fromTable": "FactPortfolio",
-        "fromColumn": "AssetId",
-        "toTable": "DimAsset",
-        "toColumn": "AssetId"
-      },
-      {
         "name": "11beaa60-4676-482f-8f2b-92a3e595a5b1",
         "fromTable": "DimPortfolio",
         "fromColumn": "PortfolioId",
@@ -9691,6 +9769,28 @@
         "fromColumn": "PortfolioManagerId",
         "toTable": "DimPortfolioManager",
         "toColumn": "PortfolioManagerId"
+      },
+      {
+        "name": "1005869c-a729-4c3c-b440-406e35519a5e",
+        "fromTable": "DimInstrument",
+        "fromColumn": "AssetId",
+        "toTable": "DimAsset",
+        "toColumn": "AssetId",
+        "isActive": false
+      },
+      {
+        "name": "a1035b7e-db38-4d46-a496-1921e455e10d",
+        "fromTable": "FactPortfolioTrade",
+        "fromColumn": "AssetId",
+        "toTable": "DimAsset",
+        "toColumn": "AssetId"
+      },
+      {
+        "name": "a396c93b-c3cf-413f-a868-a13557eee001",
+        "fromTable": "FactPortfolio",
+        "fromColumn": "AssetId",
+        "toTable": "DimAsset",
+        "toColumn": "AssetId"
       }
     ],
     "perspectives": [
@@ -10189,6 +10289,9 @@
               },
               {
                 "name": "AssetTypeId"
+              },
+              {
+                "name": "Ticker"
               }
             ],
             "measures": [
@@ -10516,9 +10619,6 @@
                 "name": "Portfolio Value % AllSelected DimInstruments"
               },
               {
-                "name": "Portfolio Cost"
-              },
-              {
                 "name": "Portfolio Count"
               },
               {
@@ -10551,6 +10651,9 @@
               },
               {
                 "name": "AssetTypeId"
+              },
+              {
+                "name": "Ticker"
               }
             ],
             "measures": [
@@ -10954,9 +11057,6 @@
                 "name": "Portfolio Value % AllSelected DimInstruments"
               },
               {
-                "name": "Portfolio Cost"
-              },
-              {
                 "name": "Portfolio Quantity"
               },
               {
@@ -11103,10 +11203,6 @@
           {
             "memberName": "IIDIC\\507153",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1647"
-          },
-          {
-            "memberName": "IIDIC\\507201",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1731"
           },
           {
             "memberName": "IIDIC\\507268",
@@ -11627,10 +11723,6 @@
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2660"
           },
           {
-            "memberName": "IIDIC\\507201",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1731"
-          },
-          {
             "memberName": "IIDIC\\507268",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1393"
           },
@@ -11701,6 +11793,10 @@
           {
             "memberName": "IIDIC\\10052",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1494"
+          },
+          {
+            "memberName": "IIDIC\\507201",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1731"
           }
         ],
         "tablePermissions": [

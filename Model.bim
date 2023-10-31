@@ -300,7 +300,8 @@
           {
             "name": "DateKey",
             "dataType": "string",
-            "sourceColumn": "DateKey"
+            "sourceColumn": "DateKey",
+            "sortByColumn": "Date"
           },
           {
             "name": "FDATE",
@@ -1156,7 +1157,14 @@
           {
             "name": "Date",
             "dataType": "dateTime",
-            "sourceColumn": "Date"
+            "sourceColumn": "Date",
+            "formatString": "M/d/yyyy HH:mm:ss",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"DateTimeCustom\"><DateTimes><DateTime LCID=\"1033\" Group=\"GeneralLongDateTime\" FormatString=\"M/d/yyyy HH:mm:ss\" /></DateTimes></Format>"
+              }
+            ]
           },
           {
             "name": "Price",
@@ -1175,8 +1183,9 @@
           },
           {
             "name": "Value",
-            "dataType": "double",
-            "sourceColumn": "Value"
+            "dataType": "int64",
+            "sourceColumn": "Value",
+            "formatString": "0"
           },
           {
             "name": "InsertTime",
@@ -5663,6 +5672,35 @@
               ""
             ],
             "formatString": "#,0"
+          },
+          {
+            "name": "Client Trade Qty",
+            "expression": [
+              "",
+              "VAR Fund = SELECTEDVALUE('DimFirouzehFund'[FundName])",
+              "VAR Qty = ",
+              "CALCULATE(",
+              "    SUM('FactShareHoldersTrade'[Volume]),",
+              "    'DimFirouzehFund'[FundName] = Fund",
+              ")",
+              "RETURN Qty"
+            ],
+            "formatString": "#,0"
+          },
+          {
+            "name": "Client Trade Value",
+            "expression": [
+              "",
+              "SUM('FactShareHoldersTrade'[Value])",
+              ""
+            ],
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
+            ]
           }
         ]
       },
@@ -11449,10 +11487,6 @@
           {
             "memberName": "IIDIC\\402MG040",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2644"
-          },
-          {
-            "memberName": "IIDIC\\410036",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1756"
           }
         ],
         "tablePermissions": [
@@ -11715,7 +11749,7 @@
         ]
       },
       {
-        "name": "Asset Manager",
+        "name": "Asset Management",
         "modelPermission": "read",
         "members": [
           {

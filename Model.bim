@@ -5904,6 +5904,11 @@
             "name": "InsertTime",
             "dataType": "dateTime",
             "sourceColumn": "InsertTime"
+          },
+          {
+            "name": "LastPrice",
+            "dataType": "double",
+            "sourceColumn": "LastPrice"
           }
         ],
         "partitions": [
@@ -5915,9 +5920,10 @@
               "expression": [
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_FactTrade = Source{[Schema=\"dbo\",Item=\"FactTrade\"]}[Data]",
+                "    dbo_FactTrade = Source{[Schema=\"dbo\",Item=\"FactTrade\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_FactTrade,{\"DimAsset\", \"DimInstrument\", \"DimTimeTable\"})",
                 "in",
-                "    dbo_FactTrade"
+                "    #\"Removed Columns\""
               ]
             }
           }
@@ -8769,6 +8775,11 @@
             "name": "InsertTime",
             "dataType": "dateTime",
             "sourceColumn": "InsertTime"
+          },
+          {
+            "name": "PortfolioManagerId",
+            "dataType": "int64",
+            "sourceColumn": "PortfolioManagerId"
           }
         ],
         "partitions": [
@@ -8781,7 +8792,7 @@
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
                 "    dbo_FactPortfolioTrade = Source{[Schema=\"dbo\",Item=\"FactPortfolioTrade\"]}[Data],",
-                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_FactPortfolioTrade,{\"DimAsset\", \"DimInstrument\", \"DimPortfolio_Delete\", \"DimTimeTable\"})",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_FactPortfolioTrade,{\"DimAsset\", \"DimInstrument\", \"DimTimeTable\"})",
                 "in",
                 "    #\"Removed Columns\""
               ]
@@ -9031,8 +9042,9 @@
               "    CALCULATE(",
               "        [Portfolio Value] ,",
               "        --ALLSELECTED('DimInstrument')",
-              "        ALL('DimInstrument'),",
+              "        ALLEXCEPT('DimInstrument', 'DimInstrument'[Affiliated], 'DimInstrument'[IsAffiliated]),",
               "        ALL('DimAsset')",
+              "        --ALLSELECTED('DimInstrument'[IsAffiliated])",
               "    )",
               ")"
             ],
@@ -9043,21 +9055,27 @@
             "expression": [
               "",
               "VAR LastDay = ",
-              "CALCULATE(",
-              "    LASTNONBLANK(",
-              "        DATESBETWEEN(",
-              "            'DimTimeTable'[Date],",
-              "            BLANK(),",
-              "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "        ),",
-              "        CALCULATE(COUNT('FactPortfolio'[TotalInvest]))",
-              "    )",
-              ") ",
+              "LASTNONBLANK(",
+              "    'DimTimeTable'[Date],",
+              "    COUNTROWS('FactPortfolio')",
+              ")",
+              "//CALCULATE(",
+              "//    LASTNONBLANK(",
+              "//        DATESBETWEEN(",
+              "//            'DimTimeTable'[Date],",
+              "//            BLANK(),",
+              "//            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "//        ),",
+              "//        CALCULATE(COUNT('FactPortfolio'[TotalInvest]))",
+              "//    )",
+              "//) ",
               "RETURN",
               "CALCULATE(",
               "    DISTINCTCOUNT('FactPortfolio'[PortfolioId]), ",
               "    'DimTimeTable'[Date] = LastDay, ",
-              "    'DimPRX'[StatusEn] <> \"Rescinded\" ",
+              "    'DimPRX'[StatusEn] <> \"Rescinded\" ,",
+              "    ALL('DimInstrument'[IsAffiliated]),",
+              "    All('DimInstrument'[Affiliated])",
               ")"
             ],
             "formatString": "#,0"
@@ -9470,6 +9488,21 @@
             "name": "UserId",
             "dataType": "int64",
             "sourceColumn": "UserId"
+          },
+          {
+            "type": "calculated",
+            "name": "UserName",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              " ",
+              "IF(",
+              "    NOT(ISBLANK('DimPortfolioManager'[UserId])),",
+              "    \"iidic\\\" & 'DimPortfolioManager'[UserId],",
+              "    BLANK()",
+              ")",
+              ""
+            ]
           }
         ],
         "partitions": [
@@ -9481,10 +9514,9 @@
               "expression": [
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
-                "    dbo_DimPRXManager = Source{[Schema=\"dbo\",Item=\"DimPortfolioManager\"]}[Data],",
-                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimPRXManager,{\"DimPortfolio_Delete\"})",
+                "    dbo_DimPRXManager = Source{[Schema=\"dbo\",Item=\"DimPortfolioManager\"]}[Data]",
                 "in",
-                "    #\"Removed Columns\""
+                "    dbo_DimPRXManager"
               ]
             }
           }
@@ -11021,6 +11053,9 @@
               },
               {
                 "name": "InsertTime"
+              },
+              {
+                "name": "PortfolioManagerId"
               }
             ],
             "measures": [
@@ -11264,100 +11299,76 @@
             "name": "DimFunds",
             "columnPermissions": [
               {
-                "name": "FundId",
-                "metadataPermission": "none"
+                "name": "FundId"
               },
               {
-                "name": "FundName",
-                "metadataPermission": "none"
+                "name": "FundName"
               },
               {
-                "name": "FundEnName",
-                "metadataPermission": "none"
+                "name": "FundEnName"
               },
               {
-                "name": "FundShortName",
-                "metadataPermission": "none"
+                "name": "FundShortName"
               },
               {
-                "name": "FundEnShortName",
-                "metadataPermission": "none"
+                "name": "FundEnShortName"
               },
               {
-                "name": "FundType",
-                "metadataPermission": "none"
+                "name": "FundType"
               },
               {
-                "name": "FundTypeEn",
-                "metadataPermission": "none"
+                "name": "FundTypeEn"
               },
               {
-                "name": "FundLink",
-                "metadataPermission": "none"
+                "name": "FundLink"
               },
               {
-                "name": "TypeOfInvest",
-                "metadataPermission": "none"
+                "name": "TypeOfInvest"
               },
               {
-                "name": "ManagerId",
-                "metadataPermission": "none"
+                "name": "ManagerId"
               },
               {
-                "name": "Guarantor",
-                "metadataPermission": "none"
+                "name": "Guarantor"
               },
               {
-                "name": "InitiationDate",
-                "metadataPermission": "none"
+                "name": "InitiationDate"
               },
               {
-                "name": "MarketMaker",
-                "metadataPermission": "none"
+                "name": "MarketMaker"
               },
               {
-                "name": "Custodian",
-                "metadataPermission": "none"
+                "name": "Custodian"
               },
               {
-                "name": "InvestmentManager",
-                "metadataPermission": "none"
+                "name": "InvestmentManager"
               },
               {
-                "name": "FiscalYear",
-                "metadataPermission": "none"
+                "name": "FiscalYear"
               },
               {
-                "name": "FundSubType",
-                "metadataPermission": "none"
+                "name": "FundSubType"
               },
               {
-                "name": "FundSubTypeEn",
-                "metadataPermission": "none"
+                "name": "FundSubTypeEn"
               },
               {
-                "name": "ColorCode",
-                "metadataPermission": "none"
+                "name": "ColorCode"
               },
               {
-                "name": "AUM",
-                "metadataPermission": "none"
+                "name": "AUM"
               },
               {
-                "name": "InstrumentId",
-                "metadataPermission": "none"
+                "name": "InstrumentId"
               },
               {
-                "name": "BourseCode",
-                "metadataPermission": "none"
+                "name": "BourseCode"
               },
               {
-                "name": "ETF",
-                "metadataPermission": "none"
+                "name": "ETF"
               },
               {
-                "name": "DividendIntervalPeriod",
-                "metadataPermission": "none"
+                "name": "DividendIntervalPeriod"
               }
             ]
           },
@@ -11365,87 +11376,79 @@
             "name": "DimManager",
             "columnPermissions": [
               {
-                "name": "ManagerId",
+                "name": "ManagerId"
+              },
+              {
+                "name": "Manager"
+              },
+              {
+                "name": "ShortName"
+              },
+              {
+                "name": "ManagerEnName"
+              },
+              {
+                "name": "ENShortName"
+              },
+              {
+                "name": "FinancialGroupName"
+              },
+              {
+                "name": "FinancialGroupNameEN"
+              },
+              {
+                "name": "IsBanking"
+              },
+              {
+                "name": "PrivateSector"
+              },
+              {
+                "name": "ColorCode"
+              },
+              {
+                "name": "FoundDate"
+              },
+              {
+                "name": "IsCompetitor"
+              },
+              {
+                "name": "Column"
+              },
+              {
+                "name": "Competitors Only"
+              },
+              {
+                "name": "IsCompetitor1"
+              },
+              {
+                "name": "Manager Group"
+              },
+              {
+                "name": "Manager Short Name"
+              },
+              {
+                "name": "Manager Shorter Name"
+              },
+              {
+                "name": "Non Bank Affiliated"
+              },
+              {
+                "name": "Private"
+              },
+              {
+                "name": "AUM1111"
+              }
+            ]
+          },
+          {
+            "name": "DimFundDataTypes",
+            "columnPermissions": [
+              {
+                "name": "FundDataTypeId",
                 "metadataPermission": "none"
               },
               {
-                "name": "Manager",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "ShortName",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "ManagerEnName",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "ENShortName",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "FinancialGroupName",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "FinancialGroupNameEN",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "IsBanking",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "PrivateSector",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "ColorCode",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "FoundDate",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "IsCompetitor",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "Column",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "Competitors Only",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "IsCompetitor1",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "Manager Group",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "Manager Short Name",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "Manager Shorter Name",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "Non Bank Affiliated",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "Private",
-                "metadataPermission": "none"
-              },
-              {
-                "name": "AUM1111",
+                "name": "FundDataType",
                 "metadataPermission": "none"
               }
             ]
@@ -11795,10 +11798,6 @@
           {
             "memberName": "IIDIC\\410036",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1756"
-          },
-          {
-            "memberName": "IIDIC\\10045",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1414"
           }
         ],
         "tablePermissions": [
@@ -11894,7 +11893,7 @@
         "tablePermissions": [
           {
             "name": "DimPortfolio",
-            "filterExpression": "USERNAME()=CONVERT(RELATED('DimPortfolioManager'[UserId]),STRING)"
+            "filterExpression": "USERNAME()=RELATED('DimPortfolioManager'[UserName])"
           }
         ]
       },

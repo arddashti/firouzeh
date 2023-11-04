@@ -550,9 +550,10 @@
                 "let",
                 "    Source = #\"SQL/192 168 220 10;DW\",",
                 "    dbo_DimTimeTable = Source{[Schema=\"dbo\",Item=\"DimTimeTable\"]}[Data],",
-                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimTimeTable,{\"FactCurrency\", \"FactFunds\", \"FactShareHolders\", \"FactTrade\"})",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_DimTimeTable,{\"FactCurrency\", \"FactFunds\", \"FactShareHolders\", \"FactTrade\", \"FactMarketCap\", \"FactNAV\", \"FactPortfolio\", \"FactPortfolioTrade\", \"FactTradeDetails\"}),",
+                "    #\"Filtered Rows\" = Table.SelectRows (#\"Removed Columns\", each [Date] <= Date.From(Date.EndOfYear (DateTime.LocalNow ())))",
                 "in",
-                "    #\"Removed Columns\""
+                "    #\"Filtered Rows\""
               ]
             }
           }
@@ -6266,6 +6267,26 @@
               "",
               "[% Index Return] + [Return]"
             ]
+          },
+          {
+            "name": "Index Value",
+            "expression": [
+              "",
+              "VAR MaxDate =",
+              "CALCULATE( // Some indexec have values in nonworking days, so here we filter on working days",
+              "    LASTNONBLANK( ",
+              "        'DimTimeTable'[Date],",
+              "        COUNT('FactIndexValue'[Date])",
+              "    ),",
+              "    'DimTimeTable'[IsNonWorking] = FALSE()",
+              ")",
+              "VAR Val =",
+              "CALCULATE(",
+              "    SELECTEDVALUE('FactIndexValue'[CloseValue]),",
+              "    'DimTimeTable'[Date] = MaxDate",
+              ")",
+              "RETURN Val"
+            ]
           }
         ]
       },
@@ -7819,7 +7840,7 @@
               " ",
               "SUMX(",
               "    'FactTradeDetails',",
-              "    'FactTradeDetails'[PersonBuyVolume] * 'FactTradeDetails'[Value] / 'FactTradeDetails'[Volume]",
+              "    DIVIDE('FactTradeDetails'[PersonBuyVolume] * 'FactTradeDetails'[Value], 'FactTradeDetails'[Volume])",
               ")"
             ]
           },
@@ -7839,7 +7860,7 @@
               " ",
               "SUMX(",
               "    'FactTradeDetails',",
-              "    'FactTradeDetails'[PersonSellVolume] * 'FactTradeDetails'[Value] / 'FactTradeDetails'[Volume]",
+              "    DIVIDE('FactTradeDetails'[PersonSellVolume] * 'FactTradeDetails'[Value], 'FactTradeDetails'[Volume])",
               ")"
             ]
           },
@@ -8179,6 +8200,45 @@
               "",
               ""
             ]
+          },
+          {
+            "name": "Net Individual Buyer/Seller Value",
+            "expression": [
+              "",
+              "[Individual Buyers Value] - [Individual Seller Value] "
+            ]
+          },
+          {
+            "name": "Fixed Income Net Individual Buyer/Seller Value",
+            "expression": [
+              "",
+              "CALCULATE(",
+              "    [Net Individual Buyer/Seller Value],",
+              "    'DimFunds'[FundTypeEn] = \"Fixed Income\"",
+              ")"
+            ]
+          },
+          {
+            "name": "Fixed Income Trade Value",
+            "expression": [
+              "",
+              "CALCULATE(",
+              "    [Trade Value],",
+              "    'DimFunds'[FundTypeEn] = \"Fixed Income\"",
+              ")"
+            ],
+            "formatString": "#,0"
+          },
+          {
+            "name": "Fixed Income Trade Value % of All Trades",
+            "expression": [
+              "",
+              "DIVIDE(",
+              "    [Fixed Income Trade Value],",
+              "    [Trade Value]",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           }
         ]
       },
@@ -9055,9 +9115,12 @@
             "expression": [
               "",
               "VAR LastDay = ",
-              "LASTNONBLANK(",
-              "    'DimTimeTable'[Date],",
-              "    COUNTROWS('FactPortfolio')",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        COUNTROWS('FactPortfolio')",
+              "    ),",
+              "    'DimTimeTable'[IsNonWorking] = FALSE()",
               ")",
               "//CALCULATE(",
               "//    LASTNONBLANK(",
@@ -9825,15 +9888,6 @@
         "isActive": false
       },
       {
-        "name": "2b66655f-cfab-4e1d-88b1-23022e590e39",
-        "toCardinality": "many",
-        "fromTable": "DimFunds",
-        "fromColumn": "InstrumentId",
-        "toTable": "DimInstrument",
-        "toColumn": "InstrumentId",
-        "crossFilteringBehavior": "bothDirections"
-      },
-      {
         "name": "aab49cb6-954e-41d6-9116-62b191fe716f",
         "fromTable": "DimPortfolio",
         "fromColumn": "PortfolioManagerId",
@@ -9861,6 +9915,14 @@
         "fromColumn": "AssetId",
         "toTable": "DimAsset",
         "toColumn": "AssetId"
+      },
+      {
+        "name": "d629defb-8b89-4fea-9989-93187533ed01",
+        "fromTable": "DimFunds",
+        "fromColumn": "InstrumentId",
+        "toTable": "DimInstrument",
+        "toColumn": "InstrumentId",
+        "crossFilteringBehavior": "bothDirections"
       }
     ],
     "perspectives": [

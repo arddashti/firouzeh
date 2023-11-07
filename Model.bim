@@ -6845,11 +6845,6 @@
             "sourceColumn": "FundId"
           },
           {
-            "name": "InstrumentId",
-            "dataType": "int64",
-            "sourceColumn": "InstrumentId"
-          },
-          {
             "name": "IndexId",
             "dataType": "int64",
             "sourceColumn": "IndexId"
@@ -6923,6 +6918,11 @@
             "name": "DescriptionEn",
             "dataType": "string",
             "sourceColumn": "DescriptionEn"
+          },
+          {
+            "name": "FundType",
+            "dataType": "string",
+            "sourceColumn": "FundType"
           }
         ],
         "partitions": [
@@ -6933,7 +6933,7 @@
               "type": "m",
               "expression": [
                 "let",
-                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"SELECT#(lf)    'Funds' AS Source,#(lf)    ViwFundsPivot.[Date],#(lf)    ViwFundsPivot.FundId,#(lf)    DimFunds.InstrumentId AS InstrumentId,#(lf)    NULL AS IndexId,#(lf)    DimFunds.FundShortName AS Description,#(lf)    DimFunds.FundEnName AS DescriptionEn,#(lf)    Efficiency AS FundEfficiency,#(lf)    MonthReturn AS FundMonthReturn,#(lf)    DayReturn AS FundDayReturn,#(lf)    WeekReturn AS FundWeekReturn,#(lf)    YearReturn AS FundYearReturn,#(lf)    QuarterReturn AS FundQuarterReturn,#(lf)    FactFundsSplit.SubscriptionPrice,#(lf)    FactFundsSplit.RedemptionPrice,#(lf)    FactFundsSplit.StatisticalPrice,#(lf)    FactTradeDetails.ClosePrice as TickerClosePrice,#(lf)    FactTradeDetails.AdjPrice as TickerAdjPrice,#(lf)    Null as IndexValue #(lf)FROM ViwFundsPivot#(lf)JOIN DimFunds ON ViwFundsPivot.FundId = DimFunds.FundId inner join FactFundsSplit on FactFundsSplit.[Date] = ViwFundsPivot.[Date] and FactFundsSplit.FundId = ViwFundsPivot.FundId left join FactTradeDetails on DimFunds.InstrumentId = FactTradeDetails.InstrumentId and ViwFundsPivot.[Date] = FactTradeDetails.[Date] and DimFunds.DividendIntervalPeriod=0#(lf)#(lf)UNION ALL#(lf)#(lf)    SELECT#(lf)        'Tickers' AS Source,#(lf)        FactTradeDetails.[Date],#(lf)        NULL AS FundId,#(lf)        FactTradeDetails.InstrumentId,#(lf)        NULL AS IndexId,#(lf)        DimInstrument.Instrument AS Description,#(lf)        DimInstrument.Instrument AS DescriptionEn,#(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        FactTradeDetails.ClosePrice,#(lf)        FactTradeDetails.AdjPrice,#(lf)        Null#(lf)    FROM FactTradeDetails#(lf)    JOIN DimInstrument ON FactTradeDetails.InstrumentId = DimInstrument.InstrumentId#(lf)#(lf)    UNION ALL#(lf)#(lf)    SELECT#(lf)        'Indexes' AS Source,#(lf)        FactIndexValue.[Date],#(lf)        NULL AS FundId,#(lf)        NULL AS InstrumentId,#(lf)        FactIndexValue.IndexId,#(lf)        DimIndex.IndexName AS Description,#(lf)        DimIndex.NameEn AS DescriptionEn,#(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue    #(lf)    FROM FactIndexValue#(lf)    JOIN DimIndex ON FactIndexValue.IndexId = DimIndex.IndexId\", CreateNavigationProperties=false])",
+                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"SELECT#(lf)    'صندوق' AS Source,#(lf)    ViwFundsPivot.[Date],#(lf)    ViwFundsPivot.FundId,#(lf)    DimFunds.FundType,#(lf)    NULL AS IndexId,#(lf)    DimFunds.FundShortName AS Description,#(lf)    DimFunds.FundEnName AS DescriptionEn,#(lf)    Efficiency AS FundEfficiency,#(lf)    MonthReturn AS FundMonthReturn,#(lf)    DayReturn AS FundDayReturn,#(lf)    WeekReturn AS FundWeekReturn,#(lf)    YearReturn AS FundYearReturn,#(lf)    QuarterReturn AS FundQuarterReturn,#(lf)    FactFundsSplit.SubscriptionPrice,#(lf)    FactFundsSplit.RedemptionPrice,#(lf)    FactFundsSplit.StatisticalPrice,#(lf)    FactTradeDetails.ClosePrice as TickerClosePrice,#(lf)    FactTradeDetails.AdjPrice as TickerAdjPrice,#(lf)    Null as IndexValue #(lf)FROM ViwFundsPivot#(lf)JOIN DimFunds ON ViwFundsPivot.FundId = DimFunds.FundId inner join FactFundsSplit on FactFundsSplit.[Date] = ViwFundsPivot.[Date] and FactFundsSplit.FundId = ViwFundsPivot.FundId left join FactTradeDetails on DimFunds.InstrumentId = FactTradeDetails.InstrumentId and ViwFundsPivot.[Date] = FactTradeDetails.[Date] and DimFunds.DividendIntervalPeriod=0#(lf)#(lf)UNION ALL#(lf)#(lf)    SELECT#(lf)        'شاخص' AS Source,#(lf)        FactIndexValue.[Date],#(lf)        NULL AS FundId,#(lf)        'شاخص',#(lf)        FactIndexValue.IndexId,#(lf)        DimIndex.IndexName AS Description,#(lf)        DimIndex.NameEn AS DescriptionEn,#(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue    #(lf)    FROM FactIndexValue#(lf)    JOIN DimIndex ON FactIndexValue.IndexId = DimIndex.IndexId\", CreateNavigationProperties=false])",
                 "in",
                 "    Source"
               ]
@@ -7686,20 +7686,18 @@
               "        CALCULATE(COUNT('FactReturns'[RedemptionPrice]), 'FactReturns'[FundId] = Fund)",
               "        )",
               ")",
+              "",
               "VAR R = [% Fund Return on NAV]",
               "",
-              "VAR T = ",
-              "DATESBETWEEN(",
-              "    'DimTimeTable'[Date],",
-              "    BaseDate,",
-              "    MaxDate",
-              ")",
-              "",
               "VAR DayCount = ",
-              "COUNTROWS(T)",
+              "COUNTROWS('DimTimeTable')",
               "",
               "VAR CAGR =",
-              "(1+R) ^ (365/DayCount) - 1 ",
+              "IF(",
+              "    ISBLANK(R),",
+              "    BLANK(),",
+              "    (1+R) ^ (365/DayCount) - 1 ",
+              ")",
               "",
               "RETURN CAGR",
               ""
@@ -7734,25 +7732,57 @@
               "        CALCULATE(COUNT('FactReturns'[TickerAdjPrice]), 'FactReturns'[FundId] = Fund)",
               "        )",
               ")",
+              "",
               "VAR R = [% Return on Price]",
               "",
-              "VAR T = ",
-              "DATESBETWEEN(",
-              "    'DimTimeTable'[Date],",
-              "    BaseDate,",
-              "    MaxDate",
-              ")",
-              "",
               "VAR DayCount = ",
-              "COUNTROWS(T)",
+              "COUNTROWS('DimTimeTable')",
               "",
               "VAR CAGR =",
-              "(1+R) ^ (365/DayCount) - 1 ",
+              "IF(",
+              "    ISBLANK(R),",
+              "    BLANK(),",
+              "    (1+R) ^ (365/DayCount) - 1 ",
+              ")",
               "",
               "RETURN CAGR",
               ""
             ],
             "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "IsIndex",
+            "expression": [
+              "",
+              "IF(",
+              "    ISBLANK(SELECTEDVALUE('FactReturns'[Source])),",
+              "    1,",
+              "    0",
+              ")"
+            ]
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "DescriptionHierarchy",
+            "hideMembers": "hideBlankMembers",
+            "levels": [
+              {
+                "name": "Source",
+                "ordinal": 0,
+                "column": "Source"
+              },
+              {
+                "name": "FundType",
+                "ordinal": 1,
+                "column": "FundType"
+              },
+              {
+                "name": "Description",
+                "ordinal": 2,
+                "column": "Description"
+              }
+            ]
           }
         ]
       },

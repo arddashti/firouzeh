@@ -6806,6 +6806,11 @@
               "RETURN",
               "LOOKUPVALUE('DimAsset'[Asset], 'DimAsset'[AssetId], AssetID)"
             ]
+          },
+          {
+            "name": "Ticker",
+            "dataType": "string",
+            "sourceColumn": "Ticker"
           }
         ],
         "partitions": [
@@ -6923,6 +6928,16 @@
             "name": "FundType",
             "dataType": "string",
             "sourceColumn": "FundType"
+          },
+          {
+            "name": "DescriptioLevel2",
+            "dataType": "string",
+            "sourceColumn": "DescriptioLevel2"
+          },
+          {
+            "name": "DescriptioLevel3",
+            "dataType": "string",
+            "sourceColumn": "DescriptioLevel3"
           }
         ],
         "partitions": [
@@ -6933,7 +6948,7 @@
               "type": "m",
               "expression": [
                 "let",
-                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"SELECT#(lf)    'صندوق' AS Source,#(lf)    ViwFundsPivot.[Date],#(lf)    ViwFundsPivot.FundId,#(lf)    DimFunds.FundType,#(lf)    NULL AS IndexId,#(lf)    DimFunds.FundShortName AS Description,#(lf)    DimFunds.FundEnName AS DescriptionEn,#(lf)    Efficiency AS FundEfficiency,#(lf)    MonthReturn AS FundMonthReturn,#(lf)    DayReturn AS FundDayReturn,#(lf)    WeekReturn AS FundWeekReturn,#(lf)    YearReturn AS FundYearReturn,#(lf)    QuarterReturn AS FundQuarterReturn,#(lf)    FactFundsSplit.SubscriptionPrice,#(lf)    FactFundsSplit.RedemptionPrice,#(lf)    FactFundsSplit.StatisticalPrice,#(lf)    FactTradeDetails.ClosePrice as TickerClosePrice,#(lf)    FactTradeDetails.AdjPrice as TickerAdjPrice,#(lf)    Null as IndexValue #(lf)FROM ViwFundsPivot#(lf)JOIN DimFunds ON ViwFundsPivot.FundId = DimFunds.FundId inner join FactFundsSplit on FactFundsSplit.[Date] = ViwFundsPivot.[Date] and FactFundsSplit.FundId = ViwFundsPivot.FundId left join FactTradeDetails on DimFunds.InstrumentId = FactTradeDetails.InstrumentId and ViwFundsPivot.[Date] = FactTradeDetails.[Date] and DimFunds.DividendIntervalPeriod=0#(lf)#(lf)UNION ALL#(lf)#(lf)    SELECT#(lf)        'شاخص' AS Source,#(lf)        FactIndexValue.[Date],#(lf)        NULL AS FundId,#(lf)        'شاخص',#(lf)        FactIndexValue.IndexId,#(lf)        DimIndex.IndexName AS Description,#(lf)        DimIndex.NameEn AS DescriptionEn,#(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue    #(lf)    FROM FactIndexValue#(lf)    JOIN DimIndex ON FactIndexValue.IndexId = DimIndex.IndexId\", CreateNavigationProperties=false])",
+                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"SELECT#(lf)    'صندوق' AS Source,#(lf)    ViwFundsPivot.[Date],#(lf)    ViwFundsPivot.FundId,#(lf)    DimFunds.FundType,#(lf)    NULL AS IndexId,#(lf)    DimFunds.FundShortName AS Description,#(lf)    DimFunds.FundEnName AS DescriptionEn,#(lf)    Efficiency AS FundEfficiency,#(lf)    MonthReturn AS FundMonthReturn,#(lf)    DayReturn AS FundDayReturn,#(lf)    WeekReturn AS FundWeekReturn,#(lf)    YearReturn AS FundYearReturn,#(lf)    QuarterReturn AS FundQuarterReturn,#(lf)    FactFundsSplit.SubscriptionPrice,#(lf)    FactFundsSplit.RedemptionPrice,#(lf)    FactFundsSplit.StatisticalPrice,#(lf)    FactTradeDetails.ClosePrice as TickerClosePrice,#(lf)    FactTradeDetails.AdjPrice as TickerAdjPrice,#(lf)    Null as IndexValue ,#(lf)    DimFunds.FundType AS DescriptioLevel2,#(lf)    DimFunds.FundShortName AS DescriptioLevel3#(lf)FROM ViwFundsPivot#(lf)JOIN DimFunds ON ViwFundsPivot.FundId = DimFunds.FundId inner join FactFundsSplit on FactFundsSplit.[Date] = ViwFundsPivot.[Date] and FactFundsSplit.FundId = ViwFundsPivot.FundId left join FactTradeDetails on DimFunds.InstrumentId = FactTradeDetails.InstrumentId and ViwFundsPivot.[Date] = FactTradeDetails.[Date] and DimFunds.DividendIntervalPeriod=0#(lf)#(lf)UNION ALL#(lf)#(lf)    SELECT#(lf)        'شاخص' AS Source,#(lf)        FactIndexValue.[Date],#(lf)        NULL AS FundId,#(lf)        'شاخص',#(lf)        FactIndexValue.IndexId,#(lf)        DimIndex.IndexName AS Description,#(lf)        DimIndex.NameEn AS DescriptionEn,#(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue,#(lf)        DimIndex.IndexName,#(lf)        Null#(lf)    FROM FactIndexValue#(lf)    JOIN DimIndex ON FactIndexValue.IndexId = DimIndex.IndexId\", CreateNavigationProperties=false])",
                 "in",
                 "    Source"
               ]
@@ -7781,6 +7796,27 @@
                 "name": "Description",
                 "ordinal": 2,
                 "column": "Description"
+              }
+            ]
+          },
+          {
+            "name": "Desc Hierarchy",
+            "hideMembers": "hideBlankMembers",
+            "levels": [
+              {
+                "name": "Source",
+                "ordinal": 0,
+                "column": "Source"
+              },
+              {
+                "name": "DescriptioLevel2",
+                "ordinal": 1,
+                "column": "DescriptioLevel2"
+              },
+              {
+                "name": "DescriptioLevel3",
+                "ordinal": 2,
+                "column": "DescriptioLevel3"
               }
             ]
           }
@@ -9120,12 +9156,6 @@
             "name": "Portfolio Trade Quantity (+/-)",
             "expression": [
               "",
-              "VAR Instrument = SELECTEDVALUE('DimInstrument'[InstrumentId])",
-              "VAR B1 =",
-              "COUNTROWS('DimInstrument') = 1",
-              "VAR B2 = ",
-              "COUNTROWS('DimAsset') = 1",
-              "VAR B = OR(B1, B2)",
               "VAR Qty =",
               "CALCULATE(",
               "    SUMX(",
@@ -9135,12 +9165,15 @@
               "            'FactPortfolioTrade'[ShareNo],",
               "            -'FactPortfolioTrade'[ShareNo]",
               "        )",
-              "    ),",
-              "//    'DimInstrument'[InstrumentId] = Instrument",
-              "    FILTER('FactPortfolioTrade', B)",
+              "    )",
               ")",
               "",
-              "RETURN Qty"
+              "RETURN  ",
+              "IF(",
+              "    ISBLANK(SELECTEDVALUE('DimInstrument'[Instrument])),",
+              "    BLANK(),",
+              "    Qty",
+              ")"
             ],
             "formatString": "#,0"
           },
@@ -9311,20 +9344,18 @@
             "expression": [
               "",
               "VAR LastDay = ",
-              "CALCULATE(",
-              "    LASTNONBLANK(",
-              "        'DimTimeTable'[Date],",
-              "        COUNTROWS(RELATEDTABLE('FactPortfolio'))",
-              "    ),",
-              "    ALL('FactPortfolio'[AssetId]),",
-              "    All('FactPortfolio'[InstrumentId]),",
-              "    All('DimAsset'),",
-              "    All('DimInstrument')",
+              "LASTNONBLANK(",
+              "    'DimTimeTable'[Date],",
+              "    COUNTROWS(RELATEDTABLE('FactPortfolio'))",
               ")",
-              "//MAX('FactPortfolio'[Date])",
               "",
-              "RETURN",
-              "CALCULATE(SUM('FactPortfolio'[ValueInDate]), 'DimTimeTable'[Date] = LastDay)",
+              "VAR Result = ",
+              "CALCULATE(",
+              "    SUM('FactPortfolio'[ValueInDate]), ",
+              "    'DimTimeTable'[Date] = LastDay",
+              ")",
+              "",
+              "RETURN Result",
               ""
             ],
             "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
@@ -9405,43 +9436,19 @@
             "expression": [
               "",
               " VAR LastDay = ",
-              "CALCULATE(",
-              "    LASTNONBLANK(",
-              "        'DimTimeTable'[Date],",
-              "        COUNTROWS(RELATEDTABLE('FactPortfolio'))",
-              "    ),",
-              "    ALL('FactPortfolio'[AssetId]),",
-              "    All('FactPortfolio'[InstrumentId]),",
-              "    All('DimAsset'),",
-              "    All('DimInstrument')",
+              "LASTNONBLANK(",
+              "    'DimTimeTable'[Date],",
+              "    COUNTROWS(RELATEDTABLE('FactPortfolio'))",
               ")",
-              "VAR B1 =",
-              "COUNTROWS('DimInstrument') = 1",
-              "VAR B2 = ",
-              "COUNTROWS('DimAsset') = 1",
-              "VAR B = OR(B1, B2)",
-              "//MAX('DimTimeTable'[Date])",
-              "VAR Instrument = SELECTEDVALUE('DimInstrument'[InstrumentId])",
-              "//VAR LastDay = ",
-              "//CALCULATE(",
-              "//    LASTNONBLANK(",
-              "//        DATESBETWEEN(",
-              "//            'DimTimeTable'[Date],",
-              "//            BLANK(),",
-              "//            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "//        ),",
-              "//        CALCULATE(COUNT('FactPortfolio'[ShareNo]))",
-              "//    )",
-              "//)",
-              "//",
-              "RETURN",
+              "VAR Asset = ",
+              "SELECTEDVALUE('DimInstrument'[AssetId])",
+              "Var Result = ",
               "CALCULATE(",
               "    SUM('FactPortfolio'[ShareNo]), ",
               "    'DimTimeTable'[Date] = LastDay,",
-              "    --'DimInstrument'[InstrumentId] = Instrument",
-              "    FILTER('FactPortfolio', B)",
+              "    'DimInstrument'[AssetId] = Asset",
               ")",
-              "",
+              "RETURN Result",
               ""
             ],
             "formatString": "#,0"
@@ -10143,13 +10150,6 @@
         "toTable": "DimAsset",
         "toColumn": "AssetId",
         "isActive": false
-      },
-      {
-        "name": "a1035b7e-db38-4d46-a496-1921e455e10d",
-        "fromTable": "FactPortfolioTrade",
-        "fromColumn": "AssetId",
-        "toTable": "DimAsset",
-        "toColumn": "AssetId"
       },
       {
         "name": "a396c93b-c3cf-413f-a868-a13557eee001",

@@ -8182,8 +8182,8 @@
               "    )",
               ")",
               "",
-              "VAR CurrentDayBuyerCount = [Individual Sellers Count]",
-              "VAR LastDayBuyerCount = ",
+              "VAR CurrentDaySellerCount = [Individual Sellers Count]",
+              "VAR LastDaySellerCount = ",
               "CALCULATE(",
               "    [Individual Sellers Count],",
               "    'DimTimeTable'[Date] = LastDay ",
@@ -8191,8 +8191,8 @@
               "",
               "RETURN ",
               "DIVIDE(",
-              "    CurrentDayBuyerCount,",
-              "    LastDayBuyerCount",
+              "    CurrentDaySellerCount,",
+              "    LastDaySellerCount",
               ") - 1"
             ],
             "formatString": "0.0%;-0.0%;0.0%"
@@ -8517,6 +8517,34 @@
               ")"
             ],
             "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Net Individual Buyer/Seller Value Moving Average",
+            "expression": [
+              "",
+              "VAR NumOfDays = 7",
+              "VAR CurrentDate = MAX('DimTimeTable'[Date])",
+              "",
+              "VAR TimePeriod = ",
+              "FILTER(",
+              "    ALL('DimTimeTable'),",
+              "    'DimTimeTable'[Date] <= CurrentDate &&",
+              "    'DimTimeTable'[Date] > CurrentDate - NumOfDays &&",
+              "    NOT ('DimTimeTable'[IsNonWorking])",
+              ")",
+              "",
+              "VAR Result = ",
+              "CALCULATE(",
+              "    DIVIDE(",
+              "        [Individual Buyers Value] - [Individual Seller Value],",
+              "        COUNTROWS(TimePeriod)",
+              "    ),",
+              "   TimePeriod",
+              ")",
+              "",
+              "RETURN Result",
+              "    "
+            ]
           }
         ]
       },
@@ -12184,6 +12212,10 @@
           {
             "memberName": "IIDIC\\410036",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1756"
+          },
+          {
+            "memberName": "IIDIC\\507464",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1437"
           }
         ],
         "tablePermissions": [

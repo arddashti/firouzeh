@@ -7775,6 +7775,15 @@
               "    0",
               ")"
             ]
+          },
+          {
+            "name": "% Fund Return on NAV Cum (Copy)",
+            "expression": [
+              "",
+              "// used when you want to add [% Fund Return on NAV Cum] twice in a table or matrix, for axample one with number and one with data bars",
+              "[% Fund Return on NAV Cum]"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           }
         ],
         "hierarchies": [
@@ -8544,7 +8553,8 @@
               "",
               "RETURN Result",
               "    "
-            ]
+            ],
+            "formatString": "#,0"
           }
         ]
       },
@@ -8798,6 +8808,20 @@
               "\"Top 10 \"",
               "& [Title - Fund Type] ",
               "& \" Funds in IRR - Last 12 Months\""
+            ]
+          },
+          {
+            "name": "Title - Dates (no paranthesis)",
+            "expression": [
+              "",
+              "MIN('DimTimeTable'[DateKey]) & \" - \" & MAX('DimTimeTable'[DateKey])"
+            ]
+          },
+          {
+            "name": "Title - Date",
+            "expression": [
+              "",
+              "MAX('DimTimeTable'[DateKey])"
             ]
           }
         ]
@@ -11624,6 +11648,10 @@
           {
             "memberName": "IIDIC\\507333",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1737"
+          },
+          {
+            "memberName": "IIDIC\\402BI114",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2177"
           }
         ],
         "tablePermissions": [

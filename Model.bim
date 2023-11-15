@@ -538,6 +538,23 @@
               "FORMAT('DimTimeTable'[Date], \"MMM\")"
             ],
             "sortByColumn": "GMonth"
+          },
+          {
+            "type": "calculated",
+            "name": "Slicer Date Yesterday",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              " ",
+              "VAR LastTradeDay =CALCULATE(MAX('FactTradeDetails'[Date]), FILTER('DimTimeTable', 'DimTimeTable'[IsBeforeToday]))",
+              "RETURN ",
+              "SWITCH(",
+              "    TRUE(),",
+              "    'DimTimeTable'[Date] = LastTradeDay, \"Last Day\",",
+              "    'DimTimeTable'[Date] > LastTradeDay, BLANK(),",
+              "    'DimTimeTable'[DateKey]",
+              ")"
+            ]
           }
         ],
         "partitions": [
@@ -4797,6 +4814,34 @@
               "",
               "RETURN Ratio"
             ]
+          },
+          {
+            "name": "Statistical Price",
+            "expression": [
+              "",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        DATESBETWEEN(",
+              "            'DimTimeTable'[Date],",
+              "            BLANK(),",
+              "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "        ),",
+              "        CALCULATE(COUNT('FactFunds'[AUM2]))",
+              "    )",
+              ")",
+              "VAR Result =",
+              "CALCULATE(",
+              "    SUM('FactFunds'[StatisticalPrice]),",
+              "    'DimTimeTable'[Date] = LastDay",
+              ")",
+              "RETURN",
+              "IF(",
+              "    HASONEVALUE('DimFunds'[FundId]),",
+              "    Result,",
+              "    BLANK()",
+              ")"
+            ]
           }
         ]
       },
@@ -6122,19 +6167,12 @@
             ],
             "expression": [
               " ",
-              "VAR Asset = SELECTEDVALUE('DimAsset'[AssetId])",
-              "VAR T = CALCULATETABLE(VALUES('DimInstrument'[InstrumentId]), 'DimInstrument'[AssetId] = Asset)",
-              "",
               "",
               "VAR MaxDate = --SELECTEDVALUE('DimTimeTable'[Date])",
               "calculate(",
               "    lastnonblank(",
-              "        datesbetween(",
-              "            'dimtimetable'[date],",
-              "            blank(),",
-              "            calculate(lastdate('dimtimetable'[date]))",
-              "        ),",
-              "        calculate(count('FactTradeDetails'[ShareNo])) ",
+              "       'dimtimetable'[date],",
+              "        calculate(count('FactTradeDetails'[ShareNo]))",
               "        )",
               ")",
               "VAR CountShares =",
@@ -6142,10 +6180,14 @@
               "    SUM('FactTradeDetails'[ShareNo]),",
               "    'DimTimeTable'[Date] = MaxDate",
               "    , 'DimInstrument'[MarketId] = 6",
-              "    , T",
               ") ",
               "",
-              "RETURN CountShares"
+              "RETURN ",
+              "IF(",
+              "    HASONEVALUE('DimInstrument'[AssetId]),",
+              "    CountShares,",
+              "    BLANK()",
+              ")"
             ]
           }
         ]
@@ -9476,10 +9518,13 @@
               "//    'FactPortfolio'[Portfolio Value],",
               "//    'FactTradeDetails'[Exchange Market Cap FactTradeDetails (Currency)]",
               "//)",
+              "VAR Percentage = ",
               "DIVIDE(",
               "    'FactPortfolio'[Portfolio Quantity],",
               "    'FactTradeDetails'[Instrument Count of Shares]",
-              ")"
+              ")",
+              "",
+              "RETURN Percentage"
             ],
             "formatString": "0.0%;-0.0%;0.0%"
           },
@@ -9535,6 +9580,31 @@
                 "name": "Format",
                 "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
               }
+            ]
+          },
+          {
+            "name": "Portfolio Quantity  New",
+            "expression": [
+              "",
+              " VAR LastDay = ",
+              "LASTNONBLANK(",
+              "    'DimTimeTable'[Date],",
+              "    COUNTROWS(RELATEDTABLE('FactPortfolio'))",
+              ")",
+              "VAR Asset = ",
+              "SELECTEDVALUE('DimInstrument'[AssetId])",
+              "Var Result = ",
+              "CALCULATE(",
+              "    SUM('FactPortfolio'[ShareNo]), ",
+              "    'DimTimeTable'[Date] = LastDay",
+              ")",
+              "RETURN --CONCATENATEX('DimInstrument', 'DimInstrument'[AssetId], \", \")",
+              "IF(",
+              "    HASONEVALUE('DimInstrument'[AssetId]),",
+              "    Result,",
+              "    BLANK()",
+              ")",
+              ""
             ]
           }
         ]

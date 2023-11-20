@@ -5207,24 +5207,38 @@
             "expression": [
               "",
               "",
-              "VAR PortfolioID = SELECTEDVALUE('DimPortfolio'[PortfolioId])",
+              "// VAR PortfolioID = SELECTEDVALUE('DimPortfolio'[PortfolioId])",
               "",
               "VAR MaxDate =",
-              "CALCULATE (",
-              "    MAX ( 'FactShareHolders'[Date] ),",
-              "     'DimPortfolio'[PortfolioId] = PortfolioID,",
-              "    ALLEXCEPT('DimTimeTable', DimTimeTable[Date])",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        COUNTROWS(RELATEDTABLE('FactShareHolders'))",
+              "    ),",
+              "    ALL('DimShareHoldersProfile')",
               ")",
+              "//CALCULATE (",
+              "//    MAX ( 'FactShareHolders'[Date] ),",
+              "//     'DimPortfolio'[PortfolioId] = PortfolioID,",
+              "//    ALLEXCEPT('DimTimeTable', DimTimeTable[Date])",
+              "//)",
               "    ",
+              "VAR Balance =",
+              "CALCULATE (",
+              "    SUM ( 'FactShareHolders'[VolumeBalance] ),",
+              "//         'DimPortfolio'[PortfolioId] = PortfolioID,",
+              "    KEEPFILTERS('DimShareHoldersProfile'[ShareHolderId] <> 59113),",
+              "    'DimTimeTable'[Date] = MaxDate",
+              ")",
+              "",
               "RETURN",
-              "    CALCULATE (",
-              "        SUM ( 'FactShareHolders'[VolumeBalance] ),",
-              "         'DimPortfolio'[PortfolioId] = PortfolioID,",
-              "        KEEPFILTERS('DimShareHoldersProfile'[ShareHolderId] <> 59113),",
-              "        'DimTimeTable'[Date] = MaxDate",
-              "    )",
-              ""
-            ]
+              "IF(",
+              "    HASONEVALUE('DimFirouzehFund'[FundId]),",
+              "    Balance+0,",
+              "    BLANK()",
+              ") "
+            ],
+            "formatString": "#,0"
           },
           {
             "name": "Client Balance %",
@@ -5690,9 +5704,16 @@
               "",
               "VAR MaxDate = ",
               "CALCULATE(",
-              "    MAX('FactShareHolders'[Date]), ",
-              "    ALLEXCEPT('DimTimeTable', DimTimeTable[Date])",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        COUNTROWS(RELATEDTABLE('FactShareHolders'))",
+              "    ),",
+              "    ALL('DimShareHoldersProfile')",
               ")",
+              "//CALCULATE(",
+              "//    MAX('FactShareHolders'[Date]), ",
+              "//    ALLEXCEPT('DimTimeTable', DimTimeTable[Date])",
+              "//)",
               "",
               "RETURN ",
               "SUMX(",
@@ -5716,11 +5737,11 @@
               "        'DimTimeTable'[Date] = MaxDate, ",
               "        'DimPortfolio'[PortfolioId] = Company,",
               "        'DimShareHoldersProfile'[ShareHolderId] <> 59113",
-              "    )",
+              "    ) +0 ",
               "    RETURN",
-              "    Price *  Balance // نهایتا حاصلضرب قیمت سهم هر شرکت در بالانس مشتری حساب می شود که در سامیکس اول اینها با هم جمع می شود ",
+              "    Price *  Balance+0 // نهایتا حاصلضرب قیمت سهم هر شرکت در بالانس مشتری حساب می شود که در سامیکس اول اینها با هم جمع می شود ",
               "  ",
-              ")",
+              ")+0",
               ""
             ],
             "formatString": "#,0"
@@ -5732,10 +5753,15 @@
               "VAR Fund = SELECTEDVALUE('DimFirouzehFund'[FundName])",
               "VAR Qty = ",
               "CALCULATE(",
-              "    SUM('FactShareHoldersTrade'[Volume]),",
-              "    'DimFirouzehFund'[FundName] = Fund",
+              "    SUM('FactShareHoldersTrade'[Volume])",
+              "//    , 'DimFirouzehFund'[FundName] = Fund",
               ")",
-              "RETURN Qty"
+              "RETURN ",
+              "IF(",
+              "    HASONEVALUE('DimFirouzehFund'[FundId]),",
+              "    Qty,",
+              "    BLANK()",
+              ")"
             ],
             "formatString": "#,0"
           },
@@ -9264,10 +9290,11 @@
               "",
               "RETURN  ",
               "IF(",
-              "    ISBLANK(SELECTEDVALUE('DimInstrument'[Instrument])),",
-              "    BLANK(),",
-              "    Qty",
-              ")"
+              "    HASONEVALUE('DimInstrument'[AssetId]),",
+              "    Qty,",
+              "    BLANK()",
+              ")",
+              ""
             ],
             "formatString": "#,0"
           },
@@ -9297,6 +9324,10 @@
             "name": "Portfolio Trade Value (+/-) Affiliated",
             "expression": [
               "",
+              "// the value of Firouzeh Funds trades is calculated in variable v, but for measure that shows net subscription minus v not showing zero for other financial groups, ",
+              "// the rest of the code insures that it will show blank (ie doesn't show a column) for other financial groups",
+              "",
+              "// if there is no net subscription/redemption, [portfolio trade value (+/-) should add up to zero, so ita value shoes net subscriptions",
               "VAR v =",
               "CALCULATE(",
               "    [portfolio trade value (+/-)],",
@@ -9438,9 +9469,12 @@
             "expression": [
               "",
               "VAR LastDay = ",
-              "LASTNONBLANK(",
-              "    'DimTimeTable'[Date],",
-              "    COUNTROWS(RELATEDTABLE('FactPortfolio'))",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        COUNTROWS(RELATEDTABLE('FactPortfolio'))",
+              "    ),",
+              "    All('DimInstrument') // if ALL() not used, the instrument filter in the current filter context leads to calculating the last date for that instrument, while in the last date that instrument may not be present in the portfolio",
               ")",
               "",
               "VAR Result = ",
@@ -9485,27 +9519,17 @@
               "CALCULATE(",
               "    LASTNONBLANK(",
               "        'DimTimeTable'[Date],",
-              "        COUNTROWS('FactPortfolio')",
+              "        COUNTROWS(RELATEDTABLE('FactPortfolio'))",
               "    ),",
-              "    'DimTimeTable'[IsNonWorking] = FALSE()",
+              "    ALL('DimInstrument')",
               ")",
-              "//CALCULATE(",
-              "//    LASTNONBLANK(",
-              "//        DATESBETWEEN(",
-              "//            'DimTimeTable'[Date],",
-              "//            BLANK(),",
-              "//            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "//        ),",
-              "//        CALCULATE(COUNT('FactPortfolio'[TotalInvest]))",
-              "//    )",
-              "//) ",
+              "",
               "RETURN",
               "CALCULATE(",
               "    DISTINCTCOUNT('FactPortfolio'[PortfolioId]), ",
               "    'DimTimeTable'[Date] = LastDay, ",
               "    'DimPRX'[StatusEn] <> \"Rescinded\" ,",
-              "    ALL('DimInstrument'[IsAffiliated]),",
-              "    All('DimInstrument'[Affiliated])",
+              "    ALL('DimInstrument')",
               ")"
             ],
             "formatString": "#,0"
@@ -9532,10 +9556,13 @@
             "name": "Portfolio Quantity",
             "expression": [
               "",
-              " VAR LastDay = ",
-              "LASTNONBLANK(",
-              "    'DimTimeTable'[Date],",
-              "    COUNTROWS(RELATEDTABLE('FactPortfolio'))",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        COUNTROWS(RELATEDTABLE('FactPortfolio'))",
+              "    ),",
+              "    All('DimInstrument') // if ALL() not used, the instrument filter in the current filter context leads to calculating the last date for that instrument, while in the last date that instrument may not be present in the portfolio",
               ")",
               "",
               "Var Result = ",
@@ -9586,22 +9613,22 @@
             ]
           },
           {
-            "name": "Portfolio Quantity  New",
+            "name": "Portfolio Quantity New",
             "expression": [
               "",
-              " VAR LastDay = ",
+              "VAR LastDay = ",
               "LASTNONBLANK(",
               "    'DimTimeTable'[Date],",
               "    COUNTROWS(RELATEDTABLE('FactPortfolio'))",
               ")",
-              "VAR Asset = ",
-              "SELECTEDVALUE('DimInstrument'[AssetId])",
+              "",
+              "",
               "Var Result = ",
               "CALCULATE(",
               "    SUM('FactPortfolio'[ShareNo]), ",
               "    'DimTimeTable'[Date] = LastDay",
               ")",
-              "RETURN --CONCATENATEX('DimInstrument', 'DimInstrument'[AssetId], \", \")",
+              "RETURN ",
               "IF(",
               "    HASONEVALUE('DimInstrument'[AssetId]),",
               "    Result,",
@@ -9609,6 +9636,161 @@
               ")",
               ""
             ]
+          },
+          {
+            "name": "Portfolio Count New",
+            "expression": [
+              "",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        COUNTROWS('FactPortfolio')",
+              "    ),",
+              "    'DimTimeTable'[IsNonWorking] = FALSE()",
+              ")",
+              "//CALCULATE(",
+              "//    LASTNONBLANK(",
+              "//        DATESBETWEEN(",
+              "//            'DimTimeTable'[Date],",
+              "//            BLANK(),",
+              "//            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
+              "//        ),",
+              "//        CALCULATE(COUNT('FactPortfolio'[TotalInvest]))",
+              "//    )",
+              "//) ",
+              "RETURN",
+              "CALCULATE(",
+              "    DISTINCTCOUNT('FactPortfolio'[PortfolioId]), ",
+              "    'DimTimeTable'[Date] = LastDay, ",
+              "    'DimPRX'[StatusEn] <> \"Rescinded\" ,",
+              "    ALL('DimInstrument'[IsAffiliated]),",
+              "    All('DimInstrument'[Affiliated])",
+              ")"
+            ]
+          },
+          {
+            "name": "Portfolio Net Profit/Loss",
+            "expression": [
+              "",
+              "[Portfolio Net Value] - [Portfolio Finished Cost]",
+              ""
+            ],
+            "formatString": "#,0"
+          },
+          {
+            "name": "Portfolio Finished Cost",
+            "expression": [
+              "",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        COUNTROWS(RELATEDTABLE('FactPortfolio'))",
+              "    ),",
+              "    All('DimInstrument') // if ALL() not used, the instrument filter in the current filter context leads to calculating the last date for that instrument, while in the last date that instrument may not be present in the portfolio",
+              ")",
+              "",
+              "VAR Result = ",
+              "CALCULATE(",
+              "    SUM('FactPortfolio'[TotalInvest]), ",
+              "    'DimTimeTable'[Date] = LastDay",
+              ")",
+              "",
+              "RETURN Result",
+              ""
+            ],
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Portfolio Net Value",
+            "expression": [
+              "",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        COUNTROWS(RELATEDTABLE('FactPortfolio'))",
+              "    ),",
+              "    All('DimInstrument') // if ALL() not used, the instrument filter in the current filter context leads to calculating the last date for that instrument, while in the last date that instrument may not be present in the portfolio",
+              ")",
+              "",
+              "VAR Result = ",
+              "CALCULATE(",
+              "    SUM('FactPortfolio'[PureValueInDate]), ",
+              "    'DimTimeTable'[Date] = LastDay",
+              ")",
+              "",
+              "RETURN Result",
+              ""
+            ],
+            "formatString": "#,0"
+          },
+          {
+            "name": "Portfolio Net Profit/Loss %",
+            "expression": [
+              "",
+              "DIVIDE(",
+              "    [Portfolio Net Profit/Loss],",
+              "    [Portfolio Finished Cost]",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Portfolio Net Profit/Loss DB",
+            "expression": [
+              "",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        COUNTROWS(RELATEDTABLE('FactPortfolio'))",
+              "    ),",
+              "    All('DimInstrument') // if ALL() not used, the instrument filter in the current filter context leads to calculating the last date for that instrument, while in the last date that instrument may not be present in the portfolio",
+              ")",
+              "",
+              "VAR Result = ",
+              "CALCULATE(",
+              "    SUM('FactPortfolio'[PureDiffPrice]), ",
+              "    'DimTimeTable'[Date] = LastDay",
+              ")",
+              "",
+              "RETURN Result",
+              ""
+            ]
+          },
+          {
+            "name": "Portfolio Gross Profit/Loss",
+            "expression": [
+              "",
+              "[Portfolio Value] - [Portfolio Finished Cost]",
+              ""
+            ],
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Portfolio Gross Profit/Loss %",
+            "expression": [
+              "",
+              "DIVIDE(",
+              "    [Portfolio Gross Profit/Loss],",
+              "    [Portfolio Finished Cost]",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           }
         ]
       },
@@ -12199,6 +12381,10 @@
           {
             "memberName": "IIDIC\\507201",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1731"
+          },
+          {
+            "memberName": "IIDIC\\402sa082",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2134"
           }
         ],
         "tablePermissions": [

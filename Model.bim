@@ -5422,6 +5422,13 @@
               "",
               "",
               "RETURN  Price * [Client Volume Delta] "
+            ],
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
             ]
           },
           {
@@ -5486,6 +5493,13 @@
               "    'DimCompany'[CompanyId] = Company",
               ")",
               "RETURN Price * [Client Volume Delta]"
+            ],
+            "formatString": "\"IRR\" #,0.00;-\"IRR\" #,0.00;\"IRR\" #,0.00",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"2\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
             ]
           },
           {
@@ -5519,8 +5533,14 @@
             "name": "Client Volume Delta",
             "expression": [
               " ",
-              "SUM('FactShareHolders'[VolumeDelta])"
-            ]
+              "CALCULATE(",
+              "    SUM('FactShareHolders'[VolumeDelta])",
+              ",",
+              "    DimShareHoldersProfile[ShareHolderId] <> 59113",
+              ")",
+              ""
+            ],
+            "formatString": "#,0"
           },
           {
             "name": "Client Volume Delta %",
@@ -6412,39 +6432,7 @@
               "type": "m",
               "expression": [
                 "let",
-                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"with ",
-                "cte1 as ",
-                "(SELECT a.[CompanyId]",
-                "      ,a.[ShareHolderId]",
-                "      ,a.[Date]",
-                "      ,a.[VolumeBalance]",
-                "    , a.[VolumeBalance] - isnull(b.[VolumeBalance],0) as VolumeDelta",
-                "    ",
-                "    from [FactShareHolders] A left join [FactShareHolders] B",
-                "    on B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MAX([Date]) from [FactShareHolders] WHERE CompanyId = A.CompanyId AND ShareHolderId = A.ShareHolderId AND [Date] < A.Date)",
-                "),",
-                "",
-                "cte2 as ",
-                "(SELECT a.[CompanyId]",
-                "      ,a.[ShareHolderId]",
-                "      ,a.[Date]",
-                "      ,a.[VolumeBalance]",
-                "      , isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MIN([Date]) from [FactShareHolders] WHERE CompanyId = A.CompanyId AND ShareHolderId = A.ShareHolderId AND [Date] > A.Date)), 0) as NextDayBalance",
-                "      --, isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MIN([Date]) from [DimTimeTable] WHERE [IsNonWorking] = 0 AND [Date] > A.Date)), 0) as NextDayBalance",
-                "    from [FactShareHolders] A ",
-                ")",
-                "",
-                "select cte1.*",
-                ", case",
-                "    when cte1.[VolumeBalance] = cte1.[VolumeDelta] then 1",
-                "    else 0",
-                "end as IsNew",
-                ", case",
-                "    when cte2.[NextDayBalance] = 0 then 1",
-                "    else 0",
-                "end as IsLastDay",
-                "",
-                "from cte1 left join cte2 on cte1.CompanyId = cte2.CompanyId and cte1.ShareHolderId = cte2.ShareHolderId and cte1.[Date] = cte2.[Date]\"]),",
+                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"with#(lf)cte1 as #(lf)(SELECT a.[CompanyId]#(lf)      ,a.[ShareHolderId]#(lf)      ,a.[Date]#(lf)      ,a.[VolumeBalance]#(lf)    , isnull(a.[VolumeBalance], 0) - isnull(b.[VolumeBalance],0) as VolumeDelta#(lf)    #(lf)    from [FactShareHolders] A left join [FactShareHolders] B#(lf)    on B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MAX([Date]) from [DimTimeTable] WHERE [Date] < A.Date and IsNonWorking = 0)#(lf)),#(lf)#(lf)cte2 as #(lf)(SELECT a.[CompanyId]#(lf)      ,a.[ShareHolderId]#(lf)      ,a.[Date]#(lf)      ,a.[VolumeBalance]#(lf)      , isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MAX([Date]) from [DimTimeTable] WHERE [IsNonWorking] = 0 AND [Date] < A.Date)), 0) as PreviousDayBalance#(lf)      , isnull((select VolumeBalance from FactShareHolders b where B.CompanyId = A.CompanyId AND B.ShareHolderId = A.ShareHolderId AND B.[Date] = (SELECT MIN([Date]) from [DimTimeTable] WHERE [IsNonWorking] = 0 AND [Date] > A.Date)), 0) as NextDayBalance#(lf)    from [FactShareHolders] A join DimTimeTable T on A.[Date] = T.[Date]#(lf)    where T.IsNonWorking = 0#(lf)),#(lf)cte3 as (#(lf)select cte1.*#(lf), case#(lf)    when cte2.[PreviousDayBalance] = 0 then 1#(lf)    else 0#(lf)end as IsNew#(lf), case#(lf)    when cte2.[NextDayBalance] = 0  and cte1.date <> (select max(date) from FactShareHolders) then 1#(lf)    else 0#(lf)end as IsLastDay#(lf)#(lf)from cte1 left join cte2 on cte1.CompanyId = cte2.CompanyId and cte1.ShareHolderId = cte2.ShareHolderId and cte1.[Date] = cte2.[Date]#(lf)),#(lf)#(lf)cte4 as (#(lf)    select #(lf)        CompanyId,#(lf)        ShareHolderId,#(lf)        (select min(T.date) from DimTimeTable T where T.[Date] > cte3.[Date] and T.IsNonWorking = 0) as Date,#(lf)        0 as Volumebalance,#(lf)        -Volumebalance as VolumeDelta,#(lf)        IsNew,#(lf)        IsLastDay#(lf)    from cte3#(lf)    where #(lf)        IsLastDay = 1#(lf)#(lf)),#(lf)#(lf)cte5 as (#(lf)    select #(lf)        CompanyId,#(lf)        ShareHolderId,#(lf)        [Date],#(lf)        VolumeBalance,#(lf)        VolumeDelta,#(lf)        IsNew, #(lf)        0 as IsLastDay#(lf)    from cte3#(lf)    union ALL#(lf)    select * from cte4#(lf))#(lf)#(lf)select * from cte5\"]),",
                 "    #\"Changed Type\" = Table.TransformColumnTypes(Source,{{\"IsNew\", type logical}, {\"IsLastDay\", type logical}}),",
                 "    #\"Filtered Rows\" = Table.SelectRows(#\"Changed Type\", each Date.IsInYearToDate([Date]))",
                 "in",

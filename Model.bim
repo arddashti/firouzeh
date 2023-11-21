@@ -2598,7 +2598,8 @@
             "expression": [
               " ",
               "[AUM] / CALCULATE(count('DimFunds'[FundId]))"
-            ]
+            ],
+            "formatString": "#,0"
           },
           {
             "name": "Average Fund AUM per Unit Holde",

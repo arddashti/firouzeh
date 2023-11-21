@@ -4528,7 +4528,7 @@
               "    T1,",
               "    [FundId],",
               "    \"ReturnCol\",",
-              "    CALCULATE([% Annual Return], REMOVEFILTERS('DimFunds'[FundId])),",
+              "    CALCULATE([% Fund Return on NAV], REMOVEFILTERS('DimFunds'[FundId])),",
               "    \"Manager\",",
               "    CALCULATE(SELECTEDVALUE('DimManager'[FinancialGroupName]), CROSSFILTER('DimManager'[ManagerId], 'DimFunds'[ManagerId], Both))",
               ")",
@@ -5121,7 +5121,7 @@
             "displayFolder": "Client Measures Folder"
           },
           {
-            "name": "Net Subscription",
+            "name": "Net Subscription (Rivarz)",
             "expression": [
               " ",
               "[Subscriptions (Rivarz)] - [Redemptions (Rivarz)]"
@@ -5235,7 +5235,7 @@
               "RETURN",
               "IF(",
               "    HASONEVALUE('DimFirouzehFund'[FundId]),",
-              "    Balance+0,",
+              "    Balance,",
               "    BLANK()",
               ") "
             ],
@@ -5534,12 +5534,18 @@
             "name": "Client Volume Delta",
             "expression": [
               " ",
+              "VAR Result =",
               "CALCULATE(",
               "    SUM('FactShareHolders'[VolumeDelta])",
               ",",
               "    DimShareHoldersProfile[ShareHolderId] <> 59113",
               ")",
-              ""
+              "RETURN",
+              "IF(",
+              "    Result = 0,",
+              "    BLANK(),",
+              "    Result",
+              ")"
             ],
             "formatString": "#,0"
           },
@@ -5758,11 +5764,11 @@
               "        'DimTimeTable'[Date] = MaxDate, ",
               "        'DimPortfolio'[PortfolioId] = Company,",
               "        'DimShareHoldersProfile'[ShareHolderId] <> 59113",
-              "    ) +0 ",
+              "    ) ",
               "    RETURN",
-              "    Price *  Balance+0 // نهایتا حاصلضرب قیمت سهم هر شرکت در بالانس مشتری حساب می شود که در سامیکس اول اینها با هم جمع می شود ",
+              "    Price *  Balance // نهایتا حاصلضرب قیمت سهم هر شرکت در بالانس مشتری حساب می شود که در سامیکس اول اینها با هم جمع می شود ",
               "  ",
-              ")+0",
+              ")",
               ""
             ],
             "formatString": "#,0"
@@ -5799,6 +5805,13 @@
                 "name": "Format",
                 "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
               }
+            ]
+          },
+          {
+            "name": "Net Subscription",
+            "expression": [
+              " ",
+              "[Subscriptions] - [Redemptions]"
             ]
           }
         ]

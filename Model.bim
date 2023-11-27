@@ -1408,6 +1408,86 @@
             "name": "3YearRank",
             "dataType": "double",
             "sourceColumn": "3YearRank"
+          },
+          {
+            "type": "calculated",
+            "name": "NetIn",
+            "dataType": "double",
+            "isDataTypeInferred": true,
+            "expression": [
+              " ",
+              "VAR SubPrice =",
+              "IF(",
+              "    ISBLANK('FactFunds'[SubscriptionPrice]),",
+              "    'FactFunds'[StatisticalPrice],",
+              "    'FactFunds'[SubscriptionPrice]",
+              ")",
+              "",
+              "VAR RedPrice =",
+              "IF(",
+              "    ISBLANK('FactFunds'[SubscriptionPrice]),",
+              "    'FactFunds'[StatisticalPrice],",
+              "    'FactFunds'[RedemptionPrice]",
+              ")",
+              "",
+              "VAR NetIn = ",
+              "SubPrice * 'FactFunds'[UnitsSubDay] - RedPrice * 'FactFunds'[UnitsRedDay]",
+              "",
+              "RETURN NetIn"
+            ]
+          },
+          {
+            "type": "calculated",
+            "name": "PreNetIn",
+            "dataType": "double",
+            "isDataTypeInferred": true,
+            "expression": [
+              "",
+              "VAR PreDate = ",
+              "CALCULATE(",
+              "    MAX('FactFunds'[Date]),",
+              "    ALL('FactFunds'),",
+              "    'FactFunds'[FundId] = EARLIER('FactFunds'[FundId]),",
+              "    'FactFunds'[Date] < EARLIER('FactFunds'[Date])",
+              ")",
+              "",
+              "VAR PreNetIn =",
+              "CALCULATE(  ",
+              "    SELECTEDVALUE('FactFunds'[NetIn]),",
+              "    ALL('FactFunds'),",
+              "    'FactFunds'[FundId] = EARLIER('FactFunds'[FundId]),",
+              "    'FactFunds'[Date] = PreDate",
+              ")",
+              "",
+              "RETURN ",
+              "IF(",
+              "    ISBLANK(PreNetIn),",
+              "    1,",
+              "    PreNetIn",
+              ")",
+              "",
+              ""
+            ]
+          },
+          {
+            "type": "calculated",
+            "name": "Units.Adj",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "expression": "1"
+          },
+          {
+            "type": "calculated",
+            "name": "NAVPU.Adj",
+            "dataType": "double",
+            "isDataTypeInferred": true,
+            "expression": [
+              "",
+              "DIVIDE(",
+              "    'FactFunds'[AUM2],",
+              "    FactFunds[Units.Adj]",
+              ")"
+            ]
           }
         ],
         "partitions": [
@@ -4514,12 +4594,20 @@
               "",
               "",
               "VAR Fund = MAX(DimFunds[FundId])",
+              "VAR MaxDate = MAX('DimTimeTable'[Date])",
               "",
               "// T1 contains all selected funds",
               "VAR T1 = ",
               "CALCULATETABLE(",
               "    'DimFunds',",
-              "    ALLSELECTED()",
+              "    ALLSELECTED(),",
+              "    Filter(",
+              "        ALLSELECTED('DimFunds'),",
+              "        VAR LastAUM = CALCULATE([AUM], 'DimTimeTable'[Date] = MaxDate)",
+              "        RETURN",
+              "        LastAUM >= '@AUM'[Min AUM] && LastAUM <= '@AUM'[Max AUM] ",
+              "",
+              "    )",
               ")",
               "",
               "// in T2 for each funds we add return and financial group namee as manager",
@@ -4568,11 +4656,19 @@
               "",
               "",
               "VAR Fund = MAX(DimFunds[FundId])",
+              "VAR MaxDate = MAX('DimTimeTable'[Date])",
               "",
               "VAR T1 = ",
               "CALCULATETABLE(",
               "    'DimFunds',",
-              "    ALLSELECTED()",
+              "    ALLSELECTED(),",
+              "    Filter(",
+              "        ALLSELECTED('DimFunds'),",
+              "        VAR LastAUM = CALCULATE([AUM], 'DimTimeTable'[Date] = MaxDate)",
+              "        RETURN",
+              "        LastAUM >= '@AUM'[Min AUM] && LastAUM <= '@AUM'[Max AUM] ",
+              "",
+              "    )",
               ")",
               "//ALLEXCEPT('DimFunds', 'DimFunds'[FundType]) ",
               "",
@@ -5853,7 +5949,8 @@
             "dataType": "double",
             "isNameInferred": true,
             "isDataTypeInferred": true,
-            "sourceColumn": "[Value]"
+            "sourceColumn": "[Value]",
+            "formatString": "#,0"
           }
         ],
         "partitions": [
@@ -6248,6 +6345,13 @@
               "    CountShares,",
               "    BLANK()",
               ")"
+            ]
+          },
+          {
+            "name": "Net Trade Value",
+            "expression": [
+              "",
+              "[Business Buyers Value] + [Individual Buyers Value] - [Business Seller Value] - [Individual Seller Value]"
             ]
           }
         ]

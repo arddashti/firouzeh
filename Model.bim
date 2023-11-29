@@ -7958,6 +7958,78 @@
               "[% Fund Return on NAV Cum]"
             ],
             "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "% Return on Price YoY",
+            "expression": [
+              "",
+              "VAR MaxDate = MAX('DimTimeTable'[Date])",
+              "VAR PreDate = ",
+              "CALCULATE(",
+              "    MAX('DimTimeTable'[Date]),",
+              "    DATEADD('DimTimeTable'[Date], -1, YEAR)",
+              ") + 1",
+              "VAR Dates =",
+              "CALCULATETABLE(",
+              "    DATESBETWEEN(",
+              "        'DimTimeTable'[Date],",
+              "        PreDate,",
+              "        MaxDate ",
+              "    ),",
+              "    All('DimTimeTable')",
+              ")",
+              "",
+              "//    FILTER(",
+              "//        ALL('DimTimeTable'),",
+              "//        'DimTimeTable'[Date] >= PreDate && 'DimTimeTable'[Date] <= MaxDate",
+              "//    )",
+              "",
+              "    ",
+              "VAR r = ",
+              "CALCULATE(",
+              "    [% Return on Price],",
+              "    Dates",
+              ")",
+              "RETURN r",
+              ""
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "% Return on NAV YoY",
+            "expression": [
+              "",
+              "VAR MaxDate = MAX('DimTimeTable'[Date])",
+              "VAR PreDate = ",
+              "CALCULATE(",
+              "    MAX('DimTimeTable'[Date]),",
+              "    DATEADD('DimTimeTable'[Date], -1, YEAR)",
+              ") + 1",
+              "VAR Dates =",
+              "CALCULATETABLE(",
+              "    DATESBETWEEN(",
+              "        'DimTimeTable'[Date],",
+              "        PreDate,",
+              "        MaxDate ",
+              "    ),",
+              "    All('DimTimeTable')",
+              ")",
+              "",
+              "//    FILTER(",
+              "//        ALL('DimTimeTable'),",
+              "//        'DimTimeTable'[Date] >= PreDate && 'DimTimeTable'[Date] <= MaxDate",
+              "//    )",
+              "",
+              "    ",
+              "VAR r = ",
+              "CALCULATE(",
+              "    [% Fund Return on NAV],",
+              "    Dates",
+              ")",
+              "RETURN r",
+              ""
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           }
         ],
         "hierarchies": [
@@ -8134,8 +8206,9 @@
               " ",
               "SUMX(",
               "    'FactTradeDetails',",
-              "    'FactTradeDetails'[CompanyBuyVolume] * 'FactTradeDetails'[Value] / 'FactTradeDetails'[Volume]",
-              ")"
+              "    DIVIDE('FactTradeDetails'[CompanyBuyVolume], 'FactTradeDetails'[CompanySellVolume] + 'FactTradeDetails'[PersonSellVolume]) * 'FactTradeDetails'[Value]",
+              ")",
+              ""
             ]
           },
           {
@@ -8154,7 +8227,8 @@
               " ",
               "SUMX(",
               "    'FactTradeDetails',",
-              "    'FactTradeDetails'[CompanySellVolume] * 'FactTradeDetails'[Value] / 'FactTradeDetails'[Volume]",
+              "    DIVIDE(",
+              "        'FactTradeDetails'[CompanySellVolume], 'FactTradeDetails'[CompanySellVolume] + 'FactTradeDetails'[PersonSellVolume]) * 'FactTradeDetails'[Value]",
               ")"
             ]
           },
@@ -8301,7 +8375,7 @@
               " ",
               "SUMX(",
               "    'FactTradeDetails',",
-              "    DIVIDE('FactTradeDetails'[PersonBuyVolume] * 'FactTradeDetails'[Value], 'FactTradeDetails'[Volume])",
+              "    DIVIDE('FactTradeDetails'[PersonBuyVolume], 'FactTradeDetails'[CompanySellVolume] + 'FactTradeDetails'[PersonSellVolume])  * 'FactTradeDetails'[Value]",
               ")"
             ]
           },
@@ -8321,7 +8395,7 @@
               " ",
               "SUMX(",
               "    'FactTradeDetails',",
-              "    DIVIDE('FactTradeDetails'[PersonSellVolume] * 'FactTradeDetails'[Value], 'FactTradeDetails'[Volume])",
+              "    DIVIDE('FactTradeDetails'[PersonSellVolume],'FactTradeDetails'[CompanySellVolume] + 'FactTradeDetails'[PersonSellVolume]) * 'FactTradeDetails'[Value]",
               ")"
             ]
           },
@@ -8528,7 +8602,7 @@
             ]
           },
           {
-            "name": "Individual Trade Value",
+            "name": "Individual Trade Value (to be deleted)",
             "expression": [
               "",
               "[Individual Buyers Value] + [Individual Seller Value]",
@@ -8540,7 +8614,7 @@
             "expression": [
               "",
               "DIVIDE(",
-              "    [Individual Trade Value],",
+              "    [Individual Trade Value (to be deleted)],",
               "    [Trade Value]",
               ")"
             ],
@@ -8729,6 +8803,53 @@
               "    "
             ],
             "formatString": "#,0"
+          },
+          {
+            "name": "% Trade Turnover Daily",
+            "expression": [
+              "",
+              "",
+              "DIVIDE(",
+              "    [Average Daily Trade], ",
+              "    [Average Market Cap]",
+              ")",
+              ""
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Average Daily Trade",
+            "expression": [
+              "",
+              "AVERAGEX(",
+              "    FILTER(",
+              "        'DimTimeTable',",
+              "        NOT 'DimTimeTable'[IsNonWorking]",
+              "    ),",
+              "    [Trade Value]",
+              ")",
+              ""
+            ],
+            "formatString": "\"IRR\" #,0.0;-\"IRR\" #,0.0;\"IRR\" #,0.0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\" Accuracy=\"1\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
+            ]
+          },
+          {
+            "name": "Average Market Cap",
+            "expression": [
+              " ",
+              "AVERAGEX(",
+              "    FILTER(",
+              "        'DimTimeTable',",
+              "        NOT 'DimTimeTable'[IsNonWorking]",
+              "    ),",
+              "    [Market Cap (Currency)]",
+              ")"
+            ]
           }
         ]
       },
@@ -9706,8 +9827,10 @@
               "CALCULATE(",
               "    SUMX(",
               "        'FactPortfolio',",
-              "        'FactPortfolio'[AVGBuyPrice] * 'FactPortfolio'[ShareNo]",
-              "    ), 'DimTimeTable'[Date] = LastDay)",
+              "        [TotalInvest]",
+              "    ), ",
+              "    'DimTimeTable'[Date] = LastDay",
+              ")",
               ""
             ],
             "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
@@ -9897,6 +10020,31 @@
               ")"
             ],
             "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Portfolio Avg Cost Old",
+            "expression": [
+              "",
+              "VAR LastDay = ",
+              "CALCULATE(",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        COUNTROWS(RELATEDTABLE('FactPortfolio'))",
+              "    ),",
+              "    ALL('FactPortfolio'[AssetId]),",
+              "    All('FactPortfolio'[InstrumentId]),",
+              "    All('DimAsset'),",
+              "    All('DimInstrument')",
+              ")",
+              "",
+              "RETURN",
+              "CALCULATE(",
+              "    SUMX(",
+              "        'FactPortfolio',",
+              "        'FactPortfolio'[AVGBuyPrice] * 'FactPortfolio'[ShareNo]",
+              "    ), 'DimTimeTable'[Date] = LastDay)",
+              ""
+            ]
           }
         ]
       },

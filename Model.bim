@@ -5909,6 +5909,20 @@
               " ",
               "[Subscriptions] - [Redemptions]"
             ]
+          },
+          {
+            "name": "Client Balance with Zeros",
+            "expression": [
+              "",
+              "[Client Balance] + 0"
+            ]
+          },
+          {
+            "name": "Client Balance Value with zeros",
+            "expression": [
+              "",
+              "[Client Balance Value] + 0"
+            ]
           }
         ]
       },
@@ -8850,6 +8864,131 @@
               "    [Market Cap (Currency)]",
               ")"
             ]
+          },
+          {
+            "name": "% Trade Turnover Daily Excluding Outliers",
+            "expression": [
+              "",
+              "",
+              "DIVIDE(",
+              "    [Average Daily Trade Excluding Outliers], ",
+              "    [Average Market Cap]",
+              ")",
+              ""
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Daily Trade Standard Deviation",
+            "expression": [
+              "",
+              "STDEVX.P(",
+              "    FILTER(",
+              "        'DimTimeTable',",
+              "        NOT 'DimTimeTable'[IsNonWorking]",
+              "    ),",
+              "    [Trade Value]",
+              ")",
+              ""
+            ]
+          },
+          {
+            "name": "Average Daily Trade Excluding Outliers",
+            "expression": [
+              "",
+              "VAR Dates=",
+              "FILTER(",
+              "    ALLSELECTED('DimTimeTable'),",
+              "    NOT 'DimTimeTable'[IsNonWorking]",
+              ")",
+              "VAR T1 =",
+              "    ADDCOLUMNS(",
+              "    Dates,",
+              "    \"TradeValue\", [Trade Value],",
+              "    \"MarketCap\", [Market Cap (Currency)],",
+              "    \"TurnOver\", [% Trade Turnover]",
+              ")",
+              "",
+              "VAR M =",
+              "AVERAGEX(T1, [Turnover])",
+              "",
+              "VAR S =",
+              "STDEVX.P(T1, [Turnover])",
+              "",
+              "",
+              "VAR T2 = ",
+              "ADDCOLUMNS(",
+              "    T1,",
+              "    \"Z\", DIVIDE([TurnOver] - M, S)",
+              ")",
+              "VAR T3 =",
+              "Filter(",
+              "    T2,",
+              "    [Z] <= [Outlier Treshold]",
+              ")",
+              "",
+              "VAR T4 = ",
+              "SELECTCOLUMNS(",
+              "    T3,",
+              "    \"Date\", [Date]",
+              ")",
+              "       ",
+              "RETURN ",
+              "CALCULATE(",
+              "    [Average Daily Trade],",
+              "    KEEPFILTERS(T4)",
+              ")",
+              ""
+            ]
+          },
+          {
+            "name": "Average Daily Trade Excluding Outliers New",
+            "expression": [
+              "",
+              "VAR Dates=",
+              "FILTER(",
+              "    ALLSELECTED('DimTimeTable'),",
+              "    NOT 'DimTimeTable'[IsNonWorking]",
+              ")",
+              "VAR T1 =",
+              "    ADDCOLUMNS(",
+              "    Dates,",
+              "    \"TradeValue\", [Trade Value],",
+              "    \"MarketCap\", [Market Cap (Currency)],",
+              "    \"TurnOver\", [% Trade Turnover]",
+              ")",
+              "",
+              "VAR M =",
+              "AVERAGEX(T1, [Turnover])",
+              "",
+              "VAR S =",
+              "STDEVX.P(T1, [Turnover])",
+              "",
+              "",
+              "VAR T2 = ",
+              "ADDCOLUMNS(",
+              "    T1,",
+              "    \"Z\", DIVIDE([TurnOver] - M, S)",
+              ")",
+              "VAR T3 =",
+              "Filter(",
+              "    T2,",
+              "    [Z] <= [Outlier Treshold]",
+              ")",
+              "",
+              "VAR T4 = ",
+              "SELECTCOLUMNS(",
+              "    T3,",
+              "    \"Date\", [Date]",
+              ")",
+              "       ",
+              "RETURN ",
+              "CALCULATE(",
+              "    [Average Daily Trade],",
+              "    T4",
+              ")",
+              ""
+            ]
           }
         ]
       },
@@ -10392,6 +10531,72 @@
                 "    dbo_DimPRXManager"
               ]
             }
+          }
+        ]
+      },
+      {
+        "name": "@OutlierTresholds",
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "Value",
+            "dataType": "int64",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Value]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "Level",
+            "dataType": "string",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[Level]",
+            "sortByColumn": "Value"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": [
+                " ",
+                "VAR Infinity = 9999999999999",
+                "VAR T1 = ",
+                "GENERATESERIES(1, 5, 1)",
+                "VAR T2 =",
+                "UNION(",
+                "    T1, ",
+                "    ROW(\"Value\", Infinity)",
+                ")",
+                "VAR T3= ",
+                "ADDCOLUMNS(",
+                "    T2,",
+                "    \"Level\",",
+                "    SWITCH(",
+                "        [Value],",
+                "        1, \"Very Aggressive\",",
+                "        2, \"Aggressive\",",
+                "        3, \"Moderate\",",
+                "        4, \"Weak\",",
+                "        5, \"Very Weak\",",
+                "        Infinity, \"No Detection\"",
+                "    )",
+                ")",
+                "RETURN T3",
+                ""
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Outlier Treshold",
+            "expression": [
+              " ",
+              "SELECTEDVALUE('@OutlierTresholds'[Value])"
+            ]
           }
         ]
       }

@@ -5217,12 +5217,11 @@
             "displayFolder": "Client Measures Folder"
           },
           {
-            "name": "Net Subscription (Rivarz)",
+            "name": "Net Subscription",
             "expression": [
               " ",
-              "[Subscriptions (Rivarz)] - [Redemptions (Rivarz)]"
-            ],
-            "displayFolder": "Subscriptions"
+              "[Subscriptions] - [Redemptions]"
+            ]
           },
           {
             "name": "Net Unit Subscriptions",
@@ -5904,11 +5903,12 @@
             ]
           },
           {
-            "name": "Net Subscription",
+            "name": "Net Subscription (Rivarz)",
             "expression": [
               " ",
-              "[Subscriptions] - [Redemptions]"
-            ]
+              "[Subscriptions (Rivarz)] - [Redemptions (Rivarz)]"
+            ],
+            "displayFolder": "Subscriptions"
           },
           {
             "name": "Client Balance with Zeros",
@@ -8616,14 +8616,6 @@
             ]
           },
           {
-            "name": "Individual Trade Value (to be deleted)",
-            "expression": [
-              "",
-              "[Individual Buyers Value] + [Individual Seller Value]",
-              ""
-            ]
-          },
-          {
             "name": "Individual Trade %",
             "expression": [
               "",
@@ -8747,6 +8739,14 @@
               "RETURN Label",
               "",
               "",
+              ""
+            ]
+          },
+          {
+            "name": "Individual Trade Value (to be deleted)",
+            "expression": [
+              "",
+              "[Individual Buyers Value] + [Individual Seller Value]",
               ""
             ]
           },
@@ -8896,11 +8896,33 @@
             "name": "Average Daily Trade Excluding Outliers",
             "expression": [
               "",
-              "VAR Dates=",
-              "FILTER(",
-              "    ALLSELECTED('DimTimeTable'),",
-              "    NOT 'DimTimeTable'[IsNonWorking]",
+              "VAR FirstDayWithMarketCap =",
+              "CALCULATE(",
+              "    FIRSTNONBLANK(",
+              "        ALLSELECTED('DimTimeTable'[Date]),",
+              "        [Market Cap (Currency)]",
+              "    ),",
+              "    'DimTimeTable'[IsTodayOrBefore],",
+              "    REMOVEFILTERS('DimTimeTable'[FYearMonth])",
               ")",
+              "",
+              "VAR Dates=",
+              "CALCULATETABLE(",
+              "    VALUES('DimTimeTable'[Date]),",
+              "    ALLSELECTED('DimTimeTable'),",
+              "    NOT 'DimTimeTable'[IsNonWorking],",
+              "    'DimTimeTable'[IsTodayOrBefore],",
+              "    'DimTimeTable'[Date] >= FirstDayWithMarketCap,",
+              "    REMOVEFILTERS('DimTimeTable'[FYearMonth])",
+              ")",
+              "//SELECTCOLUMNS(",
+              "//FILTER(",
+              "//    ALL('DimTimeTable'),",
+              "//    NOT 'DimTimeTable'[IsNonWorking] &&",
+              "//    'DimTimeTable'[IsTodayOrBefore] &&",
+              "//),",
+              "//\"Date\", [Date]",
+              "//)",
               "VAR T1 =",
               "    ADDCOLUMNS(",
               "    Dates,",
@@ -8924,7 +8946,7 @@
               "VAR T3 =",
               "Filter(",
               "    T2,",
-              "    [Z] <= [Outlier Treshold]",
+              "    ABS([Z]) <= [Outlier Treshold]",
               ")",
               "",
               "VAR T4 = ",
@@ -8932,14 +8954,17 @@
               "    T3,",
               "    \"Date\", [Date]",
               ")",
+              "",
+              "",
               "       ",
-              "RETURN ",
+              "RETURN --M & \" \" & S --CONCATENATEX(T2, [Date] & \" \" & [Z], \", \")",
               "CALCULATE(",
               "    [Average Daily Trade],",
-              "    KEEPFILTERS(T4)",
-              ")",
-              ""
-            ]
+              "    INTERSECT(VALUES('DimTimeTable'[Date]), T4),",
+              "    'DimTimeTable'[Date] >= FirstDayWithMarketCap",
+              ")"
+            ],
+            "formatString": "#,0"
           },
           {
             "name": "Average Daily Trade Excluding Outliers New",
@@ -12366,6 +12391,10 @@
           {
             "memberName": "IIDIC\\402BI114",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2177"
+          },
+          {
+            "memberName": "IIDIC\\402BI113",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2179"
           }
         ],
         "tablePermissions": [
@@ -12826,6 +12855,74 @@
         ]
       },
       {
+        "name": "Asset Management",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "IIDIC\\402sa051",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2660"
+          },
+          {
+            "memberName": "IIDIC\\507268",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1393"
+          },
+          {
+            "memberName": "IIDIC\\507382",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1734"
+          },
+          {
+            "memberName": "IIDIC\\507481",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1390"
+          },
+          {
+            "memberName": "IIDIC\\507484",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1520"
+          },
+          {
+            "memberName": "IIDIC\\507485",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1521"
+          },
+          {
+            "memberName": "IIDIC\\507459",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1384"
+          },
+          {
+            "memberName": "IIDIC\\507492",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1558"
+          },
+          {
+            "memberName": "IIDIC\\402sa064",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-3609"
+          },
+          {
+            "memberName": "IIDIC\\402sa066",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2717"
+          },
+          {
+            "memberName": "IIDIC\\410036",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1756"
+          },
+          {
+            "memberName": "IIDIC\\507464",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1437"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "FactPortfolioTrade",
+            "metadataPermission": "none"
+          },
+          {
+            "name": "FactPortfolio",
+            "metadataPermission": "none"
+          },
+          {
+            "name": "DimPortfolio",
+            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {2,3}"
+          }
+        ]
+      },
+      {
         "name": "AssetManagementTopManagement",
         "modelPermission": "read",
         "members": [
@@ -12908,74 +13005,6 @@
           {
             "name": "DimPortfolio",
             "filterExpression": "USERNAME()=RELATED('DimPortfolioManager'[UserName])"
-          }
-        ]
-      },
-      {
-        "name": "Asset Management",
-        "modelPermission": "read",
-        "members": [
-          {
-            "memberName": "IIDIC\\402sa051",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2660"
-          },
-          {
-            "memberName": "IIDIC\\507268",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1393"
-          },
-          {
-            "memberName": "IIDIC\\507382",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1734"
-          },
-          {
-            "memberName": "IIDIC\\507481",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1390"
-          },
-          {
-            "memberName": "IIDIC\\507484",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1520"
-          },
-          {
-            "memberName": "IIDIC\\507485",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1521"
-          },
-          {
-            "memberName": "IIDIC\\507459",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1384"
-          },
-          {
-            "memberName": "IIDIC\\507492",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1558"
-          },
-          {
-            "memberName": "IIDIC\\402sa064",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-3609"
-          },
-          {
-            "memberName": "IIDIC\\402sa066",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2717"
-          },
-          {
-            "memberName": "IIDIC\\410036",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1756"
-          },
-          {
-            "memberName": "IIDIC\\507464",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1437"
-          }
-        ],
-        "tablePermissions": [
-          {
-            "name": "FactPortfolioTrade",
-            "metadataPermission": "none"
-          },
-          {
-            "name": "FactPortfolio",
-            "metadataPermission": "none"
-          },
-          {
-            "name": "DimPortfolio",
-            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {2,3}"
           }
         ]
       },

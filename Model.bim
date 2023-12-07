@@ -5217,11 +5217,12 @@
             "displayFolder": "Client Measures Folder"
           },
           {
-            "name": "Net Subscription",
+            "name": "Net Subscription (Rivarz)",
             "expression": [
               " ",
-              "[Subscriptions] - [Redemptions]"
-            ]
+              "[Subscriptions (Rivarz)] - [Redemptions (Rivarz)]"
+            ],
+            "displayFolder": "Subscriptions"
           },
           {
             "name": "Net Unit Subscriptions",
@@ -5903,12 +5904,11 @@
             ]
           },
           {
-            "name": "Net Subscription (Rivarz)",
+            "name": "Net Subscription",
             "expression": [
               " ",
-              "[Subscriptions (Rivarz)] - [Redemptions (Rivarz)]"
-            ],
-            "displayFolder": "Subscriptions"
+              "[Subscriptions] - [Redemptions]"
+            ]
           },
           {
             "name": "Client Balance with Zeros",
@@ -7054,7 +7054,7 @@
           },
           {
             "name": "TickerAdjPrice",
-            "dataType": "int64",
+            "dataType": "double",
             "sourceColumn": "TickerAdjPrice"
           },
           {
@@ -7126,6 +7126,11 @@
             "name": "DescriptioLevel3",
             "dataType": "string",
             "sourceColumn": "DescriptioLevel3"
+          },
+          {
+            "name": "Ticker",
+            "dataType": "string",
+            "sourceColumn": "Ticker"
           }
         ],
         "partitions": [
@@ -7136,7 +7141,7 @@
               "type": "m",
               "expression": [
                 "let",
-                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"SELECT#(lf)    'صندوق' AS Source,#(lf)    ViwFundsPivot.[Date],#(lf)    ViwFundsPivot.FundId,#(lf)    DimFunds.FundType,#(lf)    NULL AS IndexId,#(lf)    DimFunds.FundShortName AS Description,#(lf)    DimFunds.FundEnName AS DescriptionEn,#(lf)    Efficiency AS FundEfficiency,#(lf)    MonthReturn AS FundMonthReturn,#(lf)    DayReturn AS FundDayReturn,#(lf)    WeekReturn AS FundWeekReturn,#(lf)    YearReturn AS FundYearReturn,#(lf)    QuarterReturn AS FundQuarterReturn,#(lf)    FactFundsSplit.SubscriptionPrice,#(lf)    FactFundsSplit.RedemptionPrice,#(lf)    FactFundsSplit.StatisticalPrice,#(lf)    FactTradeDetails.ClosePrice as TickerClosePrice,#(lf)    FactTradeDetails.AdjPrice as TickerAdjPrice,#(lf)    Null as IndexValue ,#(lf)    DimFunds.FundType AS DescriptioLevel2,#(lf)    DimFunds.FundShortName AS DescriptioLevel3#(lf)FROM ViwFundsPivot#(lf)JOIN DimFunds ON ViwFundsPivot.FundId = DimFunds.FundId inner join FactFundsSplit on FactFundsSplit.[Date] = ViwFundsPivot.[Date] and FactFundsSplit.FundId = ViwFundsPivot.FundId left join FactTradeDetails on DimFunds.InstrumentId = FactTradeDetails.InstrumentId and ViwFundsPivot.[Date] = FactTradeDetails.[Date] and DimFunds.DividendIntervalPeriod=0#(lf)#(lf)UNION ALL#(lf)#(lf)    SELECT#(lf)        'شاخص' AS Source,#(lf)        FactIndexValue.[Date],#(lf)        NULL AS FundId,#(lf)        'شاخص',#(lf)        FactIndexValue.IndexId,#(lf)        DimIndex.IndexName AS Description,#(lf)        DimIndex.NameEn AS DescriptionEn,#(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue,#(lf)        DimIndex.IndexName,#(lf)        Null#(lf)    FROM FactIndexValue#(lf)    JOIN DimIndex ON FactIndexValue.IndexId = DimIndex.IndexId\", CreateNavigationProperties=false])",
+                "    Source = Sql.Database(\"192.168.220.10\", \"DW\", [Query=\"with cte1 as (#(lf)select #(lf)    ViwFundsPivot.[Date], #(lf)    ViwFundsPivot.FundId,     #(lf)    ViwFundsPivot.Efficiency,#(lf)    ViwFundsPivot.MonthReturn,#(lf)    ViwFundsPivot.DayReturn,#(lf)    ViwFundsPivot.WeekReturn,#(lf)    ViwFundsPivot.YearReturn,#(lf)    ViwFundsPivot.QuarterReturn,#(lf)    DimFunds.FundType,#(lf)    DimFunds.FundShortName,#(lf)    DimFunds.FundEnName,    #(lf)    DimFunds.InstrumentId,#(lf)    DimFunds.DividendIntervalPeriod,#(lf)    FactFundsSplit.SubscriptionPrice,#(lf)    FactFundsSplit.RedemptionPrice,#(lf)    FactFundsSplit.StatisticalPrice,#(lf)    DimInstrument.Ticker#(lf)FROM ViwFundsPivot#(lf)JOIN DimFunds ON ViwFundsPivot.FundId = DimFunds.FundId #(lf)LEFT JOIN FactFundsSplit on FactFundsSplit.[Date] = ViwFundsPivot.[Date] and FactFundsSplit.FundId = ViwFundsPivot.FundId #(lf)left join DimInstrument on DimFunds.InstrumentId = DimInstrument.InstrumentId#(lf)#(lf)),#(lf)cte2 as (#(lf)select#(lf)    FactTradeDetails.ClosePrice as TickerClosePrice,#(lf)    FactTradeDetails.AdjPrice as TickerAdjPrice,#(lf)    FactTradeDetails.[Date],#(lf)    DimFunds.FundId,#(lf)    DimFunds.FundType,#(lf)    DimFunds.FundShortName,#(lf)    DimFunds.FundEnName,    #(lf)    DimFunds.InstrumentId,#(lf)    DimFunds.DividendIntervalPeriod,#(lf)    Ticker#(lf)#(lf)FROM#(lf)    FactTradeDetails join DimFunds on FactTradeDetails.InstrumentId = DimFunds.InstrumentId#(lf)    Left join DimInstrument on FactTradeDetails.InstrumentId = DimInstrument.InstrumentId#(lf))#(lf)#(lf)SELECT#(lf)    'صندوق' AS Source,#(lf)    DimTimeTable.[Date],#(lf)    IIF(cte1.FundId is null, cte2.FundId, cte1.FundId) AS FundId ,#(lf)    IIF(cte1.FundType is null, cte2.FundType, cte1.FundType) AS FundType,#(lf)    NULL AS IndexId,#(lf)    IIF(cte1.FundShortName is null, cte2.FundShortName, cte1.FundShortName) AS Description,#(lf)    IIF(cte1.Ticker is null, cte2.Ticker, cte1.Ticker) AS Ticker,#(lf)    IIF(cte1.FundEnName is null, cte2.FundEnName, cte1.FundEnName) AS DescriptionEn,#(lf)    Efficiency AS FundEfficiency,#(lf)    MonthReturn AS FundMonthReturn,#(lf)    DayReturn AS FundDayReturn,#(lf)    WeekReturn AS FundWeekReturn,#(lf)    YearReturn AS FundYearReturn,#(lf)    QuarterReturn AS FundQuarterReturn,#(lf)    cte1.SubscriptionPrice,#(lf)    cte1.RedemptionPrice,#(lf)    cte1.StatisticalPrice,#(lf)    cte2.TickerClosePrice,#(lf)    cte2.TickerAdjPrice,#(lf)    Null as IndexValue ,#(lf)    cte1.FundType AS DescriptioLevel2,#(lf)    cte1.FundShortName AS DescriptioLevel3#(lf)FROM cte1 full join cte2 on cte1.InstrumentId = cte2.InstrumentId and cte1.[Date] = cte2.[Date]#(lf)join DimTimeTable on cte1.[Date] = DimTimeTable.[Date] or cte2.[Date] = DimTimeTable.[Date]#(lf)#(lf)UNION ALL#(lf)#(lf)    SELECT#(lf)        'شاخص' AS Source,#(lf)        FactIndexValue.[Date],#(lf)        NULL AS FundId,#(lf)        'شاخص',#(lf)        FactIndexValue.IndexId,#(lf)        DimIndex.IndexName AS Description,#(lf)        DimIndex.IndexName AS Ticker,#(lf)        DimIndex.NameEn AS DescriptionEn,#(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        Null, #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue , #(lf)        FactIndexValue.CloseValue,#(lf)        DimIndex.IndexName,#(lf)        Null#(lf)    FROM FactIndexValue#(lf)    JOIN DimIndex ON FactIndexValue.IndexId = DimIndex.IndexId\", CreateNavigationProperties=false])",
                 "in",
                 "    Source"
               ]
@@ -7653,15 +7658,9 @@
               ") ",
               "",
               "VAR MaxDate = ",
-              "CALCULATE(",
-              "    LASTNONBLANK(",
-              "        DATESBETWEEN(",
-              "            'DimTimeTable'[Date],",
-              "            BLANK(),",
-              "            LASTDATE('DimTimeTable'[Date])",
-              "        ),",
-              "        CALCULATE(COUNT('FactReturns'[TickerAdjPrice]), 'FactReturns'[FundId] = Fund)",
-              "        )",
+              "LASTNONBLANK(",
+              "    'DimTimeTable'[Date],",
+              "    CALCULATE(COUNT('FactReturns'[TickerAdjPrice]), 'FactReturns'[FundId] = Fund)",
               ")",
               "",
               "VAR BaseFinal = ",
@@ -8616,6 +8615,14 @@
             ]
           },
           {
+            "name": "Individual Trade Value (to be deleted)",
+            "expression": [
+              "",
+              "[Individual Buyers Value] + [Individual Seller Value]",
+              ""
+            ]
+          },
+          {
             "name": "Individual Trade %",
             "expression": [
               "",
@@ -8739,14 +8746,6 @@
               "RETURN Label",
               "",
               "",
-              ""
-            ]
-          },
-          {
-            "name": "Individual Trade Value (to be deleted)",
-            "expression": [
-              "",
-              "[Individual Buyers Value] + [Individual Seller Value]",
               ""
             ]
           },
@@ -12855,74 +12854,6 @@
         ]
       },
       {
-        "name": "Asset Management",
-        "modelPermission": "read",
-        "members": [
-          {
-            "memberName": "IIDIC\\402sa051",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2660"
-          },
-          {
-            "memberName": "IIDIC\\507268",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1393"
-          },
-          {
-            "memberName": "IIDIC\\507382",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1734"
-          },
-          {
-            "memberName": "IIDIC\\507481",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1390"
-          },
-          {
-            "memberName": "IIDIC\\507484",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1520"
-          },
-          {
-            "memberName": "IIDIC\\507485",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1521"
-          },
-          {
-            "memberName": "IIDIC\\507459",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1384"
-          },
-          {
-            "memberName": "IIDIC\\507492",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1558"
-          },
-          {
-            "memberName": "IIDIC\\402sa064",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-3609"
-          },
-          {
-            "memberName": "IIDIC\\402sa066",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2717"
-          },
-          {
-            "memberName": "IIDIC\\410036",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1756"
-          },
-          {
-            "memberName": "IIDIC\\507464",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1437"
-          }
-        ],
-        "tablePermissions": [
-          {
-            "name": "FactPortfolioTrade",
-            "metadataPermission": "none"
-          },
-          {
-            "name": "FactPortfolio",
-            "metadataPermission": "none"
-          },
-          {
-            "name": "DimPortfolio",
-            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {2,3}"
-          }
-        ]
-      },
-      {
         "name": "AssetManagementTopManagement",
         "modelPermission": "read",
         "members": [
@@ -13005,6 +12936,74 @@
           {
             "name": "DimPortfolio",
             "filterExpression": "USERNAME()=RELATED('DimPortfolioManager'[UserName])"
+          }
+        ]
+      },
+      {
+        "name": "Asset Management",
+        "modelPermission": "read",
+        "members": [
+          {
+            "memberName": "IIDIC\\402sa051",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2660"
+          },
+          {
+            "memberName": "IIDIC\\507268",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1393"
+          },
+          {
+            "memberName": "IIDIC\\507382",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1734"
+          },
+          {
+            "memberName": "IIDIC\\507481",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1390"
+          },
+          {
+            "memberName": "IIDIC\\507484",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1520"
+          },
+          {
+            "memberName": "IIDIC\\507485",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1521"
+          },
+          {
+            "memberName": "IIDIC\\507459",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1384"
+          },
+          {
+            "memberName": "IIDIC\\507492",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1558"
+          },
+          {
+            "memberName": "IIDIC\\402sa064",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-3609"
+          },
+          {
+            "memberName": "IIDIC\\402sa066",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2717"
+          },
+          {
+            "memberName": "IIDIC\\410036",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1756"
+          },
+          {
+            "memberName": "IIDIC\\507464",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1437"
+          }
+        ],
+        "tablePermissions": [
+          {
+            "name": "FactPortfolioTrade",
+            "metadataPermission": "none"
+          },
+          {
+            "name": "FactPortfolio",
+            "metadataPermission": "none"
+          },
+          {
+            "name": "DimPortfolio",
+            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {2,3}"
           }
         ]
       },

@@ -1563,28 +1563,6 @@
               "RETURN",
               "CALCULATE(AVERAGE('FactFunds'[5YearRank]), 'DimTimeTable'[Date] = MaxDate)"
             ]
-          },
-          {
-            "name": "AUM Old",
-            "expression": [
-              " ",
-              "VAR MaxDate = ",
-              "CALCULATE(",
-              "    LASTNONBLANK(",
-              "        DATESBETWEEN(",
-              "            'DimTimeTable'[Date],",
-              "            BLANK(),",
-              "            CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "        ),",
-              "        CALCULATE(COUNT('FactFunds'[AUM2])) ",
-              "        )",
-              ")",
-              "",
-              "VAR NAV = ",
-              "CALCULATE(SUM('FactFunds'[AUM2]),'DimTimeTable'[Date] = MaxDate)",
-              "RETURN NAV"
-            ],
-            "displayFolder": "AUM"
           }
         ]
       },
@@ -1764,22 +1742,34 @@
             "name": "AUM",
             "expression": [
               " ",
-              "SUMX(",
-              "    VALUES ( 'DimFunds'[FundId] ),",
-              "    VAR LastDay = ",
-              "    CALCULATE(",
-              "        LASTNONBLANK(",
-              "            DATESBETWEEN(",
+              "// This new version is written using  treatas and is much faster",
+              "VAR LastFundDate = ",
+              "    ADDCOLUMNS(",
+              "        VALUES('DimFunds'[FundId]),",
+              "        \"LastDate\", ",
+              "         CALCULATE(",
+              "            LASTNONBLANK(",
               "                'DimTimeTable'[Date],",
-              "                BLANK(),",
-              "                CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "            ),",
-              "            CALCULATE(COUNT('FactFunds'[AUM2]))",
-              "        )",
+              "                CALCULATE(COUNT('FactFunds'[AUM2]))",
+              "            )",
+              "        )       ",
               "    )",
-              "    RETURN",
-              "    CALCULATE (SELECTEDVALUE( 'FactFunds'[AUM2] ), 'DimTimeTable'[Date] = LastDay, USERELATIONSHIP('DimFunds'[InstrumentId], 'DimInstrument'[InstrumentId]) )",
-              ")",
+              "",
+              "VAR FilterFundDate = ",
+              "    TREATAS(",
+              "        LastFundDate,",
+              "        'DimFunds'[FundId],",
+              "        'DimTimeTable'[Date]",
+              "    )",
+              "",
+              "VAR SUMLastAUM =",
+              "    CALCULATE(",
+              "        SUM(FactFunds[AUM2]),",
+              "        FilterFundDate",
+              "    )",
+              "",
+              "RETURN",
+              "    SUMLastAUM",
               ""
             ],
             "formatString": "#,0",
@@ -2580,22 +2570,6 @@
               "    ),",
               "    [AUM],",
               "    BLANK()",
-              ")"
-            ],
-            "displayFolder": "AUM"
-          },
-          {
-            "name": "AUM New 3",
-            "expression": [
-              " ",
-              "SUMX(",
-              "    VALUES('FactFunds'[FundId]),",
-              "    VAR LastDay = CALCULATE(MAX('FactFunds'[Date]), NOT(ISBLANK('FactFunds'[AUM2])))",
-              "    RETURN CALCULATE(",
-              "        SUM('FactFunds'[AUM2]),",
-              " 'FactFunds'[Date] = LastDay",
-              "",
-              ")",
               ")"
             ],
             "displayFolder": "AUM"
@@ -3849,30 +3823,6 @@
               ""
             ],
             "formatString": "0.0%;-0.0%;0.0%"
-          },
-          {
-            "name": "aum OLD VERSION",
-            "expression": [
-              "",
-              "SUMX (",
-              "    VALUES ( 'FactFunds'[FundId] ),",
-              "//    VAR LastDay =",
-              "//        CALCULATE ( MAX ( 'FactFunds'[Date] ), NOT ( ISBLANK ( 'FactFunds'[AUM2] ) ) )",
-              "    VAR LastDay = ",
-              "    CALCULATE(",
-              "        LASTNONBLANK(",
-              "            DATESBETWEEN(",
-              "                'DimTimeTable'[Date],",
-              "                BLANK(),",
-              "                CALCULATE(LASTDATE('DimTimeTable'[Date]))",
-              "            ),",
-              "            CALCULATE(COUNT('FactFunds'[AUM2]))",
-              "        )",
-              "    )",
-              "    RETURN",
-              "    CALCULATE (SUM( 'FactFunds'[AUM2] ), 'FactFunds'[Date] = LastDay )",
-              ")"
-            ]
           },
           {
             "name": "Equity Funds Return Percentile Value Range",
@@ -9010,6 +8960,40 @@
               "CALCULATE(",
               "    [Average Daily Trade],",
               "    T4",
+              ")",
+              ""
+            ]
+          },
+          {
+            "name": "Market Cap New for Test",
+            "expression": [
+              "",
+              "",
+              "VAR T = ",
+              "CALCULATETABLE(",
+              "    VALUES('DimInstrument'[AssetId]),",
+              "    FILTER(",
+              "        'DimInstrument',",
+              "        'DimInstrument'[MarketId] = 6 &&",
+              "        'DimInstrument'[ExchangeId] in {1,2} ",
+              "    )",
+              ")",
+              "RETURN",
+              "sumx(",
+              "    T,",
+              "    var lastday = ",
+              "    lastnonblank(",
+              "        DimTimeTable[Date],",
+              "        calculate(count('facttradedetails'[marketcap]))",
+              "    )",
+              "    ",
+              "    return",
+              "    calculate (",
+              "        MAX('facttradedetails'[marketcap]), ",
+              "        'dimtimetable'[date] = lastday,",
+              "        'DimInstrument'[MarketId] = 6,",
+              "        'DimInstrument'[ExchangeId] in {1, 2} ",
+              "    )",
               ")",
               ""
             ]

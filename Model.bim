@@ -5792,6 +5792,147 @@
               "//        'FactTradeDetails'[ClosePrice] * [Client Volume Delta]",
               "        "
             ]
+          },
+          {
+            "name": "Client Fund Count",
+            "expression": [
+              "",
+              "VAR ClientCompanies =",
+              "    SUMMARIZE(",
+              "        'FactShareHolders',",
+              "        'FactShareHolders'[CompanyId],",
+              "        'DimShareHoldersProfile'[ShareHolderId]",
+              "    )",
+              "",
+              "//VAR ClientCompanies2 = ",
+              "//    TREATAS(",
+              "//        ClientCompanies,",
+              "//        FactShareHolders[CompanyId],",
+              "//        DimShareHoldersProfile[ShareHolderId]",
+              "//    )",
+              "VAR Cnt = ",
+              "    COUNTX(",
+              "        ClientCompanies,",
+              "        'FactShareHolders'[CompanyId]",
+              "    )",
+              "",
+              "RETURN",
+              "    Cnt"
+            ]
+          },
+          {
+            "name": "Client Subscription Value",
+            "expression": [
+              "",
+              "VAR Instrument =",
+              "    SELECTEDVALUE('DimFirouzehFund'[InstrumentId])",
+              "",
+              "VAR DatesInstruments1= ",
+              "    CROSSJOIN(",
+              "        VALUES('DimTimeTable'[Date]),",
+              "        SUMMARIZE('DimFirouzehFund', 'DimFirouzehFund'[FundId], 'DimFirouzehFund'[InstrumentId])",
+              "    )",
+              "",
+              "VAR DatesInstruments2 = ",
+              "    TREATAS(",
+              "        DatesInstruments1,",
+              "        'DimTimeTable'[Date],",
+              "        'DimFirouzehFund'[FundId],",
+              "        'DimInstrument'[InstrumentId]",
+              "    )",
+              "",
+              "VAR Prices = ",
+              "    ADDCOLUMNS(",
+              "        DatesInstruments2,",
+              "        \"Price\", CALCULATE(SELECTEDVALUE('FactTradeDetails'[ClosePrice])),",
+              "        \"Volume\", [Client Subscription Volume]",
+              "    )",
+              "",
+              "VAR Result =",
+              "    SUMX(",
+              "        Prices,",
+              "        [Price] * [Volume]",
+              "    )",
+              "        ",
+              "RETURN",
+              "    Result",
+              ""
+            ]
+          },
+          {
+            "name": "Client Subscription Volume",
+            "expression": [
+              " ",
+              "VAR Result =",
+              "CALCULATE(",
+              "    SUM('FactShareHolders'[VolumeDelta])",
+              "    , DimShareHoldersProfile[ShareHolderId] <> 59113",
+              "    , 'FactShareHolders'[VolumeDelta] > 0",
+              ")",
+              "RETURN",
+              "IF(",
+              "    Result = 0,",
+              "    BLANK(),",
+              "    Result",
+              ")"
+            ]
+          },
+          {
+            "name": "Client Redemption Volume",
+            "expression": [
+              " ",
+              "VAR Result =",
+              "CALCULATE(",
+              "    SUM('FactShareHolders'[VolumeDelta])",
+              "    , DimShareHoldersProfile[ShareHolderId] <> 59113",
+              "    , 'FactShareHolders'[VolumeDelta] < 0",
+              ")",
+              "RETURN",
+              "IF(",
+              "    Result = 0,",
+              "    BLANK(),",
+              "    Result",
+              ")"
+            ]
+          },
+          {
+            "name": "Client Redemption Value",
+            "expression": [
+              "",
+              "VAR Instrument =",
+              "    SELECTEDVALUE('DimFirouzehFund'[InstrumentId])",
+              "",
+              "VAR DatesInstruments1= ",
+              "    CROSSJOIN(",
+              "        VALUES('DimTimeTable'[Date]),",
+              "        SUMMARIZE('DimFirouzehFund', 'DimFirouzehFund'[FundId], 'DimFirouzehFund'[InstrumentId])",
+              "    )",
+              "",
+              "VAR DatesInstruments2 = ",
+              "    TREATAS(",
+              "        DatesInstruments1,",
+              "        'DimTimeTable'[Date],",
+              "        'DimFirouzehFund'[FundId],",
+              "        'DimInstrument'[InstrumentId]",
+              "    )",
+              "",
+              "VAR Prices = ",
+              "    ADDCOLUMNS(",
+              "        DatesInstruments2,",
+              "        \"Price\", CALCULATE(SELECTEDVALUE('FactTradeDetails'[ClosePrice])),",
+              "        \"Volume\", [Client Redemption Volume]",
+              "    )",
+              "",
+              "VAR Result =",
+              "    SUMX(",
+              "        Prices,",
+              "        [Price] * [Volume]",
+              "    )",
+              "        ",
+              "RETURN",
+              "    Result",
+              ""
+            ]
           }
         ]
       },
@@ -8915,6 +9056,16 @@
               "    )",
               ")",
               ""
+            ]
+          },
+          {
+            "name": "Individual Buyer Value New",
+            "expression": [
+              "",
+              "SUMX(",
+              "    'FactTradeDetails',",
+              "    DIVIDE('FactTradeDetails'[PersonBuyVolume], 'FactTradeDetails'[CompanySellVolume] + 'FactTradeDetails'[PersonSellVolume])  * [Trade Value]",
+              ")"
             ]
           }
         ]
@@ -12893,6 +13044,10 @@
           {
             "memberName": "IIDIC\\507464",
             "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1437"
+          },
+          {
+            "memberName": "IIDIC\\402DEV074",
+            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2746"
           }
         ],
         "tablePermissions": [

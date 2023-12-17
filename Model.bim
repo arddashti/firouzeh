@@ -10953,6 +10953,296 @@
             ]
           }
         ]
+      },
+      {
+        "name": "DimMarketEntity",
+        "columns": [
+          {
+            "name": "ID",
+            "dataType": "string",
+            "sourceColumn": "ID"
+          },
+          {
+            "name": "Level1",
+            "dataType": "string",
+            "sourceColumn": "Level1"
+          },
+          {
+            "name": "Level2",
+            "dataType": "string",
+            "sourceColumn": "Level2"
+          },
+          {
+            "name": "Level3",
+            "dataType": "string",
+            "sourceColumn": "Level3"
+          },
+          {
+            "name": "Level4",
+            "dataType": "string",
+            "sourceColumn": "Level4"
+          },
+          {
+            "type": "calculated",
+            "name": "NodeDepth",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "expression": [
+              "",
+              "SWITCH(",
+              "    TRUE(),",
+              "    'DimMarketEntity'[Level4] <> 'DimMarketEntity'[Level3], 4,",
+              "    'DimMarketEntity'[Level3] <> 'DimMarketEntity'[Level2], 3,",
+              "    'DimMarketEntity'[Level2] <> 'DimMarketEntity'[Level1], 2,",
+              "    1",
+              ")"
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    BI_ViwDimMarketEntity = Source{[Schema=\"BI\",Item=\"ViwDimMarketEntity\"]}[Data]",
+                "in",
+                "    BI_ViwDimMarketEntity"
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "BrowseDepth",
+            "expression": [
+              "",
+              "ISINSCOPE ( 'DimMarketEntity'[Level1] ) +",
+              "ISINSCOPE ( 'DimMarketEntity'[Level2] ) +",
+              "ISINSCOPE ( 'DimMarketEntity'[Level3] ) +",
+              "ISINSCOPE ( 'DimMarketEntity'[Level4] )"
+            ]
+          },
+          {
+            "name": "cc",
+            "expression": [
+              "",
+              "IF(",
+              "    [BrowseDepth] <= [ddd],",
+              "    1,",
+              "    0",
+              ")"
+            ]
+          },
+          {
+            "name": "ddd",
+            "expression": [
+              "",
+              "SELECTEDVALUE('DimMarketEntity'[NodeDepth])"
+            ]
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Hierarchy1",
+            "hideMembers": "hideBlankMembers",
+            "levels": [
+              {
+                "name": "Level1",
+                "ordinal": 0,
+                "column": "Level1"
+              },
+              {
+                "name": "Level2",
+                "ordinal": 1,
+                "column": "Level2"
+              },
+              {
+                "name": "Level3",
+                "ordinal": 2,
+                "column": "Level3"
+              },
+              {
+                "name": "Level4",
+                "ordinal": 3,
+                "column": "Level4"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "FactEntityReturn",
+        "columns": [
+          {
+            "name": "ID",
+            "dataType": "string",
+            "sourceColumn": "ID"
+          },
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "sourceColumn": "Date"
+          },
+          {
+            "name": "AdjPrice",
+            "dataType": "double",
+            "sourceColumn": "AdjPrice"
+          },
+          {
+            "name": "LastPrice",
+            "dataType": "double",
+            "sourceColumn": "LastPrice"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/192 168 220 10;DW\",",
+                "    BI_ViwFactEntityReturns = Source{[Schema=\"BI\",Item=\"ViwFactEntityReturn\"]}[Data]",
+                "in",
+                "    BI_ViwFactEntityReturns"
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Entity Return %",
+            "expression": [
+              "",
+              "VAR Entity = ",
+              "    SELECTEDVALUE('DimMarketEntity'[ID])",
+              "",
+              "VAR BaseDate1 = ",
+              "    CALCULATE(",
+              "        LASTNONBLANK(",
+              "            DATESBETWEEN(",
+              "                'DimTimeTable'[Date],",
+              "                BLANK(),",
+              "                CALCULATE(PREVIOUSDAY(FIRSTDATE('DimTimeTable'[Date])), 'FactEntityReturn'[ID]  = Entity)",
+              "            ),",
+              "            CALCULATE(COUNT('FactEntityReturn'[AdjPrice]))",
+              "        )",
+              "    ) ",
+              "VAR BaseDate2 = ",
+              "    FIRSTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        CALCULATE(COUNT('FactEntityReturn'[AdjPrice]), 'FactEntityReturn'[ID]  = Entity)",
+              "    )",
+              "",
+              "VAR BaseDate = ",
+              "    IF(",
+              "        ISBLANK(BaseDate1),",
+              "        BaseDate2,",
+              "        BaseDate1",
+              "    )",
+              "",
+              "VAR MaxDate = ",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        CALCULATE(COUNT('FactEntityReturn'[AdjPrice]),'FactEntityReturn'[ID]  = Entity)",
+              "    )",
+              "",
+              "VAR BaseFinal = ",
+              "    CALCULATE(",
+              "        SELECTEDVALUE('FactEntityReturn'[AdjPrice]), ",
+              "        'DimTimeTable'[Date] = BaseDate, ",
+              "        'FactEntityReturn'[ID]  = Entity",
+              "    )",
+              "",
+              "",
+              "VAR EndFinal = ",
+              "    CALCULATE(",
+              "        SELECTEDVALUE('FactEntityReturn'[AdjPrice]), ",
+              "        'DimTimeTable'[Date] = MaxDate, ",
+              "        'FactEntityReturn'[ID]  = Entity",
+              "    )",
+              "",
+              "VAR R = ",
+              "    IF(",
+              "        OR(ISBLANK(EndFinal), ISBLANK(BaseFinal)), BLANK(), ",
+              "        DIVIDE(EndFinal-BaseFinal, BaseFinal)",
+              "    )",
+              "",
+              "RETURN R"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Entity Return Cum %",
+            "expression": [
+              "",
+              "VAR Entity = ",
+              "    SELECTEDVALUE('DimMarketEntity'[ID])",
+              "",
+              "VAR BaseDate1 = ",
+              "    CALCULATE(",
+              "        LASTNONBLANK(",
+              "            DATESBETWEEN(",
+              "                'DimTimeTable'[Date],",
+              "                BLANK(),",
+              "                CALCULATE(PREVIOUSDAY(FIRSTDATE('DimTimeTable'[Date])), 'FactEntityReturn'[ID]  = Entity)",
+              "            ),",
+              "            CALCULATE(COUNT('FactEntityReturn'[AdjPrice]))",
+              "        )",
+              "    , ALLSELECTED('DimTimeTable'[Date])",
+              "    ) ",
+              "VAR BaseDate2 = ",
+              "    CALCULATE(",
+              "        FIRSTNONBLANK(",
+              "            'DimTimeTable'[Date],",
+              "            CALCULATE(COUNT('FactEntityReturn'[AdjPrice]), 'FactEntityReturn'[ID]  = Entity)",
+              "        )",
+              "    , ALLSELECTED('DimTimeTable'[Date])",
+              "    )",
+              "VAR BaseDate = ",
+              "    IF(",
+              "        ISBLANK(BaseDate1),",
+              "        BaseDate2,",
+              "        BaseDate1",
+              "    )",
+              "",
+              "VAR MaxDate = ",
+              "    LASTNONBLANK(",
+              "        'DimTimeTable'[Date],",
+              "        CALCULATE(COUNT('FactEntityReturn'[AdjPrice]),'FactEntityReturn'[ID]  = Entity)",
+              "    )",
+              "",
+              "VAR BaseFinal = ",
+              "    CALCULATE(",
+              "        SELECTEDVALUE('FactEntityReturn'[AdjPrice]), ",
+              "        'DimTimeTable'[Date] = BaseDate, ",
+              "        'FactEntityReturn'[ID]  = Entity",
+              "    )",
+              "",
+              "",
+              "VAR EndFinal = ",
+              "    CALCULATE(",
+              "        SELECTEDVALUE('FactEntityReturn'[AdjPrice]), ",
+              "        'DimTimeTable'[Date] = MaxDate, ",
+              "        'FactEntityReturn'[ID]  = Entity",
+              "    )",
+              "",
+              "VAR R = ",
+              "    IF(",
+              "        OR(ISBLANK(EndFinal), ISBLANK(BaseFinal)), BLANK(), ",
+              "        DIVIDE(EndFinal-BaseFinal, BaseFinal)",
+              "    )",
+              "",
+              "RETURN R"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          }
+        ]
       }
     ],
     "relationships": [
@@ -11285,6 +11575,20 @@
         "toTable": "DimInstrument",
         "toColumn": "InstrumentId",
         "crossFilteringBehavior": "bothDirections"
+      },
+      {
+        "name": "c89a965f-f2fe-4b34-8372-5ae1133f9192",
+        "fromTable": "FactEntityReturn",
+        "fromColumn": "ID",
+        "toTable": "DimMarketEntity",
+        "toColumn": "ID"
+      },
+      {
+        "name": "cf2aa5a2-0355-4f68-9666-113eaf9862c2",
+        "fromTable": "FactEntityReturn",
+        "fromColumn": "Date",
+        "toTable": "DimTimeTable",
+        "toColumn": "Date"
       }
     ],
     "perspectives": [

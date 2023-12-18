@@ -11589,6 +11589,15 @@
         "fromColumn": "Date",
         "toTable": "DimTimeTable",
         "toColumn": "Date"
+      },
+      {
+        "name": "48d2b4dd-1cbc-4ca8-bbc0-281706f167a3",
+        "fromCardinality": "one",
+        "fromTable": "DimFunds",
+        "fromColumn": "FundId",
+        "toTable": "DimMarketEntity",
+        "toColumn": "ID",
+        "crossFilteringBehavior": "bothDirections"
       }
     ],
     "perspectives": [

@@ -4881,7 +4881,34 @@
               "",
               "RETURN Bubble",
               ""
-            ]
+            ],
+            "formatString": "#,0"
+          },
+          {
+            "name": "Fund Bubble %",
+            "expression": [
+              "",
+              "VAR Lastday =",
+              "    MAX('FactFunds'[Date])",
+              "",
+              "VAR Red =",
+              "    CALCULATE(",
+              "        SELECTEDVALUE('FactFunds'[RedemptionPrice]),",
+              "        'DimTimeTable'[Date] = Lastday",
+              "    )",
+              "VAR Bubble = ",
+              "    [Fund Bubble]",
+              "",
+              "VAR BubblePercentage = ",
+              "    DIVIDE(",
+              "        Bubble,",
+              "        Red",
+              "    )",
+              "",
+              "RETURN",
+              "    BubblePercentage"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
           }
         ]
       },
@@ -9362,7 +9389,10 @@
             "expression": [
               " ",
               "VAR Entities =",
-              "    TREATAS(VALUES('DimMarketEntity'[InstrumentId]), 'DimInstrument'[InstrumentId])",
+              "    TREATAS(",
+              "        VALUES('DimMarketEntity'[InstrumentId]), ",
+              "        'DimInstrument'[InstrumentId]",
+              "    )",
               "",
               "VAR Instruments = ",
               "    CALCULATETABLE(",
@@ -9377,33 +9407,36 @@
               "VAR Lastday =",
               "    CALCULATE(",
               "        MAX('FactTradeDetails'[Date]),",
-              "        FILTER(",
-              "            'DimInstrument',",
-              "            Entities    ",
-              "        )",
+              "        ALL('DimInstrument')",
               "    )",
               "",
               "VAR MarketCap = ",
               "    IF(",
-              "    ISFILTERED('DimMarketEntity'),",
-              "//        SUMX(",
-              "//            Entities,",
-              "//            CALCULATE(",
-              "//                MAX('FactTradeDetails'[MarketCap]), ",
-              "//                'DimTimeTable'[Date] = Lastday",
-              "//            )",
-              "//        ),",
-              "        SELECTEDVALUE('DimInstrument'[InstrumentId]),",
+              "        ISFILTERED('DimMarketEntity'),",
+              "        SUMX(",
+              "            Entities,",
+              "            CALCULATE(",
+              "                SELECTEDVALUE('FactTradeDetails'[MarketCap]), ",
+              "                'DimTimeTable'[Date] = Lastday",
+              "            )",
+              "        ),        ",
               "        SUMX(",
               "            Instruments,",
               "            CALCULATE(",
-              "                MAX('FactTradeDetails'[MarketCap]), ",
+              "                SELECTEDVALUE('FactTradeDetails'[MarketCap]), ",
               "                'DimTimeTable'[Date] = Lastday",
               "            )",
               "        )",
               "    )",
               "",
               "RETURN MarketCap"
+            ],
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
             ]
           }
         ]
@@ -11436,6 +11469,62 @@
               ""
             ],
             "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "Entity Size",
+            "expression": [
+              " ",
+              "VAR Entities =",
+              "    TREATAS(",
+              "        VALUES('DimMarketEntity'[InstrumentId]), ",
+              "        'DimInstrument'[InstrumentId]",
+              "    )",
+              "",
+              "VAR Lastday =",
+              "    CALCULATE(",
+              "        MAX('FactTradeDetails'[Date]),",
+              "        ALL('DimInstrument')",
+              "    )",
+              "",
+              "VAR MarketCap = ",
+              "        CALCULATE(",
+              "            SELECTEDVALUE('FactTradeDetails'[MarketCap]), ",
+              "            'DimTimeTable'[Date] = Lastday,",
+              "            Entities",
+              "        )",
+              "",
+              "VAR Fund =",
+              "    VALUE(",
+              "        CALCULATE(",
+              "            SELECTEDVALUE('DimMarketEntity'[ID]),",
+              "            'DimMarketEntity'[Level1] = \"صندوق\"",
+              "        )",
+              "    )",
+              "",
+              "VAR AUM = ",
+              "    CALCULATE(",
+              "        [AUM],",
+              "        'DimTimeTable'[Date] = Lastday,",
+              "        'DimFunds'[FundId] = Fund,",
+              "        Entities",
+              "    )",
+              "",
+              "VAR EntitySize =",
+              "    IF(",
+              "        NOT ISBLANK(MarketCap),",
+              "        MarketCap,",
+              "        IF(NOT ISBLANK(AUM), AUM, BLANK())",
+              "    )",
+              "",
+              "RETURN EntitySize"
+            ],
+            "formatString": "\"IRR\" #,0;-\"IRR\" #,0;\"IRR\" #,0",
+            "annotations": [
+              {
+                "name": "Format",
+                "value": "<Format Format=\"Currency\"><Currency LCID=\"4096\" DisplayName=\"IRR Mazanderani (Iran)\" Symbol=\"IRR\" PositivePattern=\"2\" NegativePattern=\"9\" /></Format>"
+              }
+            ]
           }
         ]
       }

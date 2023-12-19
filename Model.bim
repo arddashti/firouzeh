@@ -4856,6 +4856,32 @@
               "    BLANK()",
               ")"
             ]
+          },
+          {
+            "name": "Fund Bubble",
+            "expression": [
+              "",
+              "VAR Lastday =",
+              "    MAX('FactFunds'[Date])",
+              "",
+              "VAR Red =",
+              "    CALCULATE(",
+              "        SELECTEDVALUE('FactFunds'[RedemptionPrice]),",
+              "        'DimTimeTable'[Date] = Lastday",
+              "    )",
+              "",
+              "VAR Price =",
+              "    CALCULATE(",
+              "        SELECTEDVALUE('FactTradeDetails'[ClosePrice]),",
+              "        'DimTimeTable'[Date] = Lastday",
+              "    )    ",
+              "",
+              "VAR Bubble =",
+              "    Price - Red",
+              "",
+              "RETURN Bubble",
+              ""
+            ]
           }
         ]
       },
@@ -6194,7 +6220,15 @@
             "name": "Is AUM in range",
             "expression": [
               " ",
-              "IF([AUM]>=[Min AUM] && [AUM] <= [Max AUM], 1,0)"
+              "IF(",
+              "    ISBLANK([AUM]),",
+              "    BLANK(),",
+              "    IF(",
+              "        [AUM]>=[Min AUM] && [AUM] <= [Max AUM], ",
+              "        1,",
+              "        0",
+              "    )",
+              ")"
             ],
             "displayFolder": "AUM"
           },
@@ -9322,6 +9356,55 @@
               "    DIVIDE('FactTradeDetails'[PersonBuyVolume], 'FactTradeDetails'[CompanySellVolume] + 'FactTradeDetails'[PersonSellVolume])  * [Trade Value]",
               ")"
             ]
+          },
+          {
+            "name": "Market Cap (Currency) New",
+            "expression": [
+              " ",
+              "VAR Entities =",
+              "    TREATAS(VALUES('DimMarketEntity'[InstrumentId]), 'DimInstrument'[InstrumentId])",
+              "",
+              "VAR Instruments = ",
+              "    CALCULATETABLE(",
+              "        VALUES('DimInstrument'[InstrumentId]),    ",
+              "        FILTER(",
+              "            'DimInstrument',",
+              "            'DimInstrument'[MarketId] = 6 &&",
+              "            'DimInstrument'[ExchangeId] IN {1,2} ",
+              "        )",
+              "    )",
+              "",
+              "VAR Lastday =",
+              "    CALCULATE(",
+              "        MAX('FactTradeDetails'[Date]),",
+              "        FILTER(",
+              "            'DimInstrument',",
+              "            Entities    ",
+              "        )",
+              "    )",
+              "",
+              "VAR MarketCap = ",
+              "    IF(",
+              "    ISFILTERED('DimMarketEntity'),",
+              "//        SUMX(",
+              "//            Entities,",
+              "//            CALCULATE(",
+              "//                MAX('FactTradeDetails'[MarketCap]), ",
+              "//                'DimTimeTable'[Date] = Lastday",
+              "//            )",
+              "//        ),",
+              "        SELECTEDVALUE('DimInstrument'[InstrumentId]),",
+              "        SUMX(",
+              "            Instruments,",
+              "            CALCULATE(",
+              "                MAX('FactTradeDetails'[MarketCap]), ",
+              "                'DimTimeTable'[Date] = Lastday",
+              "            )",
+              "        )",
+              "    )",
+              "",
+              "RETURN MarketCap"
+            ]
           }
         ]
       },
@@ -10996,6 +11079,11 @@
               "    1",
               ")"
             ]
+          },
+          {
+            "name": "InstrumentId",
+            "dataType": "int64",
+            "sourceColumn": "InstrumentId"
           }
         ],
         "partitions": [
@@ -11676,14 +11764,6 @@
         "toColumn": "AssetId"
       },
       {
-        "name": "d629defb-8b89-4fea-9989-93187533ed01",
-        "fromTable": "DimFunds",
-        "fromColumn": "InstrumentId",
-        "toTable": "DimInstrument",
-        "toColumn": "InstrumentId",
-        "crossFilteringBehavior": "bothDirections"
-      },
-      {
         "name": "c89a965f-f2fe-4b34-8372-5ae1133f9192",
         "fromTable": "FactEntityReturn",
         "fromColumn": "ID",
@@ -11698,15 +11778,6 @@
         "toColumn": "Date"
       },
       {
-        "name": "48d2b4dd-1cbc-4ca8-bbc0-281706f167a3",
-        "fromCardinality": "one",
-        "fromTable": "DimFunds",
-        "fromColumn": "FundId",
-        "toTable": "DimMarketEntity",
-        "toColumn": "ID",
-        "crossFilteringBehavior": "bothDirections"
-      },
-      {
         "name": "e6ece675-5a0b-4aa8-8740-a55e6de4245f",
         "fromTable": "FactDPS",
         "fromColumn": "Date",
@@ -11719,6 +11790,21 @@
         "fromColumn": "AssetId",
         "toTable": "DimAsset",
         "toColumn": "AssetId"
+      },
+      {
+        "name": "4909bff3-e969-4d5b-86a5-255aa066152c",
+        "fromTable": "DimFunds",
+        "fromColumn": "InstrumentId",
+        "toTable": "DimInstrument",
+        "toColumn": "InstrumentId",
+        "crossFilteringBehavior": "bothDirections"
+      },
+      {
+        "name": "52c1ce8c-96b7-40bb-ba62-c8f2c0114ff3",
+        "fromTable": "DimMarketEntity",
+        "fromColumn": "ID",
+        "toTable": "DimFunds",
+        "toColumn": "FundId"
       }
     ],
     "perspectives": [
@@ -13219,19 +13305,10 @@
                 "name": "FundSubTypeEn"
               },
               {
-                "name": "ColorCode"
-              },
-              {
-                "name": "AUM"
-              },
-              {
                 "name": "InstrumentId"
               },
               {
                 "name": "BourseCode"
-              },
-              {
-                "name": "ETF"
               },
               {
                 "name": "DividendIntervalPeriod"

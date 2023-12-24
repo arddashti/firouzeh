@@ -30,7 +30,7 @@
         "connectionDetails": {
           "protocol": "active-directory",
           "address": {
-            "domain": "iidic.com"
+            "domain": "iidic.local"
           },
           "authentication": null,
           "query": null
@@ -10739,9 +10739,9 @@
             "sourceColumn": "displayName"
           },
           {
-            "name": "userPrincipalName",
+            "name": "user.userPrincipalName",
             "dataType": "string",
-            "sourceColumn": "userPrincipalName"
+            "sourceColumn": "user.userPrincipalName"
           }
         ],
         "partitions": [
@@ -10753,10 +10753,10 @@
               "expression": [
                 "let",
                 "    Source = #\"ActiveDirectory/iidic com\",",
-                "    iidic.com = Source{[Domain=\"iidic.com\"]}[#\"Object Categories\"],",
-                "    user1 = iidic.com{[Category=\"user\"]}[Objects],",
-                "    #\"Removed Columns\" = Table.RemoveColumns(user1,{\"organizationalPerson\", \"person\", \"top\", \"msExchOmaUser\", \"msExchBaseClass\", \"msExchIMRecipient\", \"msExchCertificateInformation\", \"msExchMultiMediaUser\", \"msExchMailStorage\", \"msExchCustomAttributes\", \"shadowAccount\", \"posixAccount\", \"msDS-CloudExtensions\", \"securityPrincipal\", \"mailRecipient\", \"distinguishedName\"}),",
-                "    #\"Expanded user\" = Table.ExpandRecordColumn(#\"Removed Columns\", \"user\", {\"servicePrincipalName\", \"userPrincipalName\"}, {\"servicePrincipalName\", \"userPrincipalName\"})",
+                "    #\"iidic local\" = Source{[Domain=\"iidic.local\"]}[Object Categories],",
+                "    user = #\"iidic local\"{[Category=\"user\"]}[Objects],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(user,{\"organizationalPerson\", \"person\", \"top\", \"shadowAccount\", \"posixAccount\", \"msDS-CloudExtensions\", \"securityPrincipal\", \"mailRecipient\", \"distinguishedName\"}),",
+                "    #\"Expanded user\" = Table.ExpandRecordColumn(#\"Removed Columns\", \"user\", {\"userPrincipalName\"}, {\"user.userPrincipalName\"})",
                 "in",
                 "    #\"Expanded user\""
               ]
@@ -10967,7 +10967,7 @@
           },
           {
             "name": "UserId",
-            "dataType": "int64",
+            "dataType": "string",
             "sourceColumn": "UserId"
           },
           {

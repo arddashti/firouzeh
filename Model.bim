@@ -13299,40 +13299,8 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\507481",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1390"
-          },
-          {
-            "memberName": "IIDIC\\402VC042",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2653"
-          },
-          {
-            "memberName": "IIDIC\\507153",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1647"
-          },
-          {
-            "memberName": "IIDIC\\507268",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1393"
-          },
-          {
-            "memberName": "IIDIC\\507275",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1462"
-          },
-          {
-            "memberName": "IIDIC\\507484",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1520"
-          },
-          {
-            "memberName": "IIDIC\\507333",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1737"
-          },
-          {
-            "memberName": "IIDIC\\402BI114",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2177"
-          },
-          {
-            "memberName": "IIDIC\\402BI113",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2179"
+            "memberName": "IIDIC\\Full Access",
+            "memberId": "S-1-5-21-1879288578-415552754-1197841637-1496"
           }
         ],
         "tablePermissions": [
@@ -13492,36 +13460,8 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\507485",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1521"
-          },
-          {
-            "memberName": "IIDIC\\507481",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1390"
-          },
-          {
-            "memberName": "IIDIC\\507440",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1253"
-          },
-          {
-            "memberName": "IIDIC\\507392",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1710"
-          },
-          {
-            "memberName": "IIDIC\\140201",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2052"
-          },
-          {
-            "memberName": "IIDIC\\402bi038",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2647"
-          },
-          {
-            "memberName": "IIDIC\\402bi060",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2708"
-          },
-          {
-            "memberName": "IIDIC\\402MG040",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2644"
+            "memberName": "IIDIC\\Fipiran",
+            "memberId": "S-1-5-21-1879288578-415552754-1197841637-1495"
           }
         ],
         "tablePermissions": [
@@ -13788,26 +13728,14 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\507275",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1462"
-          },
-          {
-            "memberName": "IIDIC\\10052",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1494"
-          },
-          {
-            "memberName": "IIDIC\\507201",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1731"
-          },
-          {
-            "memberName": "IIDIC\\402sa082",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2134"
+            "memberName": "IIDIC\\AssetManagementTopManagement",
+            "memberId": "S-1-5-21-1879288578-415552754-1197841637-1492"
           }
         ],
         "tablePermissions": [
           {
             "name": "DimPortfolio",
-            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {1,3}"
+            "filterExpression": "'DimPortfolio'[PortfolioTypeId] in {2,3}"
           }
         ]
       },
@@ -13816,8 +13744,8 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\497095",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1615"
+            "memberName": "IIDIC\\CompaniesTopManagement",
+            "memberId": "S-1-5-21-1879288578-415552754-1197841637-1494"
           }
         ],
         "tablePermissions": [
@@ -13832,8 +13760,8 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\507415",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1629"
+            "memberName": "IIDIC\\Market",
+            "memberId": "S-1-5-21-1879288578-415552754-1197841637-1497"
           }
         ]
       },
@@ -13842,24 +13770,8 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\10045",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1414"
-          },
-          {
-            "memberName": "IIDIC\\507258",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1732"
-          },
-          {
-            "memberName": "IIDIC\\507476",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1470"
-          },
-          {
-            "memberName": "IIDIC\\410026",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1762"
-          },
-          {
-            "memberName": "IIDIC\\507349",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1729"
+            "memberName": "IIDIC\\PortfolioManager",
+            "memberId": "S-1-5-21-1879288578-415552754-1197841637-1498"
           }
         ],
         "tablePermissions": [
@@ -13874,56 +13786,8 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\402sa051",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2660"
-          },
-          {
-            "memberName": "IIDIC\\507268",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1393"
-          },
-          {
-            "memberName": "IIDIC\\507382",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1734"
-          },
-          {
-            "memberName": "IIDIC\\507481",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1390"
-          },
-          {
-            "memberName": "IIDIC\\507484",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1520"
-          },
-          {
-            "memberName": "IIDIC\\507485",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1521"
-          },
-          {
-            "memberName": "IIDIC\\507459",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1384"
-          },
-          {
-            "memberName": "IIDIC\\507492",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1558"
-          },
-          {
-            "memberName": "IIDIC\\402sa064",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-3609"
-          },
-          {
-            "memberName": "IIDIC\\402sa066",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2717"
-          },
-          {
-            "memberName": "IIDIC\\410036",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1756"
-          },
-          {
-            "memberName": "IIDIC\\507464",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1437"
-          },
-          {
-            "memberName": "IIDIC\\402DEV074",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2746"
+            "memberName": "IIDIC\\Asset Management",
+            "memberId": "S-1-5-21-1879288578-415552754-1197841637-1464"
           }
         ],
         "tablePermissions": [
@@ -13946,12 +13810,8 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\507485",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1521"
-          },
-          {
-            "memberName": "IIDIC\\507382",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-1734"
+            "memberName": "IIDIC\\BD and Marketing",
+            "memberId": "S-1-5-21-1879288578-415552754-1197841637-1493"
           }
         ],
         "tablePermissions": [
@@ -13968,12 +13828,6 @@
       {
         "name": "FullPortfolio",
         "modelPermission": "read",
-        "members": [
-          {
-            "memberName": "IIDIC\\402fi093",
-            "memberId": "S-1-5-21-1537697263-3382915313-1145834991-2152"
-          }
-        ],
         "tablePermissions": [
           {
             "name": "DimShareHoldersProfile",

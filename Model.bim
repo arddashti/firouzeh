@@ -554,7 +554,8 @@
               "    'DimTimeTable'[Date] > LastTradeDay, BLANK(),",
               "    'DimTimeTable'[DateKey]",
               ")"
-            ]
+            ],
+            "sortByColumn": "Date"
           }
         ],
         "partitions": [
@@ -2461,10 +2462,22 @@
             "name": "AUM % of Total",
             "expression": [
               " ",
-              "DIVIDE(",
-              "    [AUM],",
-              "    CALCULATE([AUM], ALLSELECTED('DimFunds'))",
-              ")"
+              "VAR AUM = [AUM]",
+              "VAR AUMOfTotal = ",
+              "    CALCULATE(",
+              "        [AUM],",
+              "        ALLSELECTED('DimFunds')",
+              "    )",
+              "VAR AUMPctOfTotal =",
+              "    DIVIDE(",
+              "        AUM,",
+              "        AUMOfTotal",
+              "    )",
+              "",
+              "RETURN",
+              "    AUMPctOfTotal",
+              "",
+              ""
             ],
             "formatString": "0.0%;-0.0%;0.0%",
             "displayFolder": "AUM"
@@ -2587,7 +2600,11 @@
               "        \"LastDate\", ",
               "         CALCULATE(",
               "            LASTNONBLANK(",
-              "                'DimTimeTable'[Date],",
+              "                DATESBETWEEN(",
+              "                    'DimTimeTable'[Date],",
+              "                    Blank(),",
+              "                    MAX('DimTimeTable'[Date])",
+              "                ),",
               "                CALCULATE(COUNT('FactManagerAUM'[AUM2]))",
               "            )",
               "        )       ",
@@ -4933,6 +4950,106 @@
               "",
               "RETURN",
               "    BubblePercentage"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "AUM Change Over Previous Week",
+            "expression": [
+              "",
+              "VAR ShiftedDates =",
+              "    DATEADD('DimTimeTable'[Date], -7, DAY)",
+              "",
+              "VAR LastWeekAUM =",
+              "    CALCULATE(",
+              "        [AUM],",
+              "        ShiftedDates",
+              "    )",
+              "",
+              "VAR AUM =",
+              "    [AUM]",
+              "",
+              "VAR Delta =",
+              "    AUM - LastWeekAUM",
+              "",
+              "RETURN",
+              "    IF(",
+              "        NOT ISBLANK(AUM) && NOT ISBLANK(LastWeekAUM),",
+              "        Delta,",
+              "        BLANK()",
+              "    )"
+            ],
+            "formatString": "#,0"
+          },
+          {
+            "name": "Last AUM Date",
+            "expression": [
+              "",
+              "LOOKUPVALUE(",
+              "    'DimTimeTable'[DateKey],",
+              "    'DimTimeTable'[Date],",
+              "    MAX('FactFunds'[Date])",
+              ")"
+            ]
+          },
+          {
+            "name": "AUM Change Over Previous Week %",
+            "expression": [
+              "",
+              "DIVIDE(",
+              "    [AUM Change Over Previous Week],",
+              "    [AUM] - [AUM Change Over Previous Week] ",
+              ")"
+            ],
+            "formatString": "0.0%;-0.0%;0.0%"
+          },
+          {
+            "name": "AUM of Previous WEEK",
+            "expression": [
+              "",
+              "VAR ShiftedDates =",
+              "    DATEADD('DimTimeTable'[Date], -7, DAY)",
+              "",
+              "VAR LastWeekAUM =",
+              "    CALCULATE(",
+              "        [AUM],",
+              "        ShiftedDates",
+              "    )",
+              "",
+              "RETURN ",
+              "    LastWeekAUM"
+            ]
+          },
+          {
+            "name": "AUM Growth %",
+            "expression": [
+              "",
+              "VAR FirstDay =",
+              "    MIN('DimTimeTable'[Date])",
+              "",
+              "VAR LastDay =",
+              "    MAX('DimTimeTable'[Date])",
+              "",
+              "VAR FirstAUM =",
+              "    CALCULATE( ",
+              "        [AUM],",
+              "        'DimTimeTable'[Date] = FirstDay",
+              ")",
+              "",
+              "VAR LastAUM = ",
+              "    CALCULATE( ",
+              "        [AUM],",
+              "        'DimTimeTable'[Date] = LastDay",
+              ")    ",
+              "",
+              "VAR Growth =",
+              "    DIVIDE(",
+              "        LastAUM,",
+              "        FirstAUM",
+              "    ) - 1 ",
+              "",
+              "RETURN ",
+              "    Growth"
             ],
             "formatString": "0.0%;-0.0%;0.0%"
           }
@@ -13414,7 +13531,7 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\Full Access",
+            "memberName": "IIDIC\\BI_FullAccess",
             "memberId": "S-1-5-21-1879288578-415552754-1197841637-1496"
           }
         ],
@@ -13575,7 +13692,7 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\Fipiran",
+            "memberName": "IIDIC\\BI_Fipiran",
             "memberId": "S-1-5-21-1879288578-415552754-1197841637-1495"
           }
         ],
@@ -13843,7 +13960,7 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\AssetManagementTopManagement",
+            "memberName": "IIDIC\\BI_AssetManagementTopManagement",
             "memberId": "S-1-5-21-1879288578-415552754-1197841637-1492"
           }
         ],
@@ -13859,7 +13976,7 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\CompaniesTopManagement",
+            "memberName": "IIDIC\\BI_CompaniesTopManagement",
             "memberId": "S-1-5-21-1879288578-415552754-1197841637-1494"
           }
         ],
@@ -13875,7 +13992,7 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\Market",
+            "memberName": "IIDIC\\BI_Market",
             "memberId": "S-1-5-21-1879288578-415552754-1197841637-1497"
           }
         ]
@@ -13885,7 +14002,7 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\PortfolioManager",
+            "memberName": "IIDIC\\BI_PortfolioManagers",
             "memberId": "S-1-5-21-1879288578-415552754-1197841637-1498"
           }
         ],
@@ -13901,7 +14018,7 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\Asset Management",
+            "memberName": "IIDIC\\BI_Asset Management",
             "memberId": "S-1-5-21-1879288578-415552754-1197841637-1464"
           }
         ],
@@ -13925,7 +14042,7 @@
         "modelPermission": "read",
         "members": [
           {
-            "memberName": "IIDIC\\BD and Marketing",
+            "memberName": "IIDIC\\BI_BDandMarketing",
             "memberId": "S-1-5-21-1879288578-415552754-1197841637-1493"
           }
         ],
